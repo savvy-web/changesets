@@ -18,6 +18,7 @@ export { Categories } from "./api/categories.js";
 export { Changelog } from "./api/changelog.js";
 export type { LintMessage } from "./api/linter.js";
 export { ChangesetLinter } from "./api/linter.js";
+export { ChangelogTransformer } from "./api/transformer.js";
 
 // === Effect Services ===
 
