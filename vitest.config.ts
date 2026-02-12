@@ -31,12 +31,12 @@ export default defineConfig({
 			],
 			include: ["src/**/*.{ts,tsx}"],
 			clean: true,
-			// Coverage thresholds (adjust as needed)
+			// Coverage thresholds — floor enforced going forward
 			thresholds: {
-				lines: 5,
-				functions: 5,
-				branches: 5,
-				statements: 5,
+				lines: 85,
+				functions: 80,
+				branches: 85,
+				statements: 85,
 			},
 			reportOnFailure: true,
 		},

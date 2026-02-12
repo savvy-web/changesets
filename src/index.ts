@@ -1,18 +1,76 @@
 /**
- * \@savvy-web/example-module
+ * \@savvy-web/changesets
  *
- * Version-aware type definition registry for TypeScript documentation with Twoslash.
- * Built with Effect for robust error handling and composable async operations.
+ * Custom changelog formatter and markdown processing pipeline for the Silk Suite.
+ * Provides structured changeset sections, remark-based validation and transformation,
+ * and an Effect CLI.
+ *
+ * This module exposes two API surfaces:
+ * - **Effect primitives**: Services, layers, schemas, and tagged errors for Effect-native consumers
+ * - **Class-based API**: Static class wrappers for higher-level consumers
  *
  * @packageDocumentation
  */
 
-export interface Foo {
-	baz: number;
-}
+// === Class-Based API (for higher-level consumers) ===
 
-export class Bar {
-	qux(): Foo {
-		return { baz: 42 };
-	}
-}
+export { Categories } from "./api/categories.js";
+export { Changelog } from "./api/changelog.js";
+export type { LintMessage } from "./api/linter.js";
+export { ChangesetLinter } from "./api/linter.js";
+export { ChangelogTransformer } from "./api/transformer.js";
+
+// === Effect Services ===
+
+export type { ChangelogServiceShape } from "./services/changelog.js";
+export { ChangelogService, ChangelogServiceBase } from "./services/changelog.js";
+export type { GitHubServiceShape } from "./services/github.js";
+export { GitHubService, GitHubServiceBase } from "./services/github.js";
+export type { MarkdownServiceShape } from "./services/markdown.js";
+export { MarkdownService, MarkdownServiceBase } from "./services/markdown.js";
+
+// === Effect Layers ===
+
+export { GitHubLive, makeGitHubTest } from "./services/github.js";
+export { MarkdownLive } from "./services/markdown.js";
+
+// === Tagged Errors ===
+
+export {
+	ChangesetValidationError,
+	ChangesetValidationErrorBase,
+	ConfigurationError,
+	ConfigurationErrorBase,
+	GitHubApiError,
+	GitHubApiErrorBase,
+	MarkdownParseError,
+	MarkdownParseErrorBase,
+} from "./errors.js";
+
+// === Schemas ===
+
+export { SectionCategorySchema } from "./categories/types.js";
+export type { Changeset, DependencyType, DependencyUpdate } from "./schemas/changeset.js";
+export {
+	ChangesetSchema,
+	ChangesetSummarySchema,
+	DependencyTypeSchema,
+	DependencyUpdateSchema,
+} from "./schemas/changeset.js";
+export type { VersionType } from "./schemas/git.js";
+export { CommitHashSchema, VersionTypeSchema } from "./schemas/git.js";
+export type { GitHubInfo } from "./schemas/github.js";
+export {
+	GitHubInfoSchema,
+	IssueNumberSchema,
+	UrlOrMarkdownLinkSchema,
+	UsernameSchema,
+} from "./schemas/github.js";
+export type { ChangesetOptions } from "./schemas/options.js";
+export { ChangesetOptionsSchema, RepoSchema } from "./schemas/options.js";
+export { NonEmptyString, PositiveInteger } from "./schemas/primitives.js";
+
+// === Types ===
+
+export type { SectionCategory } from "./categories/types.js";
+export type { GitHubCommitInfo } from "./vendor/github-info.js";
