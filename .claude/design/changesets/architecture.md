@@ -1,14 +1,14 @@
 ---
-status: draft
+status: current
 module: changesets
 category: architecture
 created: 2026-02-11
 updated: 2026-02-12
 last-synced: 2026-02-12
-completeness: 78
+completeness: 95
 related: []
 dependencies: []
-implementation-status: in-progress
+implementation-status: implemented
 ---
 
 # @savvy-web/changesets - Architecture
@@ -74,31 +74,57 @@ all Silk Suite repositories with a structured, section-aware changelog generatio
 
 ### Repository Status
 
-Phases 1-7 of 9 are complete. All three processing layers are implemented and tested,
-along with the Effect CLI. The package is functional with 339 tests passing across 33
-test files. Remaining work is integration testing (Phase 8) and documentation/release
-prep (Phase 9).
+Phases 1-8 of 9 are complete. All three processing
+layers are fully implemented and tested, along with
+the Effect CLI and integration test suite. The package
+is functional with 360 tests passing across 37 test
+files.
+
+**Coverage:**
+
+- 87.4% lines
+- 85.2% branches
+- 80.9% functions
+- 88.1% statements
 
 **What is implemented:**
 
-- Package renamed and configured as `@savvy-web/changesets`
-- Multi-entry export map: `.`, `./changelog`, `./remark-lint`, `./remark-transform`
-- CLI binary `savvy-changeset` with 3 subcommands: `lint`, `transform`, `check`
-- 13-category system with priority ordering and commit type mapping
-- Effect schemas for all system boundary types + 4 tagged errors
-- Layer 2 (Changelog Formatter): `getReleaseLine`, `getDependencyReleaseLine`, GitHub API integration
-- Layer 1 (Remark Lint): 3 rules — heading-hierarchy, required-sections, content-structure
-- Layer 3 (Remark Transform): 6 plugins — merge-sections, reorder-sections, deduplicate-items,
-  contributor-footnotes, issue-link-refs, normalize-format
-- Effect CLI using `@effect/cli` with `NodeContext.layer`
-- Class-based API wrappers: `ChangesetLinter`, `ChangelogTransformer`, `Changelog`, `Categories`
-- Effect services: `ChangelogService`, `GitHubService`, `MarkdownService`
-- Build produces both `dist/dev/` and `dist/npm/` with all entry points including CLI binary
+- Package renamed and configured as
+  `@savvy-web/changesets`
+- Multi-entry export map: `.`, `./changelog`,
+  `./remark-lint`, `./remark-transform`
+- CLI binary `savvy-changeset` with 3 subcommands:
+  `lint`, `transform`, `check`
+- 13-category system with priority ordering and
+  commit type mapping
+- Effect schemas for all system boundary types +
+  4 tagged errors
+- Layer 2 (Changelog Formatter): `getReleaseLine`,
+  `getDependencyReleaseLine`, GitHub API integration
+- Layer 1 (Remark Lint): 3 rules --
+  heading-hierarchy, required-sections,
+  content-structure
+- Layer 3 (Remark Transform): 6 plugins --
+  merge-sections, reorder-sections,
+  deduplicate-items, contributor-footnotes,
+  issue-link-refs, normalize-format
+- Effect CLI using `@effect/cli` with
+  `NodeContext.layer`
+- Class-based API wrappers: `ChangesetLinter`,
+  `ChangelogTransformer`, `Changelog`, `Categories`
+- Effect services: `ChangelogService`,
+  `GitHubService`, `MarkdownService`
+- Build produces both `dist/dev/` and `dist/npm/`
+  with all entry points including CLI binary
+- Integration tests verify full pipeline,
+  workflow-release-action compatibility, and
+  round-trip validation
+- Coverage thresholds enforced at 85%/80%
 
 **What remains:**
 
-- Phase 8: Integration testing with fixture-driven scenarios, full pipeline tests
-- Phase 9: README documentation, migration guide, self-dogfooding config, release prep
+- Phase 9: README documentation, migration guide,
+  self-dogfooding config, release prep
 
 ### Source Files (Implemented)
 
@@ -1761,17 +1787,25 @@ The output must survive Biome formatting without structural changes:
 
 ## Testing Strategy
 
-The test suite is designed around a **fixture-driven approach** that makes it easy to iterate
-on output quality. Fixtures represent real-world package structures, commit patterns, and
-changeset styles so that changes to formatting logic are immediately visible as diffs against
-expected output.
+The test suite uses a combination of inline
+fixture tests and unit tests across all layers.
+360 tests pass across 37 test files with coverage
+thresholds enforced at 85% lines/80% functions.
 
-### Fixture-Driven Test Harness
+**Actual Coverage (as of Phase 8 completion):**
 
-The core testing pattern: each scenario is a directory containing input fixtures and
-expected output snapshots. Tests run the full pipeline (or individual layers) against
-the input and compare to expected output. This makes it trivial to add new scenarios,
-visually review formatting changes, and catch regressions.
+- 87.4% lines
+- 85.2% branches
+- 80.9% functions
+- 88.1% statements
+
+### Integration Testing Approach
+
+Rather than the originally planned fixture-directory
+approach, integration tests use inline markdown
+fixtures with snapshot-style assertions. This
+matches the patterns already established in the
+unit tests and avoids unnecessary complexity.
 
 ```text
 __fixtures__/
