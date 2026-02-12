@@ -39,8 +39,31 @@
 // export { Changelog } from "./api/changelog.js";
 // export { ChangesetLinter } from "./api/linter.js";
 // export { ChangelogTransformer } from "./api/transformer.js";
-// export { Categories } from "./api/categories.js";
+export { Categories } from "./api/categories.js";
 
 // === Shared Types ===
 
-// export type { SectionCategory } from "./categories/types.js";
+export type { SectionCategory } from "./categories/types.js";
+
+// === Categories (constants and functions for Effect-native consumers) ===
+
+export {
+	BREAKING_CHANGES,
+	BUG_FIXES,
+	BUILD_SYSTEM,
+	CATEGORIES,
+	CI,
+	DEPENDENCIES,
+	DOCUMENTATION,
+	FEATURES,
+	MAINTENANCE,
+	OTHER,
+	PERFORMANCE,
+	REFACTORING,
+	REVERTS,
+	TESTS,
+	allHeadings,
+	fromHeading,
+	isValidHeading,
+	resolveCommitType,
+} from "./categories/index.js";
