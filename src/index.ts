@@ -26,13 +26,39 @@
 // export { MarkdownLive } from "./services/markdown.js";
 
 // Schemas
-// export { ChangesetOptionsSchema } from "./schemas/options.js";
-// export { CommitHashSchema } from "./schemas/git.js";
-// export { GitHubInfoSchema } from "./schemas/github.js";
 export { SectionCategorySchema } from "./categories/types.js";
-
 // Tagged Errors
-// export { ChangesetValidationError, GitHubApiError, MarkdownParseError } from "./errors.js";
+export {
+	ChangesetValidationError,
+	ConfigurationError,
+	GitHubApiError,
+	MarkdownParseError,
+} from "./errors.js";
+export type {
+	Changeset,
+	ChangesetOptions,
+	DependencyType,
+	DependencyUpdate,
+	GitHubInfo,
+	VersionType,
+} from "./schemas/index.js";
+export {
+	ChangesetOptionsSchema,
+	ChangesetSchema,
+	ChangesetSummarySchema,
+	CommitHashSchema,
+	DependencyTypeSchema,
+	DependencyUpdateSchema,
+	GitHubInfoSchema,
+	IssueNumberSchema,
+	NonEmptyString,
+	PositiveInteger,
+	RepoSchema,
+	UrlOrMarkdownLinkSchema,
+	UsernameSchema,
+	VersionTypeSchema,
+	validateChangesetOptions,
+} from "./schemas/index.js";
 
 // === Class-Based API (for higher-level consumers) ===
 
