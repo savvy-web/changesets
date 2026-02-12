@@ -202,7 +202,7 @@ workflow/pkgs/changelog/
 
 #### Key Features Implemented
 
-**1. Adapter Pattern for Type Safety**
+##### 1. Adapter Pattern for Type Safety
 
 The `index.ts` exports adapted versions of the internal functions that bridge the gap between
 strict internal types (`{ repo: string } | null`) and the flexible Changesets API types
@@ -214,7 +214,7 @@ const adaptedGetReleaseLine: GetReleaseLine = (changeset, versionType, options) 
   getReleaseLine(changeset, versionType, options as { repo: string } | null);
 ```
 
-**2. Valibot Schema Validation**
+##### 2. Valibot Schema Validation
 
 Comprehensive runtime validation using valibot for all external data:
 
@@ -235,7 +235,7 @@ Two validation modes: `validate()` for strict validation with descriptive errors
 special ChangesetOptionsSchema handling with config guidance), and `safeValidate()` for
 graceful null-returning validation (used for GitHub API responses that may not match schema).
 
-**3. Conventional Commit Parsing**
+##### 3. Conventional Commit Parsing
 
 Full `type(scope): description` parsing with 11 recognized commit types:
 
@@ -248,7 +248,7 @@ type CommitType =
 Multi-line commit messages are parsed with body extraction. Non-conventional messages
 fall back to the raw description.
 
-**4. Category Grouping via getFormattedReleaseLines**
+##### 4. Category Grouping via getFormattedReleaseLines
 
 Groups changes under `###` headings in a defined order:
 
@@ -264,7 +264,7 @@ Each changeset is categorized by parsing its summary's first line as a conventio
 The `typeToCategory` mapping converts commit types to user-friendly category names. Unknown
 types map to "Other".
 
-**5. Issue Reference Extraction**
+##### 5. Issue Reference Extraction
 
 Parses `closes/fixes/refs` patterns from changeset body text:
 
@@ -279,7 +279,7 @@ interface IssueReferences {
 Supports case-insensitive matching, optional colons, optional `#` prefix, and
 comma-separated lists.
 
-**6. GitHub API Integration**
+##### 6. GitHub API Integration
 
 Uses `@changesets/get-github-info` to fetch PR numbers, commit links, and usernames.
 Handles both plain URLs and markdown-formatted links in API responses:
@@ -293,7 +293,7 @@ Handles both plain URLs and markdown-formatted links in API responses:
 The `extractUrlFromMarkdown()` helper normalizes both formats. The `formatPRAndUserAttribution()`
 function handles all combinations of PR/user with/without links.
 
-**7. Batched API Calls**
+##### 7. Batched API Calls
 
 Processes GitHub API calls in batches of 10 to avoid rate limiting:
 
@@ -308,7 +308,7 @@ for (let i = 0; i < changesets.length; i += BATCH_SIZE) {
 
 Tracks API failure counts and logs success rate metrics.
 
-**8. Streaming Mode for Large Repositories**
+##### 8. Streaming Mode for Large Repositories
 
 For repositories with >1000 changesets, automatically switches to streaming mode with
 smaller chunk sizes (50) to prevent memory accumulation:
@@ -320,7 +320,7 @@ const shouldUseStreamingMode = changesets.length > MAX_MEMORY_ITEMS;
 
 In streaming mode, chunks are processed and grouped immediately, then chunk memory is cleared.
 
-**9. Environment-Aware Logging**
+##### 9. Environment-Aware Logging
 
 Uses `@actions/core.warning()` in GitHub Actions CI environments, falls back to
 `console.warn` for local development:
@@ -337,7 +337,7 @@ const logger = {
 };
 ```
 
-**10. Graceful Degradation**
+##### 10. Graceful Degradation
 
 All GitHub API failures are caught with fallback formatting. When `getInfo()` fails, the
 formatter falls back to constructing commit links manually from the hash:
@@ -1439,7 +1439,7 @@ Issue linking is configured via `changelogOpts`:
 
 Individual `.changeset/*.md` files use this structure:
 
-```markdown
+````markdown
 ---
 "@savvy-web/some-package": minor
 ---
@@ -1459,7 +1459,8 @@ const mock = TestMock.create({});
 
 - Added unit tests for fluent API
 - Updated integration tests
-```
+
+````
 
 ### Format Rules
 
