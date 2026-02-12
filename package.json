@@ -1,12 +1,16 @@
 {
-	"name": "@savvy-web/pnpm-module-template",
+	"name": "@savvy-web/changesets",
 	"version": "0.0.0",
 	"private": true,
-	"description": "A template repository for developing and deploying Node.js modules from a pnpm monorepo structure.",
-	"homepage": "https://github.com/spencerbeggs/pnpm-module-template#readme",
+	"description": "Custom changelog formatter and markdown processing pipeline for the Silk Suite. Provides structured changeset sections, remark-based validation and transformation, and an Effect CLI.",
+	"keywords": ["changesets", "changelog", "release-notes", "remark", "markdown", "effect", "silk-suite"],
+	"homepage": "https://github.com/savvy-web/changesets#readme",
+	"bugs": {
+		"url": "https://github.com/savvy-web/changesets/issues"
+	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/spencerbeggs/pnpm-module-template.git"
+		"url": "git+https://github.com/savvy-web/changesets.git"
 	},
 	"license": "MIT",
 	"author": {
@@ -16,7 +20,13 @@
 	},
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./changelog": "./src/changelog/index.ts",
+		"./remark-lint": "./src/remark-lint/index.ts",
+		"./remark-transform": "./src/remark-transform/index.ts"
+	},
+	"bin": {
+		"savvy-changeset": "./src/cli/index.ts"
 	},
 	"scripts": {
 		"build": "turbo run build:dev build:prod --log-order=grouped",
@@ -40,11 +50,27 @@
 		"typecheck": "turbo run types:check --log-prefix=none --log-order=grouped",
 		"types:check": "tsgo --noEmit"
 	},
+	"dependencies": {
+		"@effect/cli": "^0.73.2",
+		"@effect/platform": "^0.94.4",
+		"@effect/platform-node": "^0.104.1",
+		"effect": "^3.19.16",
+		"mdast-util-heading-range": "^4.0.0",
+		"mdast-util-to-string": "^4.0.0",
+		"remark-gfm": "^4.0.1",
+		"remark-parse": "^11.0.0",
+		"remark-stringify": "^11.0.0",
+		"unified": "^11.0.5",
+		"unified-lint-rule": "^3.0.1",
+		"unist-util-visit": "^5.1.0"
+	},
 	"devDependencies": {
 		"@changesets/cli": "catalog:silk",
+		"@changesets/types": "^6.1.0",
 		"@savvy-web/commitlint": "^0.3.2",
 		"@savvy-web/lint-staged": "^0.4.0",
 		"@savvy-web/rslib-builder": "^0.12.2",
+		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
 		"@vitest/coverage-v8": "catalog:silk",
