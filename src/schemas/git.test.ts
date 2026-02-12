@@ -36,7 +36,7 @@ describe("CommitHashSchema", () => {
 describe("VersionTypeSchema", () => {
 	const decode = Schema.decodeUnknownSync(VersionTypeSchema);
 
-	it.each(["major", "minor", "patch"])("accepts '%s'", (type) => {
+	it.each(["major", "minor", "patch", "none"])("accepts '%s'", (type) => {
 		expect(decode(type)).toBe(type);
 	});
 

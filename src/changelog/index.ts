@@ -13,18 +13,35 @@
  * @packageDocumentation
  */
 
-// Placeholder interface until vendor types are implemented
-interface ChangelogFunctions {
-	getReleaseLine: (...args: Array<unknown>) => Promise<string>;
-	getDependencyReleaseLine: (...args: Array<unknown>) => Promise<string>;
-}
+import { Effect, Layer } from "effect";
+
+import { validateChangesetOptions } from "../schemas/options.js";
+import { GitHubLive } from "../services/github.js";
+import { MarkdownLive } from "../services/markdown.js";
+import type { ChangelogFunctions } from "../vendor/types.js";
+import { getDependencyReleaseLine as getDependencyReleaseLineEffect } from "./getDependencyReleaseLine.js";
+import { getReleaseLine as getReleaseLineEffect } from "./getReleaseLine.js";
+
+/**
+ * Combined layer providing all services needed by the formatters.
+ */
+const MainLayer = Layer.mergeAll(GitHubLive, MarkdownLive);
 
 const changelogFunctions: ChangelogFunctions = {
-	async getReleaseLine() {
-		return "";
+	getReleaseLine: async (changeset, versionType, options) => {
+		const program = Effect.gen(function* () {
+			const opts = yield* validateChangesetOptions(options);
+			return yield* getReleaseLineEffect(changeset, versionType, opts);
+		});
+		return Effect.runPromise(program.pipe(Effect.provide(MainLayer)));
 	},
-	async getDependencyReleaseLine() {
-		return "";
+
+	getDependencyReleaseLine: async (changesets, dependenciesUpdated, options) => {
+		const program = Effect.gen(function* () {
+			const opts = yield* validateChangesetOptions(options);
+			return yield* getDependencyReleaseLineEffect(changesets, dependenciesUpdated, opts);
+		});
+		return Effect.runPromise(program.pipe(Effect.provide(MainLayer)));
 	},
 };
 

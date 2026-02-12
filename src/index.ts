@@ -15,15 +15,11 @@
 // === Effect Primitives (for Effect-native consumers) ===
 
 // Services
-// export { ChangelogService } from "./services/changelog.js";
-// export { GitHubService } from "./services/github.js";
-// export { MarkdownService } from "./services/markdown.js";
-// export { ValidationService } from "./services/validation.js";
+export { ChangelogService } from "./services/changelog.js";
+export { GitHubService } from "./services/github.js";
+export { MarkdownService } from "./services/markdown.js";
 
-// Layers
-// export { ChangelogLive } from "./services/changelog.js";
-// export { GitHubLive, GitHubTest } from "./services/github.js";
-// export { MarkdownLive } from "./services/markdown.js";
+// export { ValidationService } from "./services/validation.js";
 
 // Schemas
 export { SectionCategorySchema } from "./categories/types.js";
@@ -59,13 +55,16 @@ export {
 	VersionTypeSchema,
 	validateChangesetOptions,
 } from "./schemas/index.js";
+// Layers
+export { GitHubLive, makeGitHubTest } from "./services/github.js";
+export { MarkdownLive } from "./services/markdown.js";
 
 // === Class-Based API (for higher-level consumers) ===
 
-// export { Changelog } from "./api/changelog.js";
 // export { ChangesetLinter } from "./api/linter.js";
 // export { ChangelogTransformer } from "./api/transformer.js";
 export { Categories } from "./api/categories.js";
+export { Changelog } from "./api/changelog.js";
 
 // === Shared Types ===
 

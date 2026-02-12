@@ -18,7 +18,7 @@ export const CommitHashSchema = Schema.String.pipe(
 /**
  * Semantic version bump type.
  */
-export const VersionTypeSchema = Schema.Literal("major", "minor", "patch");
+export const VersionTypeSchema = Schema.Literal("major", "minor", "patch", "none");
 
 /**
  * Inferred type for {@link VersionTypeSchema}.

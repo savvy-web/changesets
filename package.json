@@ -51,6 +51,7 @@
 		"types:check": "tsgo --noEmit"
 	},
 	"dependencies": {
+		"@changesets/get-github-info": "^0.7.0",
 		"@effect/cli": "^0.73.2",
 		"@effect/platform": "^0.94.4",
 		"@effect/platform-node": "^0.104.1",
