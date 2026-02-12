@@ -1,8 +1,8 @@
 # CLI Reference
 
-The `savvy-changeset` CLI provides three subcommands
-for validating changeset files and post-processing
-CHANGELOG.md files.
+The `savvy-changeset` CLI provides four subcommands
+for validating changeset files, post-processing
+CHANGELOG.md files, and orchestrating the version flow.
 
 ## Installation
 
@@ -147,6 +147,48 @@ savvy-changeset transform --check CHANGELOG.md
 | 0 | File transformed (or already formatted) |
 | 1 | File would change (check mode only) |
 
+### `savvy-changeset version`
+
+Orchestrate the full version flow: detect the package
+manager, run `changeset version`, discover all workspace
+CHANGELOG.md files, and transform each one.
+
+```bash
+savvy-changeset version
+```
+
+**Options:**
+
+| Option | Alias | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `--dry-run` | `-n` | `false` | Skip changeset version, only transform |
+
+**Modes:**
+
+- **Default** -- Runs `changeset version` via the
+  detected package manager, then discovers and transforms
+  all workspace CHANGELOG.md files
+- **Dry run** (`--dry-run`) -- Skips `changeset version`
+  and only transforms existing CHANGELOG.md files (useful
+  for testing transforms locally)
+
+**Examples:**
+
+```bash
+# Full version flow
+savvy-changeset version
+
+# Transform existing CHANGELOGs without running changeset version
+savvy-changeset version --dry-run
+```
+
+**Exit codes:**
+
+| Code | Meaning |
+| :--- | :--- |
+| 0 | All changelogs transformed successfully |
+| 1 | changeset version or transform failed |
+
 ## Global Options
 
 All subcommands support the built-in options provided
@@ -171,13 +213,16 @@ changeset files are well-formed:
 
 ### Version and Transform
 
-Use the full pipeline in your version script:
+Use the version command in your CI script:
 
 ```bash
-changeset version \
-  && savvy-changeset transform \
-  && biome format --write .
+savvy-changeset version && biome format --write .
 ```
+
+The `version` command detects the package manager,
+runs `changeset version`, discovers all workspace
+CHANGELOG.md files, and transforms each one. Biome
+then normalizes formatting.
 
 ### Check Formatting
 

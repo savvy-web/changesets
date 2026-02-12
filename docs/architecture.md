@@ -44,7 +44,7 @@ limitations with a dedicated processing stage.
    Raw CHANGELOG.md
 
 3. TRANSFORM PHASE
-   savvy-changeset transform
+   savvy-changeset version (or savvy-changeset transform)
          |
          v
    Layer 3: remark transform pipeline
@@ -136,17 +136,16 @@ defines the display order in the final CHANGELOG.
 
 ## CI Integration
 
-The `ci:version` script chains all layers:
+The `ci:version` script uses the `version` command:
 
 ```bash
-changeset version \
-  && savvy-changeset transform \
-  && biome format --write .
+savvy-changeset version && biome format --write .
 ```
 
-This runs Layer 2 (via `changeset version`), then
-Layer 3 (via `savvy-changeset transform`), then
-normalizes formatting with Biome.
+The `version` command detects the package manager,
+runs `changeset version` (Layer 2), discovers all
+workspace CHANGELOG.md files, and runs Layer 3
+transform on each. Biome then normalizes formatting.
 
 ## Export Map
 

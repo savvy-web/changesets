@@ -82,7 +82,7 @@ Phases 1-8 of 9 are complete. All three processing
 layers are fully implemented and tested, along with
 the Effect CLI, integration test suite, and
 markdownlint custom rules. The package is functional
-with 398 tests passing across 40 test files.
+with 424 tests passing across 42 test files.
 
 **Coverage:**
 
@@ -97,8 +97,8 @@ with 398 tests passing across 40 test files.
   `@savvy-web/changesets`
 - Multi-entry export map: `.`, `./changelog`,
   `./markdownlint`, `./remark`
-- CLI binary `savvy-changeset` with 3 subcommands:
-  `lint`, `transform`, `check`
+- CLI binary `savvy-changeset` with 4 subcommands:
+  `lint`, `transform`, `check`, `version`
 - 13-category system with priority ordering and
   commit type mapping
 - Effect schemas for all system boundary types +
@@ -193,7 +193,8 @@ src/
 │   └── commands/
 │       ├── lint.ts             # Validate changeset files
 │       ├── transform.ts        # Post-process CHANGELOG.md
-│       └── check.ts            # Full validation pipeline
+│       ├── check.ts            # Full validation pipeline
+│       └── version.ts          # Orchestrate version + transform all CHANGELOGs
 │
 ├── vendor/                     # Vendored upstream code (see Decision 7)
 │   ├── types.ts                # From @changesets/types, redefined as Effect Schemas
@@ -205,7 +206,8 @@ src/
     ├── remark-pipeline.ts      # Shared unified processor (parse + gfm + stringify)
     ├── section-parser.ts       # Parse sections from changeset content
     ├── commit-parser.ts        # Conventional commit type(scope): desc parsing
-    └── issue-refs.ts           # closes/fixes/refs/resolves pattern extraction
+    ├── issue-refs.ts           # closes/fixes/refs/resolves pattern extraction
+    └── workspace.ts            # Package manager detection + changelog discovery
 ```
 
 ---
@@ -448,7 +450,7 @@ These capabilities do NOT exist in the prior art and are entirely new:
 | **Layer 1: remark lint rules** | Pre-validation of changeset file structure (heading hierarchy, section names, content quality) |
 | **Layer 3: remark transform** | Post-processing of CHANGELOG.md (section merging, reordering, deduplication, normalization) |
 | **Structured changeset format** | Section headings (h2) in changeset files for multi-category changes |
-| **Effect CLI** | `savvy-changeset` binary with lint/transform/check commands |
+| **Effect CLI** | `savvy-changeset` binary with lint/transform/check/version commands |
 | **Remark/Unified ecosystem** | AST-based markdown processing replacing regex-based parsing where appropriate |
 | **Category system as shared data model** | Single category definition used by all three layers |
 | **Breaking Changes category** | Prior art lacks a dedicated breaking changes section |
@@ -1026,7 +1028,7 @@ API requires.
 │                                                                         │
 │  3. TRANSFORM PHASE (post-process the generated CHANGELOG)              │
 │                                                                         │
-│     savvy-changeset transform                                           │
+│     savvy-changeset version                                             │
 │         │                                                               │
 │         ▼                                                               │
 │     Layer 3: remark transform pipeline                                  │
@@ -1743,8 +1745,9 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 | Command | Description | Usage |
 | :--- | :--- | :--- |
 | `savvy-changeset lint` | Validate changeset files against remark rules | CI, pre-commit |
-| `savvy-changeset transform` | Post-process CHANGELOG.md with remark transform pipeline | ci:version script |
+| `savvy-changeset transform` | Post-process CHANGELOG.md with remark transform pipeline | Standalone use |
 | `savvy-changeset check` | Run full validation pipeline (lint + structure) | CI gate |
+| `savvy-changeset version` | Run changeset version + discover and transform all workspace CHANGELOGs | ci:version script |
 
 ### CI Integration
 
@@ -1753,16 +1756,15 @@ The `ci:version` script in `package.json` integrates all layers:
 ```json
 {
   "scripts": {
-    "ci:version": "changeset version && savvy-changeset transform && biome format --write ."
+    "ci:version": "savvy-changeset version && biome format --write ."
   }
 }
 ```
 
 This runs:
 
-1. `changeset version` -- Changesets calls Layer 2 (getReleaseLine) to generate CHANGELOG.md
-2. `savvy-changeset transform` -- Layer 3 post-processes the CHANGELOG.md
-3. `biome format --write .` -- Biome normalizes all formatting
+1. `savvy-changeset version` -- Detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, and runs Layer 3 transform on each
+2. `biome format --write .` -- Biome normalizes all formatting
 
 ---
 
@@ -1784,6 +1786,7 @@ This runs:
 | `@effect/cli` | CLI command framework | CLI | New |
 | `@effect/platform` | Platform abstraction | CLI, Services | New |
 | `@effect/platform-node` | Node.js platform implementation | CLI | New |
+| `workspace-tools` | Package manager detection + workspace discovery | CLI | New |
 
 ### Vendored Code (src/vendor/)
 
@@ -1849,7 +1852,7 @@ Each consuming repository updates its `ci:version` script:
 ```json
 {
   "scripts": {
-    "ci:version": "changeset version && savvy-changeset transform && biome format --write ."
+    "ci:version": "savvy-changeset version && biome format --write ."
   }
 }
 ```

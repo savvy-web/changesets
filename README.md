@@ -21,7 +21,8 @@ generated CHANGELOG.md.
 - **13 section categories** -- Consistent categorization
   with priority-based ordering across all layers
 - **CLI tooling** -- `savvy-changeset` binary with lint,
-  transform, and check subcommands for CI and local use
+  transform, check, and version subcommands for CI and
+  local use
 - **GitHub integration** -- Automatic PR links, commit
   references, and contributor attribution
 - **Remark plugins** -- Lint rules and transform plugins
@@ -100,8 +101,11 @@ creating `.changeset/.markdownlint.json`:
 
 ## Documentation
 
-For CLI usage, the programmatic API, configuration,
-and architecture, see [docs](./docs/).
+- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) --
+  End-to-end walkthrough of how section-aware changesets
+  flow through the three-layer pipeline
+- [Full documentation](./docs/) -- CLI usage, API
+  reference, configuration, and architecture
 
 ## License
 

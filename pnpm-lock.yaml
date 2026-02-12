@@ -78,6 +78,9 @@ importers:
       unist-util-visit:
         specifier: ^5.1.0
         version: 5.1.0
+      workspace-tools:
+        specifier: ^0.41.0
+        version: 0.41.0
     devDependencies:
       '@changesets/cli':
         specifier: catalog:silk

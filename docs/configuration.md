@@ -72,21 +72,23 @@ Custom issue reference prefixes to recognize.
 
 ### Version Script
 
-Chain all three layers in your `package.json` scripts:
+Use the `version` command in your `package.json` scripts:
 
 ```bash
-changeset version \
-  && savvy-changeset transform \
-  && biome format --write .
+savvy-changeset version && biome format --write .
 ```
 
 This runs:
 
-1. `changeset version` -- Calls Layer 2 (`getReleaseLine`)
-   to generate CHANGELOG.md
-2. `savvy-changeset transform` -- Runs Layer 3
-   post-processing on the generated CHANGELOG.md
-3. `biome format --write .` -- Normalizes formatting
+1. `savvy-changeset version` -- Detects the package
+   manager, runs `changeset version` (Layer 2), discovers
+   all workspace CHANGELOG.md files, and runs Layer 3
+   transform on each
+2. `biome format --write .` -- Normalizes formatting
+
+For monorepos, the `version` command automatically
+discovers all workspace packages with CHANGELOG.md
+files and transforms each one.
 
 ### Pre-Commit Validation
 

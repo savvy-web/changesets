@@ -35,7 +35,7 @@
 		"build:prod": "rslib build --config-loader native --env-mode npm",
 		"ci:build": "CI=\"true\" turbo run build:dev build:prod --log-order=grouped --output-logs=full",
 		"ci:test": "CI=\"true\" vitest run --coverage",
-		"ci:version": "changeset version && biome format --write .",
+		"ci:version": "npx tsx src/bin/cli.ts version && biome format --write .",
 		"commit:check": "savvy-commit check",
 		"commit:init": "savvy-commit init",
 		"lint": "biome check --max-diagnostics=none",
@@ -64,7 +64,8 @@
 		"remark-stringify": "^11.0.0",
 		"unified": "^11.0.5",
 		"unified-lint-rule": "^3.0.1",
-		"unist-util-visit": "^5.1.0"
+		"unist-util-visit": "^5.1.0",
+		"workspace-tools": "^0.41.0"
 	},
 	"devDependencies": {
 		"@changesets/cli": "catalog:silk",

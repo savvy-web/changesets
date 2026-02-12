@@ -20,6 +20,7 @@ import {
   ChangesetLinter,
   Categories,
   Changelog,
+  Workspace,
 } from "@savvy-web/changesets";
 ```
 
@@ -222,6 +223,70 @@ Format dependency update release lines.
   - `dependenciesUpdated` -- Dependencies that changed
   - `options` -- Config with `repo`
 - **Returns:** `Promise<string>`
+
+### Workspace
+
+Static class for workspace operations. Used internally
+by the `version` command but also available for
+programmatic use.
+
+#### `Workspace.detectPackageManager(cwd?)`
+
+Detect the package manager from the root `package.json`
+`packageManager` field.
+
+- **Parameters:**
+  - `cwd` (`string`, optional) -- Project root, defaults
+    to `process.cwd()`
+- **Returns:** `"npm" | "pnpm" | "yarn" | "bun"`
+
+```typescript
+const pm = Workspace.detectPackageManager();
+// "pnpm"
+```
+
+#### `Workspace.getChangesetVersionCommand(pm)`
+
+Get the full exec command for `changeset version`.
+
+- **Parameters:**
+  - `pm` (`PackageManager`) -- The package manager
+- **Returns:** `string`
+
+```typescript
+Workspace.getChangesetVersionCommand("pnpm");
+// "pnpm exec changeset version"
+```
+
+#### `Workspace.discoverChangelogs(cwd?)`
+
+Discover all CHANGELOG.md files across workspace
+packages.
+
+- **Parameters:**
+  - `cwd` (`string`, optional) -- Project root
+- **Returns:** `WorkspaceChangelog[]`
+
+```typescript
+const changelogs = Workspace.discoverChangelogs();
+// [{ name: "pkg-a", path: "/project/packages/a",
+//    changelogPath: "/project/packages/a/CHANGELOG.md" }]
+```
+
+### WorkspaceChangelog
+
+A discovered workspace changelog entry.
+
+```typescript
+interface WorkspaceChangelog {
+  /** Package name */
+  name: string;
+  /** Absolute path to the package directory */
+  path: string;
+  /** Absolute path to the CHANGELOG.md file */
+  changelogPath: string;
+}
+```
 
 ## Types
 
