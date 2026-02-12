@@ -22,9 +22,12 @@ export { ChangelogTransformer } from "./api/transformer.js";
 
 // === Effect Services ===
 
-export { ChangelogService } from "./services/changelog.js";
-export { GitHubService } from "./services/github.js";
-export { MarkdownService } from "./services/markdown.js";
+export type { ChangelogServiceShape } from "./services/changelog.js";
+export { ChangelogService, ChangelogServiceBase } from "./services/changelog.js";
+export type { GitHubServiceShape } from "./services/github.js";
+export { GitHubService, GitHubServiceBase } from "./services/github.js";
+export type { MarkdownServiceShape } from "./services/markdown.js";
+export { MarkdownService, MarkdownServiceBase } from "./services/markdown.js";
 
 // === Effect Layers ===
 
@@ -64,37 +67,10 @@ export {
 	UsernameSchema,
 } from "./schemas/github.js";
 export type { ChangesetOptions } from "./schemas/options.js";
-export {
-	ChangesetOptionsSchema,
-	RepoSchema,
-	validateChangesetOptions,
-} from "./schemas/options.js";
+export { ChangesetOptionsSchema, RepoSchema } from "./schemas/options.js";
 export { NonEmptyString, PositiveInteger } from "./schemas/primitives.js";
 
 // === Types ===
 
 export type { SectionCategory } from "./categories/types.js";
 export type { GitHubCommitInfo } from "./vendor/github-info.js";
-
-// === Categories ===
-
-export {
-	BREAKING_CHANGES,
-	BUG_FIXES,
-	BUILD_SYSTEM,
-	CATEGORIES,
-	CI,
-	DEPENDENCIES,
-	DOCUMENTATION,
-	FEATURES,
-	MAINTENANCE,
-	OTHER,
-	PERFORMANCE,
-	REFACTORING,
-	REVERTS,
-	TESTS,
-	allHeadings,
-	fromHeading,
-	isValidHeading,
-	resolveCommitType,
-} from "./categories/index.js";

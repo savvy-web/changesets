@@ -11,14 +11,12 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 
-import {
-	contributorFootnotes,
-	deduplicateItems,
-	issueLinkRefs,
-	mergeSections,
-	normalizeFormat,
-	reorderSections,
-} from "../remark-transform/index.js";
+import contributorFootnotes from "../remark-transform/contributor-footnotes.js";
+import deduplicateItems from "../remark-transform/deduplicate-items.js";
+import issueLinkRefs from "../remark-transform/issue-link-refs.js";
+import mergeSections from "../remark-transform/merge-sections.js";
+import normalizeFormat from "../remark-transform/normalize-format.js";
+import reorderSections from "../remark-transform/reorder-sections.js";
 
 /**
  * Static class for transforming CHANGELOG.md files.
@@ -77,27 +75,4 @@ export class ChangelogTransformer {
 		const result = ChangelogTransformer.transformContent(content);
 		writeFileSync(filePath, result, "utf-8");
 	}
-}
-
-/**
- * Create a unified processor configured with all transform plugins.
- *
- * Useful for consumers who want to customize the pipeline or add
- * additional plugins.
- *
- * @returns A configured unified processor
- *
- * @internal
- */
-export function createTransformProcessor(): ReturnType<typeof unified> {
-	return unified()
-		.use(remarkParse)
-		.use(remarkGfm)
-		.use(mergeSections)
-		.use(reorderSections)
-		.use(deduplicateItems)
-		.use(contributorFootnotes)
-		.use(issueLinkRefs)
-		.use(normalizeFormat)
-		.use(remarkStringify) as unknown as ReturnType<typeof unified>;
 }

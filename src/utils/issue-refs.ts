@@ -12,19 +12,34 @@ const FIXES_ISSUE_PATTERN = /fix(?:es)?:?\s*#?(\d+(?:\s*,\s*#?\d+)*)/i;
 /** Matches "refs #123" or "ref: #456, #789" patterns (case-insensitive) */
 const REFS_ISSUE_PATTERN = /refs?:?\s*#?(\d+(?:\s*,\s*#?\d+)*)/i;
 
-/** Pattern for splitting comma-separated issue numbers */
+/** Pattern for splitting comma-separated issue numbers. */
 const ISSUE_NUMBER_SPLIT_PATTERN = /\s*,\s*/;
 
 /**
  * Categorized issue references extracted from a commit message.
+ *
+ * @internal
  */
 export interface IssueReferences {
-	/** Issue numbers closed by this commit */
+	/** Issue numbers closed by this commit. */
 	closes: string[];
-	/** Issue numbers for bugs fixed by this commit */
+	/** Issue numbers for bugs fixed by this commit. */
 	fixes: string[];
-	/** Issue numbers referenced but not closed */
+	/** Issue numbers referenced but not closed. */
 	refs: string[];
+}
+
+/**
+ * Extract issue numbers from a regex match against a commit message.
+ *
+ * @param pattern - The regex pattern to match
+ * @param message - The commit message body to search
+ * @returns Array of issue number strings (without `#` prefix)
+ */
+function extractIssueNumbers(pattern: RegExp, message: string): string[] {
+	const match = pattern.exec(message);
+	if (!match?.[1]) return [];
+	return match[1].split(ISSUE_NUMBER_SPLIT_PATTERN).map((num) => num.replace("#", "").trim());
 }
 
 /**
@@ -37,28 +52,13 @@ export interface IssueReferences {
  *
  * @param commitMessage - The commit message body to parse
  * @returns Categorized issue references
+ *
+ * @internal
  */
 export function parseIssueReferences(commitMessage: string): IssueReferences {
-	const references: IssueReferences = {
-		closes: [],
-		fixes: [],
-		refs: [],
+	return {
+		closes: extractIssueNumbers(CLOSES_ISSUE_PATTERN, commitMessage),
+		fixes: extractIssueNumbers(FIXES_ISSUE_PATTERN, commitMessage),
+		refs: extractIssueNumbers(REFS_ISSUE_PATTERN, commitMessage),
 	};
-
-	const closesMatch = CLOSES_ISSUE_PATTERN.exec(commitMessage);
-	if (closesMatch) {
-		references.closes = closesMatch[1].split(ISSUE_NUMBER_SPLIT_PATTERN).map((num) => num.replace("#", "").trim());
-	}
-
-	const fixesMatch = FIXES_ISSUE_PATTERN.exec(commitMessage);
-	if (fixesMatch) {
-		references.fixes = fixesMatch[1].split(ISSUE_NUMBER_SPLIT_PATTERN).map((num) => num.replace("#", "").trim());
-	}
-
-	const refsMatch = REFS_ISSUE_PATTERN.exec(commitMessage);
-	if (refsMatch?.[1]) {
-		references.refs = refsMatch[1].split(ISSUE_NUMBER_SPLIT_PATTERN).map((num) => num.replace("#", "").trim());
-	}
-
-	return references;
 }

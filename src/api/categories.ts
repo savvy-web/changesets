@@ -5,7 +5,26 @@
  * Effect-native category functions for higher-level consumers.
  */
 
-import { CATEGORIES, allHeadings, fromHeading, isValidHeading, resolveCommitType } from "../categories/index.js";
+import {
+	BREAKING_CHANGES,
+	BUG_FIXES,
+	BUILD_SYSTEM,
+	CATEGORIES,
+	CI,
+	DEPENDENCIES,
+	DOCUMENTATION,
+	FEATURES,
+	MAINTENANCE,
+	OTHER,
+	PERFORMANCE,
+	REFACTORING,
+	REVERTS,
+	TESTS,
+	allHeadings,
+	fromHeading,
+	isValidHeading,
+	resolveCommitType,
+} from "../categories/index.js";
 import type { SectionCategory } from "../categories/types.js";
 
 /**
@@ -34,14 +53,47 @@ import type { SectionCategory } from "../categories/types.js";
 export class Categories {
 	private constructor() {}
 
-	/**
-	 * Get all categories ordered by priority (ascending).
-	 *
-	 * @returns Readonly array of all 13 section categories
-	 */
-	static ordered(): readonly SectionCategory[] {
-		return CATEGORIES;
-	}
+	/** Breaking changes - backward-incompatible changes (priority 1) */
+	static readonly BREAKING_CHANGES: SectionCategory = BREAKING_CHANGES;
+
+	/** Features - new functionality (priority 2) */
+	static readonly FEATURES: SectionCategory = FEATURES;
+
+	/** Bug Fixes - bug corrections (priority 3) */
+	static readonly BUG_FIXES: SectionCategory = BUG_FIXES;
+
+	/** Performance - performance improvements (priority 4) */
+	static readonly PERFORMANCE: SectionCategory = PERFORMANCE;
+
+	/** Documentation - documentation changes (priority 5) */
+	static readonly DOCUMENTATION: SectionCategory = DOCUMENTATION;
+
+	/** Refactoring - code restructuring (priority 6) */
+	static readonly REFACTORING: SectionCategory = REFACTORING;
+
+	/** Tests - test additions or modifications (priority 7) */
+	static readonly TESTS: SectionCategory = TESTS;
+
+	/** Build System - build configuration changes (priority 8) */
+	static readonly BUILD_SYSTEM: SectionCategory = BUILD_SYSTEM;
+
+	/** CI - continuous integration changes (priority 9) */
+	static readonly CI: SectionCategory = CI;
+
+	/** Dependencies - dependency updates (priority 10) */
+	static readonly DEPENDENCIES: SectionCategory = DEPENDENCIES;
+
+	/** Maintenance - general maintenance (priority 11) */
+	static readonly MAINTENANCE: SectionCategory = MAINTENANCE;
+
+	/** Reverts - reverted changes (priority 12) */
+	static readonly REVERTS: SectionCategory = REVERTS;
+
+	/** Other - uncategorized changes (priority 13) */
+	static readonly OTHER: SectionCategory = OTHER;
+
+	/** All categories ordered by priority (ascending). */
+	static readonly ALL: readonly SectionCategory[] = CATEGORIES;
 
 	/**
 	 * Resolve a conventional commit type to its category.

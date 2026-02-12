@@ -14,6 +14,8 @@
  *
  * @param content - Raw markdown string potentially containing frontmatter
  * @returns The markdown content with frontmatter removed
+ *
+ * @internal
  */
 export function stripFrontmatter(content: string): string {
 	return content.replace(/^---\n[\s\S]*?\n---\n?/, "");

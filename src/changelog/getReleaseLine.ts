@@ -19,6 +19,7 @@ import { logWarning } from "../utils/logger.js";
 import { parseChangesetSections } from "../utils/section-parser.js";
 import type { GitHubCommitInfo } from "../vendor/github-info.js";
 import type { NewChangesetWithCommit, VersionType } from "../vendor/types.js";
+import type { ChangelogEntry } from "./formatting.js";
 import { formatChangelogEntry, formatPRAndUserAttribution } from "./formatting.js";
 
 /**
@@ -115,12 +116,12 @@ export function getReleaseLine(
 		const commitType = commitMsg.type ?? versionType;
 		const category = resolveCommitType(commitType, commitMsg.scope, commitMsg.breaking);
 
-		const entryInput: Parameters<typeof formatChangelogEntry>[0] = {
+		const entryInput: ChangelogEntry = {
 			type: category.heading,
 			summary: changeset.summary,
 			issues: issueRefs,
+			...(changeset.commit ? { commit: changeset.commit } : {}),
 		};
-		if (changeset.commit) entryInput.commit = changeset.commit;
 
 		const entry = formatChangelogEntry(entryInput, { repo: options.repo });
 

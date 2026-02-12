@@ -14,6 +14,8 @@
  *
  * @param message - The warning message
  * @param args - Additional arguments
+ *
+ * @internal
  */
 export function logWarning(message: string, ...args: unknown[]): void {
 	/* v8 ignore start — environment-specific */

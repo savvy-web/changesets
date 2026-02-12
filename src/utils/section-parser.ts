@@ -7,6 +7,7 @@
  */
 
 import type { Heading, Root, RootContent } from "mdast";
+import { toString as mdastToString } from "mdast-util-to-string";
 
 import { fromHeading } from "../categories/index.js";
 import type { SectionCategory } from "../categories/types.js";
@@ -14,6 +15,8 @@ import { parseMarkdown, stringifyMarkdown } from "./remark-pipeline.js";
 
 /**
  * A parsed section from a changeset summary.
+ *
+ * @internal
  */
 export interface ParsedSection {
 	/** The resolved category for this section */
@@ -26,6 +29,8 @@ export interface ParsedSection {
 
 /**
  * A fully parsed changeset with optional preamble and sections.
+ *
+ * @internal
  */
 export interface ParsedChangeset {
 	/** Content before any h2 heading (if present) */
@@ -46,6 +51,8 @@ export interface ParsedChangeset {
  *
  * @param summary - The changeset summary markdown
  * @returns Parsed sections and optional preamble
+ *
+ * @internal
  */
 export function parseChangesetSections(summary: string): ParsedChangeset {
 	const tree = parseMarkdown(summary);
@@ -78,7 +85,7 @@ export function parseChangesetSections(summary: string): ParsedChangeset {
 	for (let i = 0; i < h2Indices.length; i++) {
 		const headingIndex = h2Indices[i];
 		const headingNode = tree.children[headingIndex] as Heading;
-		const headingText = extractHeadingText(headingNode);
+		const headingText = mdastToString(headingNode);
 
 		// Content extends from after the heading to the next h2 (or end)
 		const nextIndex = i + 1 < h2Indices.length ? h2Indices[i + 1] : tree.children.length;
@@ -93,27 +100,6 @@ export function parseChangesetSections(summary: string): ParsedChangeset {
 	}
 
 	return result;
-}
-
-/**
- * Extract plain text from a heading node.
- */
-function extractHeadingText(heading: Heading): string {
-	// Simple extraction: concatenate text nodes
-	let text = "";
-	for (const child of heading.children) {
-		if (child.type === "text") {
-			text += child.value;
-		} else if ("children" in child) {
-			// Handle nested inline elements (e.g., emphasis, strong)
-			for (const grandchild of child.children as Array<{ type: string; value?: string }>) {
-				if (grandchild.type === "text" && grandchild.value) {
-					text += grandchild.value;
-				}
-			}
-		}
-	}
-	return text;
 }
 
 /**

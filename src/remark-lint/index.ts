@@ -9,13 +9,11 @@
  * @packageDocumentation
  */
 
-export { default as contentStructure } from "./content-structure.js";
-export { default as headingHierarchy } from "./heading-hierarchy.js";
-export { default as requiredSections } from "./required-sections.js";
-
 import contentStructure from "./content-structure.js";
 import headingHierarchy from "./heading-hierarchy.js";
 import requiredSections from "./required-sections.js";
+
+export { contentStructure, headingHierarchy, requiredSections };
 
 /**
  * Preset combining all changeset lint rules for convenient consumption.

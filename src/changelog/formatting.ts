@@ -17,13 +17,18 @@ export interface ChangelogEntry {
 	commit?: string;
 	/** Type of change (e.g., "feat", "fix"). */
 	type: string;
-	/** Scope of the change (optional). */
-	scope?: string;
 	/** Summary description. */
 	summary: string;
 	/** Referenced GitHub issues. */
 	issues: IssueReferences;
 }
+
+/** Issue reference categories and their display labels. */
+const ISSUE_CATEGORIES = [
+	{ key: "closes", label: "Closes" },
+	{ key: "fixes", label: "Fixes" },
+	{ key: "refs", label: "Refs" },
+] as const;
 
 /**
  * Format a changelog entry into a markdown string with GitHub links.
@@ -47,20 +52,12 @@ export function formatChangelogEntry(entry: ChangelogEntry, options: { repo: str
 	parts.push(entry.summary.trim());
 
 	const issueLinks: string[] = [];
-
-	if (entry.issues.closes.length > 0) {
-		const links = entry.issues.closes.map((num) => `[#${num}](https://github.com/${options.repo}/issues/${num})`);
-		issueLinks.push(`Closes: ${links.join(", ")}`);
-	}
-
-	if (entry.issues.fixes.length > 0) {
-		const links = entry.issues.fixes.map((num) => `[#${num}](https://github.com/${options.repo}/issues/${num})`);
-		issueLinks.push(`Fixes: ${links.join(", ")}`);
-	}
-
-	if (entry.issues.refs.length > 0) {
-		const links = entry.issues.refs.map((num) => `[#${num}](https://github.com/${options.repo}/issues/${num})`);
-		issueLinks.push(`Refs: ${links.join(", ")}`);
+	for (const { key, label } of ISSUE_CATEGORIES) {
+		const numbers = entry.issues[key];
+		if (numbers.length > 0) {
+			const links = numbers.map((num) => `[#${num}](https://github.com/${options.repo}/issues/${num})`);
+			issueLinks.push(`${label}: ${links.join(", ")}`);
+		}
 	}
 
 	if (issueLinks.length > 0) {

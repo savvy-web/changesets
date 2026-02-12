@@ -11,7 +11,9 @@ import { Command } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
 
-import { checkCommand, lintCommand, transformCommand } from "./commands/index.js";
+import { checkCommand } from "./commands/check.js";
+import { lintCommand } from "./commands/lint.js";
+import { transformCommand } from "./commands/transform.js";
 
 const rootCommand = Command.make("savvy-changeset").pipe(
 	Command.withSubcommands([lintCommand, transformCommand, checkCommand]),

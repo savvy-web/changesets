@@ -10,8 +10,6 @@
 
 export type {
 	ChangelogFunctions,
-	GetDependencyReleaseLine,
-	GetReleaseLine,
 	ModCompWithPackage,
 	NewChangesetWithCommit,
 	VersionType,

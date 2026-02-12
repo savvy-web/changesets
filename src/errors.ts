@@ -77,12 +77,12 @@ export class GitHubApiError extends GitHubApiErrorBase<{
 	}
 
 	/** Whether this error is a rate-limit response (403 or 429). */
-	get isRateLimited(): boolean {
+	public get isRateLimited(): boolean {
 		return this.statusCode === 403 || this.statusCode === 429;
 	}
 
 	/** Whether this error is eligible for retry (server errors or rate limits). */
-	get isRetryable(): boolean {
+	public get isRetryable(): boolean {
 		return this.statusCode !== undefined && (this.statusCode >= 500 || this.isRateLimited);
 	}
 }

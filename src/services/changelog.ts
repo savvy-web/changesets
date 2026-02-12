@@ -15,7 +15,30 @@ import type { GitHubService } from "./github.js";
 import type { MarkdownService } from "./markdown.js";
 
 /**
- * Base tag for ChangelogService.
+ * Service interface for changelog formatting.
+ *
+ * @internal
+ */
+export interface ChangelogServiceShape {
+	/** Format a single changeset release line. */
+	readonly formatReleaseLine: (
+		changeset: NewChangesetWithCommit,
+		versionType: VersionType,
+		options: ChangesetOptions,
+	) => Effect.Effect<string, never, GitHubService | MarkdownService>;
+
+	/** Format dependency update release lines. */
+	readonly formatDependencyReleaseLine: (
+		changesets: NewChangesetWithCommit[],
+		dependenciesUpdated: ModCompWithPackage[],
+		options: ChangesetOptions,
+	) => Effect.Effect<string, never, GitHubService>;
+}
+
+const _tag = Context.Tag("ChangelogService");
+
+/**
+ * Base class for ChangelogService.
  *
  * @privateRemarks
  * This export is required for api-extractor documentation generation.
@@ -24,7 +47,7 @@ import type { MarkdownService } from "./markdown.js";
  *
  * @internal
  */
-export const ChangelogServiceTag = Context.Tag("ChangelogService");
+export const ChangelogServiceBase = _tag<ChangelogService, ChangelogServiceShape>();
 
 /**
  * Service for changelog formatting.
@@ -36,21 +59,4 @@ export const ChangelogServiceTag = Context.Tag("ChangelogService");
  *
  * @public
  */
-export class ChangelogService extends ChangelogServiceTag<
-	ChangelogService,
-	{
-		/** Format a single changeset release line. */
-		readonly formatReleaseLine: (
-			changeset: NewChangesetWithCommit,
-			versionType: VersionType,
-			options: ChangesetOptions,
-		) => Effect.Effect<string, never, GitHubService | MarkdownService>;
-
-		/** Format dependency update release lines. */
-		readonly formatDependencyReleaseLine: (
-			changesets: NewChangesetWithCommit[],
-			dependenciesUpdated: ModCompWithPackage[],
-			options: ChangesetOptions,
-		) => Effect.Effect<string, never, GitHubService>;
-	}
->() {}
+export class ChangelogService extends ChangelogServiceBase {}

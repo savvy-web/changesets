@@ -8,6 +8,8 @@ const CONVENTIONAL_COMMIT_PATTERN = /^(\w+)(?:\(([^)]+)\))?(!)?\s*:\s*(.+)/;
 
 /**
  * Structured result of parsing a conventional commit message.
+ *
+ * @internal
  */
 export interface ParsedCommitMessage {
 	/** Commit type (e.g., "feat", "fix", "docs") */
@@ -29,6 +31,8 @@ export interface ParsedCommitMessage {
  *
  * @param message - The commit message to parse
  * @returns Parsed components
+ *
+ * @internal
  */
 export function parseCommitMessage(message: string): ParsedCommitMessage {
 	const match = CONVENTIONAL_COMMIT_PATTERN.exec(message);

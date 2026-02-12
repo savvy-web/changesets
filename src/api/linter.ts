@@ -110,15 +110,8 @@ export class ChangesetLinter {
 	 * @returns Aggregated lint messages from all files
 	 */
 	static validate(dir: string): LintMessage[] {
-		const entries = readdirSync(dir);
-		const mdFiles = entries.filter((f) => f.endsWith(".md") && f !== "README.md");
-		const results: LintMessage[] = [];
-
-		for (const filename of mdFiles) {
-			const filePath = join(dir, filename);
-			results.push(...ChangesetLinter.validateFile(filePath));
-		}
-
-		return results;
+		return readdirSync(dir)
+			.filter((f) => f.endsWith(".md") && f !== "README.md")
+			.flatMap((filename) => ChangesetLinter.validateFile(join(dir, filename)));
 	}
 }

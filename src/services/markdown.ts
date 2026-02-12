@@ -8,7 +8,21 @@ import type { Root } from "mdast";
 import { parseMarkdown, stringifyMarkdown } from "../utils/remark-pipeline.js";
 
 /**
- * Base tag for MarkdownService.
+ * Service interface for markdown parsing and stringification.
+ *
+ * @internal
+ */
+export interface MarkdownServiceShape {
+	/** Parse a markdown string into an mdast AST. */
+	readonly parse: (content: string) => Effect.Effect<Root>;
+	/** Stringify an mdast AST back to markdown. */
+	readonly stringify: (tree: Root) => Effect.Effect<string>;
+}
+
+const _tag = Context.Tag("MarkdownService");
+
+/**
+ * Base class for MarkdownService.
  *
  * @privateRemarks
  * This export is required for api-extractor documentation generation.
@@ -17,7 +31,7 @@ import { parseMarkdown, stringifyMarkdown } from "../utils/remark-pipeline.js";
  *
  * @internal
  */
-export const MarkdownServiceTag = Context.Tag("MarkdownService");
+export const MarkdownServiceBase = _tag<MarkdownService, MarkdownServiceShape>();
 
 /**
  * Service for markdown parsing and stringification.
@@ -26,15 +40,7 @@ export const MarkdownServiceTag = Context.Tag("MarkdownService");
  *
  * @public
  */
-export class MarkdownService extends MarkdownServiceTag<
-	MarkdownService,
-	{
-		/** Parse a markdown string into an mdast AST. */
-		readonly parse: (content: string) => Effect.Effect<Root>;
-		/** Stringify an mdast AST back to markdown. */
-		readonly stringify: (tree: Root) => Effect.Effect<string>;
-	}
->() {}
+export class MarkdownService extends MarkdownServiceBase {}
 
 /**
  * Live layer wrapping the remark-pipeline functions.

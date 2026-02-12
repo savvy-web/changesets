@@ -3,12 +3,12 @@ status: draft
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-02-11
-last-synced: 2026-02-11
-completeness: 15
+updated: 2026-02-12
+last-synced: 2026-02-12
+completeness: 78
 related: []
 dependencies: []
-implementation-status: not-started
+implementation-status: in-progress
 ---
 
 # @savvy-web/changesets - Architecture
@@ -74,33 +74,33 @@ all Silk Suite repositories with a structured, section-aware changelog generatio
 
 ### Repository Status
 
-This repository was freshly cloned from the `pnpm-module-template`. The build infrastructure
-is fully configured but no implementation exists yet.
+Phases 1-7 of 9 are complete. All three processing layers are implemented and tested,
+along with the Effect CLI. The package is functional with 339 tests passing across 33
+test files. Remaining work is integration testing (Phase 8) and documentation/release
+prep (Phase 9).
 
-**What exists:**
+**What is implemented:**
 
-- pnpm monorepo structure (single-package, root IS the package)
-- Rslib build pipeline with dual output (`dist/dev/`, `dist/npm/`)
-- Turbo build orchestration with task dependencies
-- Vitest test framework with v8 coverage
-- Biome linting and formatting (extends `@savvy-web/lint-staged/biome/silk.jsonc`)
-- Husky hooks with lint-staged pre-commit
-- Commitlint with conventional commits and DCO signoff
-- `.changeset/config.json` using default `@changesets/cli/changelog` (this is what we replace)
-- Dual publishing to GitHub Packages and npmjs.org
+- Package renamed and configured as `@savvy-web/changesets`
+- Multi-entry export map: `.`, `./changelog`, `./remark-lint`, `./remark-transform`
+- CLI binary `savvy-changeset` with 3 subcommands: `lint`, `transform`, `check`
+- 13-category system with priority ordering and commit type mapping
+- Effect schemas for all system boundary types + 4 tagged errors
+- Layer 2 (Changelog Formatter): `getReleaseLine`, `getDependencyReleaseLine`, GitHub API integration
+- Layer 1 (Remark Lint): 3 rules — heading-hierarchy, required-sections, content-structure
+- Layer 3 (Remark Transform): 6 plugins — merge-sections, reorder-sections, deduplicate-items,
+  contributor-footnotes, issue-link-refs, normalize-format
+- Effect CLI using `@effect/cli` with `NodeContext.layer`
+- Class-based API wrappers: `ChangesetLinter`, `ChangelogTransformer`, `Changelog`, `Categories`
+- Effect services: `ChangelogService`, `GitHubService`, `MarkdownService`
+- Build produces both `dist/dev/` and `dist/npm/` with all entry points including CLI binary
 
-**What needs to change:**
+**What remains:**
 
-- Package name: `@savvy-web/pnpm-module-template` must become `@savvy-web/changesets`
-- Package description, homepage, repository URLs need updating
-- Source code: placeholder `src/index.ts` must be replaced with implementation
-- Dependencies: remark/unified ecosystem, Effect CLI, @changesets/types must be added
-- Export map: multiple entry points needed (`.`, `./changelog`, `./remark-lint`,
-  `./remark-transform`)
-- CLI binary: `savvy-changeset` must be configured
-- `.changeset/config.json`: must point to `@savvy-web/changesets/changelog` once implemented
+- Phase 8: Integration testing with fixture-driven scenarios, full pipeline tests
+- Phase 9: README documentation, migration guide, self-dogfooding config, release prep
 
-### Source Files (Planned)
+### Source Files (Implemented)
 
 ```text
 src/

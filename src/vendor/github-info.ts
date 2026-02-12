@@ -12,7 +12,7 @@ import { GitHubApiError } from "../errors.js";
 /**
  * Structured result from the GitHub commit info API.
  *
- * @internal
+ * @public
  */
 export interface GitHubCommitInfo {
 	/** The GitHub username of the commit author (null if unknown). */

@@ -145,8 +145,8 @@ describe("categories", () => {
 });
 
 describe("Categories class-based API", () => {
-	it("ordered() returns the same array as CATEGORIES", () => {
-		expect(Categories.ordered()).toBe(CATEGORIES);
+	it("ALL exposes the CATEGORIES array", () => {
+		expect(Categories.ALL).toBe(CATEGORIES);
 	});
 
 	it("fromCommitType() delegates to resolveCommitType", () => {

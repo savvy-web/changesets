@@ -9,7 +9,19 @@ import type { GitHubCommitInfo } from "../vendor/github-info.js";
 import { getGitHubInfo } from "../vendor/github-info.js";
 
 /**
- * Base tag for GitHubService.
+ * Service interface for GitHub API operations.
+ *
+ * @internal
+ */
+export interface GitHubServiceShape {
+	/** Fetch commit info (author, PR, links) for a given commit. */
+	readonly getInfo: (params: { commit: string; repo: string }) => Effect.Effect<GitHubCommitInfo, GitHubApiError>;
+}
+
+const _tag = Context.Tag("GitHubService");
+
+/**
+ * Base class for GitHubService.
  *
  * @privateRemarks
  * This export is required for api-extractor documentation generation.
@@ -18,7 +30,7 @@ import { getGitHubInfo } from "../vendor/github-info.js";
  *
  * @internal
  */
-export const GitHubServiceTag = Context.Tag("GitHubService");
+export const GitHubServiceBase = _tag<GitHubService, GitHubServiceShape>();
 
 /**
  * Service for GitHub API operations.
@@ -28,13 +40,7 @@ export const GitHubServiceTag = Context.Tag("GitHubService");
  *
  * @public
  */
-export class GitHubService extends GitHubServiceTag<
-	GitHubService,
-	{
-		/** Fetch commit info (author, PR, links) for a given commit. */
-		readonly getInfo: (params: { commit: string; repo: string }) => Effect.Effect<GitHubCommitInfo, GitHubApiError>;
-	}
->() {}
+export class GitHubService extends GitHubServiceBase {}
 
 /**
  * Live layer that delegates to \@changesets/get-github-info.
@@ -42,7 +48,7 @@ export class GitHubService extends GitHubServiceTag<
  * @public
  */
 export const GitHubLive = Layer.succeed(GitHubService, {
-	getInfo: (params) => getGitHubInfo(params),
+	getInfo: getGitHubInfo,
 });
 
 /**

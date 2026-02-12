@@ -9,6 +9,8 @@
  * Capture groups:
  * - `[1]` — link text
  * - `[2]` — URL
+ *
+ * @internal
  */
 export const MARKDOWN_LINK_PATTERN: RegExp = /\[([^\]]+)\]\(([^)]+)\)/;
 
@@ -22,6 +24,8 @@ export const MARKDOWN_LINK_PATTERN: RegExp = /\[([^\]]+)\]\(([^)]+)\)/;
  *
  * @param linkOrUrl - A markdown link or plain URL string
  * @returns The extracted plain URL
+ *
+ * @internal
  */
 export function extractUrlFromMarkdown(linkOrUrl: string): string {
 	const match = MARKDOWN_LINK_PATTERN.exec(linkOrUrl);
