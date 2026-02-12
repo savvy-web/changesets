@@ -1,16 +1,28 @@
-#!/usr/bin/env node
 /**
- * savvy-changeset CLI
+ * CLI entry point using `@effect/cli`.
  *
- * Commands:
- * - `savvy-changeset lint` - Validate changeset files
- * - `savvy-changeset transform` - Post-process CHANGELOG.md
- * - `savvy-changeset check` - Full validation pipeline
- * - `savvy-changeset create` - Interactive guided changeset creation
+ * Provides the `savvy-changeset` CLI application with subcommands
+ * for linting, transforming, and checking changeset files.
  *
- * @packageDocumentation
+ * @internal
  */
 
-// Placeholder until Effect CLI is implemented
-console.log("savvy-changeset: not yet implemented");
-process.exit(1);
+import { Command } from "@effect/cli";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Effect } from "effect";
+
+import { checkCommand, lintCommand, transformCommand } from "./commands/index.js";
+
+const rootCommand = Command.make("savvy-changeset").pipe(
+	Command.withSubcommands([lintCommand, transformCommand, checkCommand]),
+);
+
+const cli = Command.run(rootCommand, {
+	name: "savvy-changeset",
+	version: process.env.__PACKAGE_VERSION__ ?? "0.0.0",
+});
+
+export function runCli(): void {
+	const main = Effect.suspend(() => cli(process.argv)).pipe(Effect.provide(NodeContext.layer));
+	NodeRuntime.runMain(main);
+}

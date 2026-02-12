@@ -26,7 +26,7 @@
 		"./remark-transform": "./src/remark-transform/index.ts"
 	},
 	"bin": {
-		"savvy-changeset": "./src/cli/index.ts"
+		"savvy-changeset": "./src/bin/cli.ts"
 	},
 	"scripts": {
 		"build": "turbo run build:dev build:prod --log-order=grouped",
