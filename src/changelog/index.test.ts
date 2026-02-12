@@ -86,4 +86,39 @@ describe("changelog/index (export boundary)", () => {
 			),
 		).rejects.toThrow();
 	});
+
+	it("getReleaseLine rejects with invalid repo format", async () => {
+		await expect(
+			changelogFunctions.getReleaseLine(
+				{
+					id: "bad-repo",
+					summary: "test",
+					releases: [{ name: "test-pkg", type: "patch" }],
+					commit: "abc1234567890",
+				},
+				"patch",
+				{ repo: "invalid-format" },
+			),
+		).rejects.toThrow();
+	});
+
+	it("getDependencyReleaseLine rejects with null options", async () => {
+		await expect(
+			changelogFunctions.getDependencyReleaseLine(
+				[{ id: "dep-null", summary: "bump", releases: [], commit: "abc1234567890" }],
+				[
+					{
+						name: "dep",
+						type: "patch",
+						oldVersion: "1.0.0",
+						newVersion: "1.0.1",
+						changesets: [],
+						packageJson: { name: "dep", version: "1.0.1" },
+						dir: "/packages/dep",
+					},
+				],
+				null,
+			),
+		).rejects.toThrow();
+	});
 });

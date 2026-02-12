@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { GitHubApiError } from "../errors.js";
 import type { GitHubCommitInfo } from "../vendor/github-info.js";
-import { GitHubService, makeGitHubTest } from "./github.js";
+import { GitHubLive, GitHubService, makeGitHubTest } from "./github.js";
 
 const MOCK_INFO: GitHubCommitInfo = {
 	user: "octocat",
@@ -50,5 +50,26 @@ describe("GitHubService (test layer)", () => {
 
 		const error = await Effect.runPromise(program.pipe(Effect.provide(testLayer), Effect.flip));
 		expect(error.operation).toBe("getInfo");
+	});
+
+	it("GitHubLive provides the correct service shape", async () => {
+		const program = Effect.gen(function* () {
+			const github = yield* GitHubService;
+			expect(typeof github.getInfo).toBe("function");
+		});
+
+		await Effect.runPromise(program.pipe(Effect.provide(GitHubLive)));
+	});
+
+	it("error includes descriptive reason for unknown commit", async () => {
+		const program = Effect.gen(function* () {
+			const github = yield* GitHubService;
+			return yield* github.getInfo({ commit: "deadbeef123", repo: "owner/repo" });
+		});
+
+		const error = await Effect.runPromise(program.pipe(Effect.provide(testLayer), Effect.flip));
+		expect(error).toBeInstanceOf(GitHubApiError);
+		expect(error.reason).toContain("No mock response for commit deadbeef123");
+		expect(error.message).toContain("GitHub API error during getInfo");
 	});
 });
