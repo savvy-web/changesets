@@ -29,7 +29,7 @@
 // export { ChangesetOptionsSchema } from "./schemas/options.js";
 // export { CommitHashSchema } from "./schemas/git.js";
 // export { GitHubInfoSchema } from "./schemas/github.js";
-// export { SectionCategorySchema } from "./schemas/categories.js";
+export { SectionCategorySchema } from "./categories/types.js";
 
 // Tagged Errors
 // export { ChangesetValidationError, GitHubApiError, MarkdownParseError } from "./errors.js";

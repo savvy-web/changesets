@@ -9,6 +9,7 @@
  */
 
 export type { SectionCategory } from "./types.js";
+export { SectionCategorySchema } from "./types.js";
 
 import type { SectionCategory } from "./types.js";
 

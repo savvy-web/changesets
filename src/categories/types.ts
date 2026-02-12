@@ -1,20 +1,32 @@
 /**
- * Section category type definitions.
+ * Section category schema and type definitions.
  *
  * @packageDocumentation
  */
 
+import { Schema } from "effect";
+
+/**
+ * Schema for a section category that defines how changes are grouped in release notes.
+ * Used across all three processing layers.
+ *
+ * Provides runtime validation and type inference via Effect Schema.
+ */
+export const SectionCategorySchema = Schema.Struct({
+	/** Display heading used in CHANGELOG output */
+	heading: Schema.String,
+	/** Priority for ordering (lower = higher priority) */
+	priority: Schema.Number,
+	/** Conventional commit types that map to this category */
+	commitTypes: Schema.Array(Schema.String),
+	/** Brief description for documentation */
+	description: Schema.String,
+});
+
 /**
  * A section category defines how changes are grouped in release notes.
  * Used across all three processing layers.
+ *
+ * Inferred from {@link SectionCategorySchema}.
  */
-export interface SectionCategory {
-	/** Display heading used in CHANGELOG output */
-	readonly heading: string;
-	/** Priority for ordering (lower = higher priority) */
-	readonly priority: number;
-	/** Conventional commit types that map to this category */
-	readonly commitTypes: readonly string[];
-	/** Brief description for documentation */
-	readonly description: string;
-}
+export interface SectionCategory extends Schema.Schema.Type<typeof SectionCategorySchema> {}
