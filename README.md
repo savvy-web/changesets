@@ -20,9 +20,9 @@ generated CHANGELOG.md.
   and post-processing (remark-transform)
 - **13 section categories** -- Consistent categorization
   with priority-based ordering across all layers
-- **CLI tooling** -- `savvy-changeset` binary with lint,
-  transform, check, and version subcommands for CI and
-  local use
+- **CLI tooling** -- `savvy-changesets` binary with init,
+  lint, transform, check, and version subcommands for CI
+  and local use
 - **GitHub integration** -- Automatic PR links, commit
   references, and contributor attribution
 - **Remark plugins** -- Lint rules and transform plugins
@@ -39,7 +39,14 @@ pnpm add @savvy-web/changesets
 
 ## Quick Start
 
-Configure in `.changeset/config.json`:
+Bootstrap your repository:
+
+```bash
+savvy-changesets init
+```
+
+This creates `.changeset/config.json` with auto-detected
+GitHub repo settings. Or configure manually:
 
 ```json
 {

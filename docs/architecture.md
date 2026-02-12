@@ -44,7 +44,7 @@ limitations with a dedicated processing stage.
    Raw CHANGELOG.md
 
 3. TRANSFORM PHASE
-   savvy-changeset version (or savvy-changeset transform)
+   savvy-changesets version (or savvy-changesets transform)
          |
          v
    Layer 3: remark transform pipeline
@@ -69,7 +69,7 @@ limitations with a dedicated processing stage.
 **Entry point:** `@savvy-web/changesets/remark`
 
 **When it runs:** CI, pre-commit hooks, CLI
-(`savvy-changeset lint`)
+(`savvy-changesets lint`)
 
 Validates changeset `.md` files before they enter the
 formatting pipeline. Three remark-lint rules enforce
@@ -109,7 +109,7 @@ contribute to the same category.
 **Entry point:** `@savvy-web/changesets/remark`
 
 **When it runs:** After `changeset version`, via
-`savvy-changeset transform` or CI scripts
+`savvy-changesets transform` or CI scripts
 
 Six remark plugins run in order to clean up the assembled
 CHANGELOG:
@@ -139,7 +139,7 @@ defines the display order in the final CHANGELOG.
 The `ci:version` script uses the `version` command:
 
 ```bash
-savvy-changeset version && biome format --write .
+savvy-changesets version && biome format --write .
 ```
 
 The `version` command detects the package manager,

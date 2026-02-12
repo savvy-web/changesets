@@ -24,7 +24,7 @@
 - Three remark-lint rules (heading-hierarchy, required-sections,
   content-structure) for validating changeset file structure
   before formatting
-- `savvy-changeset` CLI with lint, check, and transform
+- `savvy-changesets` CLI with lint, check, and transform
   subcommands built on @effect/cli for CI and local validation
   workflows
 - Dual API surface: Effect service primitives for advanced

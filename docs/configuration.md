@@ -75,12 +75,12 @@ Custom issue reference prefixes to recognize.
 Use the `version` command in your `package.json` scripts:
 
 ```bash
-savvy-changeset version && biome format --write .
+savvy-changesets version && biome format --write .
 ```
 
 This runs:
 
-1. `savvy-changeset version` -- Detects the package
+1. `savvy-changesets version` -- Detects the package
    manager, runs `changeset version` (Layer 2), discovers
    all workspace CHANGELOG.md files, and runs Layer 3
    transform on each
@@ -95,7 +95,7 @@ files and transforms each one.
 Use the CLI to validate changeset files on commit:
 
 ```bash
-savvy-changeset lint .changeset
+savvy-changesets lint .changeset
 ```
 
 Or integrate with lint-staged:
@@ -103,26 +103,26 @@ Or integrate with lint-staged:
 ```json
 {
   "lint-staged": {
-    ".changeset/*.md": "savvy-changeset lint"
+    ".changeset/*.md": "savvy-changesets lint"
   }
 }
 ```
 
 ### CI Gate
 
-Use `savvy-changeset check` in CI to validate all
+Use `savvy-changesets check` in CI to validate all
 changeset files with a human-readable summary:
 
 ```bash
-savvy-changeset check .changeset
+savvy-changesets check .changeset
 ```
 
-Use `savvy-changeset transform --check` to verify that
+Use `savvy-changesets transform --check` to verify that
 CHANGELOG.md is already formatted (exits 1 if it would
 change):
 
 ```bash
-savvy-changeset transform --check CHANGELOG.md
+savvy-changesets transform --check CHANGELOG.md
 ```
 
 ## Error Messages

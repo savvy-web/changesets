@@ -100,7 +100,7 @@ Before these files enter the pipeline, the remark-lint
 rules validate their structure:
 
 ```bash
-$ savvy-changeset check .changeset
+$ savvy-changesets check .changeset
 
 All changeset files passed validation.
 ```
@@ -170,8 +170,8 @@ Notice the problems:
 
 ### Step 4: Transform (Layer 3)
 
-The `savvy-changeset version` command (or
-`savvy-changeset transform` standalone) runs six
+The `savvy-changesets version` command (or
+`savvy-changesets transform` standalone) runs six
 remark plugins that clean up the assembled output:
 
 | Plugin | What It Does |
@@ -229,11 +229,11 @@ The result is:
 
 In a monorepo, `changeset version` generates a
 CHANGELOG.md in each affected package directory.
-The `savvy-changeset version` command discovers all
+The `savvy-changesets version` command discovers all
 workspace packages and transforms every CHANGELOG:
 
 ```bash
-$ savvy-changeset version
+$ savvy-changesets version
 Detected package manager: pnpm
 Running: pnpm exec changeset version
 Found 3 CHANGELOG.md file(s)
@@ -252,7 +252,7 @@ The recommended `ci:version` script:
 ```json
 {
   "scripts": {
-    "ci:version": "savvy-changeset version"
+    "ci:version": "savvy-changesets version"
   }
 }
 ```

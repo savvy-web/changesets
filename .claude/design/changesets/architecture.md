@@ -97,8 +97,8 @@ with 424 tests passing across 42 test files.
   `@savvy-web/changesets`
 - Multi-entry export map: `.`, `./changelog`,
   `./markdownlint`, `./remark`
-- CLI binary `savvy-changeset` with 4 subcommands:
-  `lint`, `transform`, `check`, `version`
+- CLI binary `savvy-changesets` with 5 subcommands:
+  `init`, `lint`, `transform`, `check`, `version`
 - 13-category system with priority ordering and
   commit type mapping
 - Effect schemas for all system boundary types +
@@ -188,7 +188,7 @@ src/
 │       ├── required-sections.ts      # CSH002: validate h2 vs categories
 │       └── utils.ts                  # Shared getHeadingLevel/getHeadingText helpers
 │
-├── cli/                        # Effect CLI (savvy-changeset)
+├── cli/                        # Effect CLI (savvy-changesets)
 │   ├── index.ts                # Root command
 │   └── commands/
 │       ├── lint.ts             # Validate changeset files
@@ -450,7 +450,7 @@ These capabilities do NOT exist in the prior art and are entirely new:
 | **Layer 1: remark lint rules** | Pre-validation of changeset file structure (heading hierarchy, section names, content quality) |
 | **Layer 3: remark transform** | Post-processing of CHANGELOG.md (section merging, reordering, deduplication, normalization) |
 | **Structured changeset format** | Section headings (h2) in changeset files for multi-category changes |
-| **Effect CLI** | `savvy-changeset` binary with lint/transform/check/version commands |
+| **Effect CLI** | `savvy-changesets` binary with lint/transform/check/version commands |
 | **Remark/Unified ecosystem** | AST-based markdown processing replacing regex-based parsing where appropriate |
 | **Category system as shared data model** | Single category definition used by all three layers |
 | **Breaking Changes category** | Prior art lacks a dedicated breaking changes section |
@@ -890,7 +890,7 @@ API requires.
 │  │                                                                    │  │
 │  │  Entry: @savvy-web/changesets/remark                               │  │
 │  │  Alt:   @savvy-web/changesets/markdownlint (editor/CI)            │  │
-│  │  Runs: CI, pre-commit hooks, CLI (savvy-changeset lint)           │  │
+│  │  Runs: CI, pre-commit hooks, CLI (savvy-changesets lint)           │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
@@ -934,7 +934,7 @@ API requires.
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                   CLI (savvy-changeset)                            │  │
+│  │                   CLI (savvy-changesets)                            │  │
 │  │                                                                    │  │
 │  │  lint        Validate changeset files against rules               │  │
 │  │  transform   Post-process CHANGELOG.md after changeset version    │  │
@@ -1028,7 +1028,7 @@ API requires.
 │                                                                         │
 │  3. TRANSFORM PHASE (post-process the generated CHANGELOG)              │
 │                                                                         │
-│     savvy-changeset version                                             │
+│     savvy-changesets version                                             │
 │         │                                                               │
 │         ▼                                                               │
 │     Layer 3: remark transform pipeline                                  │
@@ -1736,7 +1736,7 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 
 ### CLI Binary
 
-**Binary name:** `savvy-changeset`
+**Binary name:** `savvy-changesets`
 
 **Framework:** Effect CLI (`@effect/cli` + `@effect/platform` + `@effect/platform-node`)
 
@@ -1744,10 +1744,10 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 
 | Command | Description | Usage |
 | :--- | :--- | :--- |
-| `savvy-changeset lint` | Validate changeset files against remark rules | CI, pre-commit |
-| `savvy-changeset transform` | Post-process CHANGELOG.md with remark transform pipeline | Standalone use |
-| `savvy-changeset check` | Run full validation pipeline (lint + structure) | CI gate |
-| `savvy-changeset version` | Run changeset version + discover and transform all workspace CHANGELOGs | ci:version script |
+| `savvy-changesets lint` | Validate changeset files against remark rules | CI, pre-commit |
+| `savvy-changesets transform` | Post-process CHANGELOG.md with remark transform pipeline | Standalone use |
+| `savvy-changesets check` | Run full validation pipeline (lint + structure) | CI gate |
+| `savvy-changesets version` | Run changeset version + discover and transform all workspace CHANGELOGs | ci:version script |
 
 ### CI Integration
 
@@ -1756,14 +1756,14 @@ The `ci:version` script in `package.json` integrates all layers:
 ```json
 {
   "scripts": {
-    "ci:version": "savvy-changeset version && biome format --write ."
+    "ci:version": "savvy-changesets version && biome format --write ."
   }
 }
 ```
 
 This runs:
 
-1. `savvy-changeset version` -- Detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, and runs Layer 3 transform on each
+1. `savvy-changesets version` -- Detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, and runs Layer 3 transform on each
 2. `biome format --write .` -- Biome normalizes all formatting
 
 ---
@@ -1852,7 +1852,7 @@ Each consuming repository updates its `ci:version` script:
 ```json
 {
   "scripts": {
-    "ci:version": "savvy-changeset version && biome format --write ."
+    "ci:version": "savvy-changesets version && biome format --write ."
   }
 }
 ```
@@ -1862,7 +1862,7 @@ Each consuming repository updates its `ci:version` script:
 Changeset files can be validated in pre-commit hooks or CI:
 
 ```bash
-savvy-changeset lint
+savvy-changesets lint
 ```
 
 ### 4. workflow-release-action
@@ -2251,7 +2251,7 @@ interface MockGitHubResponse {
 ### Short-term (Post-MVP)
 
 - [ ] Configurable section categories (allow consumers to add custom sections)
-- [ ] `savvy-changeset create` interactive mode with section selection
+- [ ] `savvy-changesets create` interactive mode with section selection
 - [ ] Migration guide from `@savvy-web/changelog` to `@savvy-web/changesets`
 
 ### Medium-term

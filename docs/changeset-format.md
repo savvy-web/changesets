@@ -143,10 +143,10 @@ Run validation with the CLI:
 
 ```bash
 # Machine-readable output
-savvy-changeset lint .changeset
+savvy-changesets lint .changeset
 
 # Human-readable summary
-savvy-changeset check .changeset
+savvy-changesets check .changeset
 ```
 
 Or programmatically:
