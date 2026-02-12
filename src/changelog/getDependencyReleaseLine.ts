@@ -3,7 +3,6 @@
  *
  * Formats dependency update entries for the changelog with commit links.
  *
- * @packageDocumentation
  */
 
 import { Effect } from "effect";

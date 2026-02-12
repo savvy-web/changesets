@@ -1,7 +1,5 @@
 /**
  * Remark processing pipeline for markdown parsing and stringification.
- *
- * @packageDocumentation
  */
 
 import type { Root } from "mdast";
@@ -14,7 +12,13 @@ import { unified } from "unified";
  * Create a unified processor configured with remark-parse, remark-gfm,
  * and remark-stringify.
  *
+ * @privateRemarks
+ * Return type is intentionally inferred because the unified Processor
+ * generic signature is complex and parameterized by the plugin chain.
+ *
  * @returns A configured unified processor
+ *
+ * @internal
  */
 export function createRemarkProcessor() {
 	return unified().use(remarkParse).use(remarkGfm).use(remarkStringify);
@@ -25,6 +29,8 @@ export function createRemarkProcessor() {
  *
  * @param content - Raw markdown string
  * @returns The parsed AST root node
+ *
+ * @internal
  */
 export function parseMarkdown(content: string): Root {
 	const processor = createRemarkProcessor();
@@ -36,6 +42,8 @@ export function parseMarkdown(content: string): Root {
  *
  * @param tree - The mdast root node
  * @returns The serialized markdown string
+ *
+ * @internal
  */
 export function stringifyMarkdown(tree: Root): string {
 	const processor = createRemarkProcessor();

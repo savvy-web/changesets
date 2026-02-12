@@ -1,7 +1,6 @@
 /**
  * GitHub issue reference parsing from commit messages.
  *
- * @packageDocumentation
  */
 
 /** Matches "closes #123" or "close: #456, #789" patterns (case-insensitive) */

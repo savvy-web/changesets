@@ -4,12 +4,7 @@
  * Defines the 13 section categories used across all three processing layers.
  * Categories map conventional commit types to CHANGELOG section headings
  * with a priority ordering for display.
- *
- * @packageDocumentation
  */
-
-export type { SectionCategory } from "./types.js";
-export { SectionCategorySchema } from "./types.js";
 
 import type { SectionCategory } from "./types.js";
 

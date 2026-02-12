@@ -1,7 +1,7 @@
 /**
  * Changelog entry formatting helpers.
  *
- * @packageDocumentation
+ * @internal
  */
 
 import type { IssueReferences } from "../utils/issue-refs.js";
@@ -9,17 +9,19 @@ import { extractUrlFromMarkdown } from "../utils/markdown-link.js";
 
 /**
  * A single changelog entry ready for formatting.
+ *
+ * @internal
  */
 export interface ChangelogEntry {
-	/** Full commit hash (optional) */
+	/** Full commit hash (optional). */
 	commit?: string;
-	/** Type of change (e.g., "feat", "fix") */
+	/** Type of change (e.g., "feat", "fix"). */
 	type: string;
-	/** Scope of the change (optional) */
+	/** Scope of the change (optional). */
 	scope?: string;
-	/** Summary description */
+	/** Summary description. */
 	summary: string;
-	/** Referenced GitHub issues */
+	/** Referenced GitHub issues. */
 	issues: IssueReferences;
 }
 
@@ -31,6 +33,8 @@ export interface ChangelogEntry {
  * @param entry - The changelog entry
  * @param options - Must include `repo` in `owner/repo` format
  * @returns Formatted markdown (without leading `- `)
+ *
+ * @internal
  */
 export function formatChangelogEntry(entry: ChangelogEntry, options: { repo: string }): string {
 	const parts: string[] = [];
@@ -69,10 +73,17 @@ export function formatChangelogEntry(entry: ChangelogEntry, options: { repo: str
 /**
  * Format PR reference and user attribution for a changelog entry.
  *
+ * @remarks
+ * The `links` parameter may contain either plain URLs or markdown-formatted
+ * links (e.g., `[#42](https://...)`). This function handles both formats
+ * via {@link extractUrlFromMarkdown}.
+ *
  * @param pr - Pull request number
  * @param user - GitHub username
  * @param links - Optional links for PR and user (may be markdown-formatted)
  * @returns Formatted attribution string (with leading space) or empty string
+ *
+ * @internal
  */
 export function formatPRAndUserAttribution(
 	pr?: number,

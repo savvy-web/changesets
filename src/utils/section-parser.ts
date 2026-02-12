@@ -4,7 +4,6 @@
  * Parses changeset summaries that contain h2 headings into structured
  * sections mapped to categories.
  *
- * @packageDocumentation
  */
 
 import type { Heading, Root, RootContent } from "mdast";

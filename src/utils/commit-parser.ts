@@ -1,7 +1,6 @@
 /**
  * Conventional commit message parsing.
  *
- * @packageDocumentation
  */
 
 /** Matches conventional commit format: `type(scope)!: description` */

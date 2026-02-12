@@ -6,7 +6,6 @@
  *
  * Includes types derived from \@changesets/types (MIT license).
  *
- * @packageDocumentation
  */
 
 export type {

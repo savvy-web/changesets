@@ -3,8 +3,6 @@
  *
  * Provides a static class interface that bridges to the underlying
  * Effect-native category functions for higher-level consumers.
- *
- * @packageDocumentation
  */
 
 import { CATEGORIES, allHeadings, fromHeading, isValidHeading, resolveCommitType } from "../categories/index.js";
@@ -13,16 +11,25 @@ import type { SectionCategory } from "../categories/types.js";
 /**
  * Static class wrapper for category operations.
  *
+ * Provides methods for resolving conventional commit types to changelog
+ * section categories and validating section headings.
+ *
  * @example
- * ```ts
- * import { Categories } from "@savvy-web/changesets";
+ * ```typescript
+ * import { Categories } from "\@savvy-web/changesets";
+ * import type { SectionCategory } from "\@savvy-web/changesets";
  *
- * const cat = Categories.fromCommitType("feat");
- * // => { heading: "Features", priority: 2, ... }
+ * const cat: SectionCategory = Categories.fromCommitType("feat");
+ * console.log(cat.heading); // "Features"
+ * console.log(cat.priority); // 2
  *
- * const all = Categories.ordered();
- * // => [BREAKING_CHANGES, FEATURES, BUG_FIXES, ...]
+ * const isValid: boolean = Categories.isValidHeading("Bug Fixes");
+ * console.log(isValid); // true
  * ```
+ *
+ * @see {@link SectionCategory} for the category shape
+ *
+ * @public
  */
 export class Categories {
 	private constructor() {}
@@ -38,6 +45,12 @@ export class Categories {
 
 	/**
 	 * Resolve a conventional commit type to its category.
+	 *
+	 * @remarks
+	 * The breaking flag takes highest precedence, always returning the
+	 * "Breaking Changes" category. The special scope `chore(deps)` maps
+	 * to "Dependencies" rather than "Maintenance". Unknown types fall
+	 * back to "Other".
 	 *
 	 * @param type - The commit type (e.g., "feat", "fix", "chore")
 	 * @param scope - Optional scope (e.g., "deps" in `chore(deps):`)
@@ -62,7 +75,7 @@ export class Categories {
 	/**
 	 * Get all valid section heading strings.
 	 *
-	 * @returns Array of heading strings
+	 * @returns Array of heading strings in priority order
 	 */
 	static allHeadings(): readonly string[] {
 		return allHeadings();

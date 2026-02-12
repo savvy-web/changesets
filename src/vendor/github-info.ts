@@ -1,7 +1,7 @@
 /**
  * Effect wrapper around \@changesets/get-github-info.
  *
- * @packageDocumentation
+ * @internal
  */
 
 import { getInfo } from "@changesets/get-github-info";
@@ -11,16 +11,21 @@ import { GitHubApiError } from "../errors.js";
 
 /**
  * Structured result from the GitHub commit info API.
+ *
+ * @internal
  */
 export interface GitHubCommitInfo {
-	/** The GitHub username of the commit author (null if unknown) */
+	/** The GitHub username of the commit author (null if unknown). */
 	user: string | null;
-	/** The pull request number associated with this commit (null if none) */
+	/** The pull request number associated with this commit (null if none). */
 	pull: number | null;
-	/** Markdown-formatted links for the commit, PR, and user */
+	/** Markdown-formatted links for the commit, PR, and user. */
 	links: {
+		/** Link to the commit on GitHub. */
 		commit: string;
+		/** Link to the associated pull request (null if none). */
 		pull: string | null;
+		/** Link to the author's GitHub profile (null if unknown). */
 		user: string | null;
 	};
 }
@@ -28,8 +33,10 @@ export interface GitHubCommitInfo {
 /**
  * Fetch GitHub info for a commit, wrapped in Effect.
  *
- * @param params - The commit hash and repo
- * @returns An Effect that resolves to commit info or fails with GitHubApiError
+ * @param params - The commit hash and repo in `owner/repo` format
+ * @returns An Effect that resolves to commit info or fails with {@link GitHubApiError}
+ *
+ * @internal
  */
 export function getGitHubInfo(params: {
 	commit: string;

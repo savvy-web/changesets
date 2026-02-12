@@ -1,13 +1,13 @@
 /**
  * Git-related schemas.
- *
- * @packageDocumentation
  */
 
 import { Schema } from "effect";
 
 /**
  * Schema for a git commit hash (at least 7 lowercase hex characters).
+ *
+ * @public
  */
 export const CommitHashSchema = Schema.String.pipe(
 	Schema.pattern(/^[a-f0-9]{7,}$/, {
@@ -17,10 +17,14 @@ export const CommitHashSchema = Schema.String.pipe(
 
 /**
  * Semantic version bump type.
+ *
+ * @public
  */
 export const VersionTypeSchema = Schema.Literal("major", "minor", "patch", "none");
 
 /**
  * Inferred type for {@link VersionTypeSchema}.
+ *
+ * @public
  */
 export type VersionType = typeof VersionTypeSchema.Type;

@@ -3,8 +3,6 @@
  *
  * Provides a static class interface that delegates to the underlying
  * Changesets API-compatible default export.
- *
- * @packageDocumentation
  */
 
 import changelogFunctions from "../changelog/index.js";
@@ -13,12 +11,28 @@ import type { ModCompWithPackage, NewChangesetWithCommit, VersionType } from "..
 /**
  * Static class wrapper for changelog operations.
  *
+ * Delegates to the Changesets-compatible `getReleaseLine` and
+ * `getDependencyReleaseLine` functions with Effect-based internals.
+ *
  * @example
- * ```ts
+ * ```typescript
  * import { Changelog } from "\@savvy-web/changesets";
  *
- * const line = await Changelog.formatReleaseLine(changeset, "minor", { repo: "owner/repo" });
+ * const changeset = {
+ *   id: "brave-pandas-learn",
+ *   summary: "feat: add authentication system",
+ *   releases: [{ name: "\@savvy-web/auth", type: "minor" as const }],
+ *   commit: "abc1234567890",
+ * };
+ *
+ * const line = await Changelog.formatReleaseLine(changeset, "minor", {
+ *   repo: "savvy-web/auth",
+ * });
  * ```
+ *
+ * @see {@link Categories} for resolving commit types to section categories
+ *
+ * @public
  */
 export class Changelog {
 	private constructor() {}

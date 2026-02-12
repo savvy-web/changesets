@@ -9,7 +9,27 @@
  * @packageDocumentation
  */
 
-// Placeholder exports until rules are implemented
-// export { default as headingHierarchy } from "./heading-hierarchy.js";
-// export { default as requiredSections } from "./required-sections.js";
-// export { default as contentStructure } from "./content-structure.js";
+export { default as contentStructure } from "./content-structure.js";
+export { default as headingHierarchy } from "./heading-hierarchy.js";
+export { default as requiredSections } from "./required-sections.js";
+
+import contentStructure from "./content-structure.js";
+import headingHierarchy from "./heading-hierarchy.js";
+import requiredSections from "./required-sections.js";
+
+/**
+ * Preset combining all changeset lint rules for convenient consumption.
+ *
+ * @example
+ * ```ts
+ * import { changesetPreset } from "\@savvy-web/changesets/remark-lint";
+ *
+ * const processor = unified()
+ *   .use(remarkParse);
+ *
+ * for (const rule of changesetPreset) {
+ *   processor.use(rule);
+ * }
+ * ```
+ */
+export const changesetPreset = [headingHierarchy, requiredSections, contentStructure] as const;

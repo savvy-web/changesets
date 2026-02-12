@@ -1,7 +1,6 @@
 /**
  * Markdown link extraction utilities.
  *
- * @packageDocumentation
  */
 
 /**

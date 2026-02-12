@@ -12,65 +12,70 @@
  * @packageDocumentation
  */
 
-// === Effect Primitives (for Effect-native consumers) ===
+// === Class-Based API (for higher-level consumers) ===
 
-// Services
+export { Categories } from "./api/categories.js";
+export { Changelog } from "./api/changelog.js";
+export type { LintMessage } from "./api/linter.js";
+export { ChangesetLinter } from "./api/linter.js";
+
+// === Effect Services ===
+
 export { ChangelogService } from "./services/changelog.js";
 export { GitHubService } from "./services/github.js";
 export { MarkdownService } from "./services/markdown.js";
 
-// export { ValidationService } from "./services/validation.js";
+// === Effect Layers ===
 
-// Schemas
-export { SectionCategorySchema } from "./categories/types.js";
-// Tagged Errors
-export {
-	ChangesetValidationError,
-	ConfigurationError,
-	GitHubApiError,
-	MarkdownParseError,
-} from "./errors.js";
-export type {
-	Changeset,
-	ChangesetOptions,
-	DependencyType,
-	DependencyUpdate,
-	GitHubInfo,
-	VersionType,
-} from "./schemas/index.js";
-export {
-	ChangesetOptionsSchema,
-	ChangesetSchema,
-	ChangesetSummarySchema,
-	CommitHashSchema,
-	DependencyTypeSchema,
-	DependencyUpdateSchema,
-	GitHubInfoSchema,
-	IssueNumberSchema,
-	NonEmptyString,
-	PositiveInteger,
-	RepoSchema,
-	UrlOrMarkdownLinkSchema,
-	UsernameSchema,
-	VersionTypeSchema,
-	validateChangesetOptions,
-} from "./schemas/index.js";
-// Layers
 export { GitHubLive, makeGitHubTest } from "./services/github.js";
 export { MarkdownLive } from "./services/markdown.js";
 
-// === Class-Based API (for higher-level consumers) ===
+// === Tagged Errors ===
 
-// export { ChangesetLinter } from "./api/linter.js";
-// export { ChangelogTransformer } from "./api/transformer.js";
-export { Categories } from "./api/categories.js";
-export { Changelog } from "./api/changelog.js";
+export {
+	ChangesetValidationError,
+	ChangesetValidationErrorBase,
+	ConfigurationError,
+	ConfigurationErrorBase,
+	GitHubApiError,
+	GitHubApiErrorBase,
+	MarkdownParseError,
+	MarkdownParseErrorBase,
+} from "./errors.js";
 
-// === Shared Types ===
+// === Schemas ===
+
+export { SectionCategorySchema } from "./categories/types.js";
+export type { Changeset, DependencyType, DependencyUpdate } from "./schemas/changeset.js";
+export {
+	ChangesetSchema,
+	ChangesetSummarySchema,
+	DependencyTypeSchema,
+	DependencyUpdateSchema,
+} from "./schemas/changeset.js";
+export type { VersionType } from "./schemas/git.js";
+export { CommitHashSchema, VersionTypeSchema } from "./schemas/git.js";
+export type { GitHubInfo } from "./schemas/github.js";
+export {
+	GitHubInfoSchema,
+	IssueNumberSchema,
+	UrlOrMarkdownLinkSchema,
+	UsernameSchema,
+} from "./schemas/github.js";
+export type { ChangesetOptions } from "./schemas/options.js";
+export {
+	ChangesetOptionsSchema,
+	RepoSchema,
+	validateChangesetOptions,
+} from "./schemas/options.js";
+export { NonEmptyString, PositiveInteger } from "./schemas/primitives.js";
+
+// === Types ===
 
 export type { SectionCategory } from "./categories/types.js";
+export type { GitHubCommitInfo } from "./vendor/github-info.js";
 
-// === Categories (constants and functions for Effect-native consumers) ===
+// === Categories ===
 
 export {
 	BREAKING_CHANGES,

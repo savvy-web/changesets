@@ -4,8 +4,6 @@
  * The actual formatting logic lives in `changelog/getReleaseLine.ts` and
  * `changelog/getDependencyReleaseLine.ts`. This module defines the service
  * interface and tag for dependency injection.
- *
- * @packageDocumentation
  */
 
 import type { Effect } from "effect";
@@ -17,9 +15,28 @@ import type { GitHubService } from "./github.js";
 import type { MarkdownService } from "./markdown.js";
 
 /**
- * Service for changelog formatting.
+ * Base tag for ChangelogService.
+ *
+ * @privateRemarks
+ * This export is required for api-extractor documentation generation.
+ * Effect's Context.Tag creates an anonymous base class that must be
+ * explicitly exported to avoid "forgotten export" warnings. Do not delete.
+ *
+ * @internal
  */
-export class ChangelogService extends Context.Tag("ChangelogService")<
+export const ChangelogServiceTag = Context.Tag("ChangelogService");
+
+/**
+ * Service for changelog formatting.
+ *
+ * @remarks
+ * This service tag defines the interface. Use the Changesets API entry point
+ * (`\@savvy-web/changesets/changelog`) or the {@link Changelog} class for
+ * the concrete implementation.
+ *
+ * @public
+ */
+export class ChangelogService extends ChangelogServiceTag<
 	ChangelogService,
 	{
 		/** Format a single changeset release line. */

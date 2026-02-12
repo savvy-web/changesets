@@ -1,7 +1,5 @@
 /**
  * Section category schema and type definitions.
- *
- * @packageDocumentation
  */
 
 import { Schema } from "effect";
@@ -11,15 +9,17 @@ import { Schema } from "effect";
  * Used across all three processing layers.
  *
  * Provides runtime validation and type inference via Effect Schema.
+ *
+ * @public
  */
 export const SectionCategorySchema = Schema.Struct({
-	/** Display heading used in CHANGELOG output */
+	/** Display heading used in CHANGELOG output. */
 	heading: Schema.String,
-	/** Priority for ordering (lower = higher priority) */
+	/** Priority for ordering (lower = higher priority). */
 	priority: Schema.Number,
-	/** Conventional commit types that map to this category */
+	/** Conventional commit types that map to this category. */
 	commitTypes: Schema.Array(Schema.String),
-	/** Brief description for documentation */
+	/** Brief description for documentation. */
 	description: Schema.String,
 });
 
@@ -28,5 +28,7 @@ export const SectionCategorySchema = Schema.Struct({
  * Used across all three processing layers.
  *
  * Inferred from {@link SectionCategorySchema}.
+ *
+ * @public
  */
 export interface SectionCategory extends Schema.Schema.Type<typeof SectionCategorySchema> {}

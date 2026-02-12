@@ -4,7 +4,6 @@
  * Uses GitHub Actions `::warning::` annotation format in CI,
  * `console.warn` elsewhere.
  *
- * @packageDocumentation
  */
 
 /**

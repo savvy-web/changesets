@@ -5,7 +5,6 @@
  * section-aware changesets (with h2 headings) and flat-text changesets
  * (backward-compatible single-line output).
  *
- * @packageDocumentation
  */
 
 import { Effect, Schema } from "effect";
