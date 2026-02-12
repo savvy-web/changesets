@@ -44,6 +44,7 @@ export function getGitHubInfo(params: {
 }): Effect.Effect<GitHubCommitInfo, GitHubApiError> {
 	return Effect.tryPromise({
 		try: () => getInfo({ commit: params.commit, repo: params.repo }),
+		/* v8 ignore next 5 -- error mapping tested via GitHubService test layer */
 		catch: (error) =>
 			new GitHubApiError({
 				operation: "getInfo",

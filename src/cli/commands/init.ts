@@ -48,6 +48,7 @@ export class InitError extends InitErrorBase<{
 	}
 }
 
+/* v8 ignore start -- CLI option definitions; handler functions tested individually */
 const forceOption = Options.boolean("force").pipe(
 	Options.withAlias("f"),
 	Options.withDescription("Overwrite existing config files"),
@@ -64,6 +65,7 @@ const markdownlintOption = Options.boolean("markdownlint").pipe(
 	Options.withDescription("Register rules in base markdownlint config"),
 	Options.withDefault(true),
 );
+/* v8 ignore stop */
 
 /**
  * Detect `owner/repo` from the git remote origin URL.
@@ -92,8 +94,8 @@ export function resolveWorkspaceRoot(cwd: string): string {
 	return findProjectRoot(cwd) ?? cwd;
 }
 
-/** Create the .changeset/ directory. */
-function ensureChangesetDir(root: string): Effect.Effect<string, InitError> {
+/** @internal */
+export function ensureChangesetDir(root: string): Effect.Effect<string, InitError> {
 	return Effect.try({
 		try: () => {
 			const dir = join(root, ".changeset");
@@ -108,8 +110,8 @@ function ensureChangesetDir(root: string): Effect.Effect<string, InitError> {
 	});
 }
 
-/** Write or patch .changeset/config.json. */
-function handleConfig(changesetDir: string, repoSlug: string, force: boolean): Effect.Effect<string, InitError> {
+/** @internal */
+export function handleConfig(changesetDir: string, repoSlug: string, force: boolean): Effect.Effect<string, InitError> {
 	return Effect.try({
 		try: () => {
 			const configPath = join(changesetDir, "config.json");
@@ -134,8 +136,8 @@ function handleConfig(changesetDir: string, repoSlug: string, force: boolean): E
 	});
 }
 
-/** Patch the base markdownlint config to register custom rules. */
-function handleBaseMarkdownlint(root: string): Effect.Effect<string | null, InitError> {
+/** @internal */
+export function handleBaseMarkdownlint(root: string): Effect.Effect<string | null, InitError> {
 	return Effect.try({
 		try: () => {
 			const baseConfigPath = join(root, BASE_CONFIG_PATH);
@@ -171,8 +173,8 @@ function handleBaseMarkdownlint(root: string): Effect.Effect<string | null, Init
 	});
 }
 
-/** Write or patch .changeset/.markdownlint.json. */
-function handleChangesetMarkdownlint(
+/** @internal */
+export function handleChangesetMarkdownlint(
 	changesetDir: string,
 	root: string,
 	force: boolean,
@@ -211,6 +213,7 @@ function handleChangesetMarkdownlint(
 	});
 }
 
+/* v8 ignore start -- CLI orchestration; individual functions tested separately */
 export const initCommand = Command.make(
 	"init",
 	{ force: forceOption, quiet: quietOption, markdownlint: markdownlintOption },
@@ -281,3 +284,4 @@ export const initCommand = Command.make(
 			),
 		),
 ).pipe(Command.withDescription("Bootstrap a repo for @savvy-web/changesets"));
+/* v8 ignore stop */

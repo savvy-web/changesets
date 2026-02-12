@@ -14,10 +14,12 @@ import { Effect } from "effect";
 import type { LintMessage } from "../../api/linter.js";
 import { ChangesetLinter } from "../../api/linter.js";
 
+/* v8 ignore next */
 const dirArg = Args.directory({ name: "dir" }).pipe(Args.withDefault(".changeset"));
 
-export const checkCommand = Command.make("check", { dir: dirArg }, ({ dir }) =>
-	Effect.gen(function* () {
+/** @internal */
+export function runCheck(dir: string) {
+	return Effect.gen(function* () {
 		const resolved = resolve(dir);
 		const messages = yield* Effect.try(() => ChangesetLinter.validate(resolved));
 
@@ -50,5 +52,10 @@ export const checkCommand = Command.make("check", { dir: dirArg }, ({ dir }) =>
 		} else {
 			yield* Effect.log("All changeset files passed validation.");
 		}
-	}),
-).pipe(Command.withDescription("Full changeset validation with summary"));
+	});
+}
+
+/* v8 ignore next 3 -- CLI registration; handler tested via runCheck */
+export const checkCommand = Command.make("check", { dir: dirArg }, ({ dir }) => runCheck(dir)).pipe(
+	Command.withDescription("Full changeset validation with summary"),
+);

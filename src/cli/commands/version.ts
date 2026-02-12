@@ -14,14 +14,17 @@ import { Effect } from "effect";
 import { ChangelogTransformer } from "../../api/transformer.js";
 import { Workspace } from "../../utils/workspace.js";
 
+/* v8 ignore start -- CLI option definitions; handler tested via runVersion */
 const dryRunOption = Options.boolean("dry-run").pipe(
 	Options.withAlias("n"),
 	Options.withDescription("Skip changeset version, only transform existing CHANGELOGs"),
 	Options.withDefault(false),
 );
+/* v8 ignore stop */
 
-export const versionCommand = Command.make("version", { dryRun: dryRunOption }, ({ dryRun }) =>
-	Effect.gen(function* () {
+/** @internal */
+export function runVersion(dryRun: boolean) {
+	return Effect.gen(function* () {
 		const cwd = process.cwd();
 
 		// 1. Detect package manager
@@ -62,5 +65,10 @@ export const versionCommand = Command.make("version", { dryRun: dryRunOption }, 
 			});
 			yield* Effect.log(`Transformed ${entry.name} → ${entry.changelogPath}`);
 		}
-	}),
+	});
+}
+
+/* v8 ignore next 3 -- CLI registration; handler tested via runVersion */
+export const versionCommand = Command.make("version", { dryRun: dryRunOption }, ({ dryRun }) =>
+	runVersion(dryRun),
 ).pipe(Command.withDescription("Run changeset version and transform all CHANGELOGs"));

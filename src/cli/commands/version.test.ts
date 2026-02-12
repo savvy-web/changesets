@@ -1,119 +1,121 @@
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { Effect, Logger } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { WorkspaceInfos } from "workspace-tools";
-import { getWorkspaceInfos } from "workspace-tools";
 
-import { ChangelogTransformer } from "../../api/transformer.js";
-import { Workspace } from "../../utils/workspace.js";
+import { runVersion } from "./version.js";
 
 vi.mock("node:child_process", () => ({
 	execSync: vi.fn(),
 }));
 
-vi.mock("workspace-tools", () => ({
-	getWorkspaceInfos: vi.fn(),
+vi.mock("../../utils/workspace.js", () => ({
+	Workspace: {
+		detectPackageManager: vi.fn(),
+		getChangesetVersionCommand: vi.fn(),
+		discoverChangelogs: vi.fn(),
+	},
 }));
 
-vi.mock("node:fs", async () => {
-	const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
-	return {
-		...actual,
-		existsSync: vi.fn(),
-		readFileSync: vi.fn(),
-	};
-});
+vi.mock("../../api/transformer.js", () => ({
+	ChangelogTransformer: {
+		transformFile: vi.fn(),
+	},
+}));
+
+// Import the mocked modules so we can configure them per-test
+import { ChangelogTransformer } from "../../api/transformer.js";
+import { Workspace } from "../../utils/workspace.js";
+
+const silentLogger = Logger.replace(Logger.defaultLogger, Logger.none);
 
 afterEach(() => {
 	vi.resetAllMocks();
 });
 
-const createMockWorkspace = (name: string, path: string): WorkspaceInfos[number] =>
-	({ name, path, packageJson: {} }) as WorkspaceInfos[number];
+describe("runVersion Effect handler", () => {
+	it("skips execSync and logs dry-run message when dryRun is true", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-describe("version command sequencing", () => {
-	it("detects package manager and builds correct command", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ packageManager: "pnpm@10.29.3" }));
-
-		const pm = Workspace.detectPackageManager("/project");
-		const cmd = Workspace.getChangesetVersionCommand(pm);
-
-		expect(pm).toBe("pnpm");
-		expect(cmd).toBe("pnpm exec changeset version");
-	});
-
-	it("discovers changelogs and transforms each", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([
-			createMockWorkspace("pkg-a", "/project/packages/a"),
-			createMockWorkspace("pkg-b", "/project/packages/b"),
-		]);
-		vi.mocked(existsSync).mockImplementation((p) => {
-			const s = String(p);
-			// Only workspace changelogs exist, not root
-			return s === "/project/packages/a/CHANGELOG.md" || s === "/project/packages/b/CHANGELOG.md";
-		});
-
-		const changelogs = Workspace.discoverChangelogs("/project");
-
-		expect(changelogs).toHaveLength(2);
-		expect(changelogs.map((c) => c.name)).toEqual(["pkg-a", "pkg-b"]);
-	});
-
-	it("skips execSync when dry-run is true", () => {
-		const dryRun = true;
-
-		if (!dryRun) {
-			execSync("pnpm exec changeset version", { stdio: "inherit" });
-		}
+		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
 
 		expect(execSync).not.toHaveBeenCalled();
+		expect(Workspace.detectPackageManager).toHaveBeenCalled();
+		expect(Workspace.discoverChangelogs).toHaveBeenCalled();
 	});
 
-	it("calls execSync when dry-run is false", () => {
-		const dryRun = false;
-		const cmd = "pnpm exec changeset version";
+	it("runs execSync with changeset version command when dryRun is false", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.getChangesetVersionCommand).mockReturnValue("pnpm exec changeset version");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-		if (!dryRun) {
-			execSync(cmd, { cwd: "/project", stdio: "inherit" });
-		}
+		await Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)));
 
-		expect(execSync).toHaveBeenCalledWith(cmd, {
-			cwd: "/project",
+		expect(Workspace.getChangesetVersionCommand).toHaveBeenCalledWith("pnpm");
+		expect(execSync).toHaveBeenCalledWith("pnpm exec changeset version", {
+			cwd: process.cwd(),
 			stdio: "inherit",
 		});
 	});
 
-	it("transforms each discovered changelog file", () => {
-		const transformSpy = vi.spyOn(ChangelogTransformer, "transformFile").mockImplementation(() => {});
+	it("handles zero changelogs gracefully", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("npm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-		vi.mocked(getWorkspaceInfos).mockReturnValue([
-			createMockWorkspace("pkg-a", "/project/packages/a"),
-			createMockWorkspace("pkg-b", "/project/packages/b"),
-		]);
-		vi.mocked(existsSync).mockImplementation((p) => {
-			const s = String(p);
-			return s === "/project/packages/a/CHANGELOG.md" || s === "/project/packages/b/CHANGELOG.md";
-		});
+		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
 
-		const changelogs = Workspace.discoverChangelogs("/project");
-		for (const entry of changelogs) {
-			ChangelogTransformer.transformFile(entry.changelogPath);
-		}
-
-		expect(transformSpy).toHaveBeenCalledTimes(2);
-		expect(transformSpy).toHaveBeenCalledWith("/project/packages/a/CHANGELOG.md");
-		expect(transformSpy).toHaveBeenCalledWith("/project/packages/b/CHANGELOG.md");
-
-		transformSpy.mockRestore();
+		expect(Workspace.discoverChangelogs).toHaveBeenCalledWith(process.cwd());
+		expect(ChangelogTransformer.transformFile).not.toHaveBeenCalled();
 	});
 
-	it("handles zero changelogs gracefully", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
-		vi.mocked(existsSync).mockReturnValue(false);
+	it("transforms each discovered changelog file", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([
+			{ name: "pkg-a", path: "/project/packages/a", changelogPath: "/project/packages/a/CHANGELOG.md" },
+			{ name: "pkg-b", path: "/project/packages/b", changelogPath: "/project/packages/b/CHANGELOG.md" },
+		]);
 
-		const changelogs = Workspace.discoverChangelogs("/project");
+		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
 
-		expect(changelogs).toHaveLength(0);
+		expect(ChangelogTransformer.transformFile).toHaveBeenCalledTimes(2);
+		expect(ChangelogTransformer.transformFile).toHaveBeenCalledWith("/project/packages/a/CHANGELOG.md");
+		expect(ChangelogTransformer.transformFile).toHaveBeenCalledWith("/project/packages/b/CHANGELOG.md");
+	});
+
+	it("uses process.cwd() for package manager detection and changelog discovery", async () => {
+		const cwd = process.cwd();
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("npm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
+
+		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+
+		expect(Workspace.detectPackageManager).toHaveBeenCalledWith(cwd);
+		expect(Workspace.discoverChangelogs).toHaveBeenCalledWith(cwd);
+	});
+
+	it("rejects when execSync throws an error", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.getChangesetVersionCommand).mockReturnValue("pnpm exec changeset version");
+		vi.mocked(execSync).mockImplementation(() => {
+			throw new Error("command not found");
+		});
+
+		await expect(Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
+			"changeset version failed: command not found",
+		);
+	});
+
+	it("rejects when transformFile throws an error", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([
+			{ name: "pkg-a", path: "/project/packages/a", changelogPath: "/project/packages/a/CHANGELOG.md" },
+		]);
+		vi.mocked(ChangelogTransformer.transformFile).mockImplementation(() => {
+			throw new Error("ENOENT: no such file");
+		});
+
+		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
+			"Failed to transform /project/packages/a/CHANGELOG.md: ENOENT: no such file",
+		);
 	});
 });

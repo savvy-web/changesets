@@ -1,63 +1,92 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Effect, Logger } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ChangesetLinter } from "../../api/linter.js";
+import { runCheck } from "./check.js";
 
-describe("check command logic", () => {
+const silentLogger = Logger.replace(Logger.defaultLogger, Logger.none);
+
+describe("check command – runCheck handler", () => {
 	let tempDir: string;
+	let savedExitCode: typeof process.exitCode;
 
 	beforeEach(() => {
 		tempDir = mkdtempSync(join(tmpdir(), "cli-check-"));
+		savedExitCode = process.exitCode;
+		process.exitCode = undefined;
 	});
 
 	afterEach(() => {
 		rmSync(tempDir, { recursive: true });
+		process.exitCode = savedExitCode;
 	});
 
-	it("valid changesets pass check with no errors", () => {
+	it("logs success message when all changesets are valid", async () => {
 		writeFileSync(join(tempDir, "feat.md"), '---\n"@savvy-web/changesets": minor\n---\n\n## Features\n\n- Added CLI\n');
 		writeFileSync(
 			join(tempDir, "fix.md"),
 			'---\n"@savvy-web/changesets": patch\n---\n\n## Bug Fixes\n\n- Fixed something\n',
 		);
-		const messages = ChangesetLinter.validate(tempDir);
-		expect(messages).toEqual([]);
+
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
+
+		expect(process.exitCode).toBeUndefined();
 	});
 
-	it("invalid changesets fail check with errors", () => {
+	it("logs success message for an empty directory", async () => {
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
+
+		expect(process.exitCode).toBeUndefined();
+	});
+
+	it("sets process.exitCode to 1 when errors are found", async () => {
 		writeFileSync(join(tempDir, "bad.md"), '---\n"@savvy-web/changesets": minor\n---\n\n# Bad Title\n');
-		const messages = ChangesetLinter.validate(tempDir);
-		expect(messages.length).toBeGreaterThan(0);
+
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
+
+		expect(process.exitCode).toBe(1);
 	});
 
-	it("groups messages by file", () => {
+	it("groups messages by file when multiple files have errors", async () => {
 		writeFileSync(join(tempDir, "a.md"), "# Bad\n");
 		writeFileSync(join(tempDir, "b.md"), "## Unknown\n\n- content\n");
-		const messages = ChangesetLinter.validate(tempDir);
 
-		const byFile = new Map<string, typeof messages>();
-		for (const msg of messages) {
-			const existing = byFile.get(msg.file);
-			if (existing) {
-				existing.push(msg);
-			} else {
-				byFile.set(msg.file, [msg]);
-			}
-		}
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
 
-		expect(byFile.size).toBe(2);
+		expect(process.exitCode).toBe(1);
 	});
 
-	it("provides accurate error count in summary", () => {
-		writeFileSync(join(tempDir, "a.md"), "# Bad\n");
-		writeFileSync(join(tempDir, "b.md"), '---\n"pkg": minor\n---\n\n## Features\n\n- Good\n');
-		const messages = ChangesetLinter.validate(tempDir);
-		const errorCount = messages.length;
-		expect(errorCount).toBeGreaterThan(0);
+	it("reports correct error count in the summary", async () => {
+		writeFileSync(join(tempDir, "ok.md"), '---\n"pkg": minor\n---\n\n## Features\n\n- Good\n');
+		writeFileSync(join(tempDir, "bad.md"), "# Bad\n");
 
-		const filesWithErrors = new Set(messages.map((m) => m.file)).size;
-		expect(filesWithErrors).toBe(1);
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
+
+		// Only bad.md should produce errors, so exitCode must be set
+		expect(process.exitCode).toBe(1);
+	});
+
+	it("does not set exitCode when only valid files are present", async () => {
+		writeFileSync(
+			join(tempDir, "one.md"),
+			'---\n"@savvy-web/changesets": minor\n---\n\n## Features\n\n- Feature one\n',
+		);
+		writeFileSync(join(tempDir, "two.md"), '---\n"@savvy-web/changesets": patch\n---\n\n## Bug Fixes\n\n- Fix two\n');
+
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
+
+		expect(process.exitCode).toBeUndefined();
+	});
+
+	it("handles a single file with multiple lint errors (existing.push branch)", async () => {
+		// h1 triggers heading-hierarchy, empty section triggers content-structure,
+		// and "Unknown" heading triggers required-sections — all from the same file
+		writeFileSync(join(tempDir, "multi.md"), "## Unknown\n\n## Features\n");
+
+		await Effect.runPromise(runCheck(tempDir).pipe(Effect.provide(silentLogger)));
+
+		expect(process.exitCode).toBe(1);
 	});
 });

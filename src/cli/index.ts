@@ -17,6 +17,7 @@ import { lintCommand } from "./commands/lint.js";
 import { transformCommand } from "./commands/transform.js";
 import { versionCommand } from "./commands/version.js";
 
+/* v8 ignore start -- CLI registration; each command tested via exported handler */
 const rootCommand = Command.make("savvy-changesets").pipe(
 	Command.withSubcommands([initCommand, lintCommand, transformCommand, checkCommand, versionCommand]),
 );
@@ -30,3 +31,4 @@ export function runCli(): void {
 	const main = Effect.suspend(() => cli(process.argv)).pipe(Effect.provide(NodeContext.layer));
 	NodeRuntime.runMain(main);
 }
+/* v8 ignore stop */
