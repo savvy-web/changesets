@@ -4,16 +4,16 @@
  */
 
 /** Matches "closes #123" or "close: #456, #789" patterns (case-insensitive) */
-const CLOSES_ISSUE_PATTERN = /closes?:?\s*#?(\d+(?:\s*,\s*#?\d+)*)/i;
+const CLOSES_ISSUE_PATTERN = /closes?:?\s*#?(\d+(?:, *#?\d+)*)/i;
 
 /** Matches "fixes #123" or "fix: #456, #789" patterns (case-insensitive) */
-const FIXES_ISSUE_PATTERN = /fix(?:es)?:?\s*#?(\d+(?:\s*,\s*#?\d+)*)/i;
+const FIXES_ISSUE_PATTERN = /fix(?:es)?:?\s*#?(\d+(?:, *#?\d+)*)/i;
 
 /** Matches "refs #123" or "ref: #456, #789" patterns (case-insensitive) */
-const REFS_ISSUE_PATTERN = /refs?:?\s*#?(\d+(?:\s*,\s*#?\d+)*)/i;
+const REFS_ISSUE_PATTERN = /refs?:?\s*#?(\d+(?:, *#?\d+)*)/i;
 
 /** Pattern for splitting comma-separated issue numbers. */
-const ISSUE_NUMBER_SPLIT_PATTERN = /\s*,\s*/;
+const ISSUE_NUMBER_SPLIT_PATTERN = /, */;
 
 /**
  * Categorized issue references extracted from a commit message.
@@ -37,7 +37,9 @@ export interface IssueReferences {
  * @returns Array of issue number strings (without `#` prefix)
  */
 function extractIssueNumbers(pattern: RegExp, message: string): string[] {
-	const match = pattern.exec(message);
+	// Limit input length to prevent ReDoS on adversarial input
+	const safeMessage = message.slice(0, 10_000);
+	const match = pattern.exec(safeMessage);
 	if (!match?.[1]) return [];
 	return match[1].split(ISSUE_NUMBER_SPLIT_PATTERN).map((num) => num.replace("#", "").trim());
 }
