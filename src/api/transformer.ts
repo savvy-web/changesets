@@ -11,12 +11,12 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 
-import contributorFootnotes from "../remark-transform/contributor-footnotes.js";
-import deduplicateItems from "../remark-transform/deduplicate-items.js";
-import issueLinkRefs from "../remark-transform/issue-link-refs.js";
-import mergeSections from "../remark-transform/merge-sections.js";
-import normalizeFormat from "../remark-transform/normalize-format.js";
-import reorderSections from "../remark-transform/reorder-sections.js";
+import { ContributorFootnotesPlugin } from "../remark/plugins/contributor-footnotes.js";
+import { DeduplicateItemsPlugin } from "../remark/plugins/deduplicate-items.js";
+import { IssueLinkRefsPlugin } from "../remark/plugins/issue-link-refs.js";
+import { MergeSectionsPlugin } from "../remark/plugins/merge-sections.js";
+import { NormalizeFormatPlugin } from "../remark/plugins/normalize-format.js";
+import { ReorderSectionsPlugin } from "../remark/plugins/reorder-sections.js";
 
 /**
  * Static class for transforming CHANGELOG.md files.
@@ -51,12 +51,12 @@ export class ChangelogTransformer {
 		const processor = unified()
 			.use(remarkParse)
 			.use(remarkGfm)
-			.use(mergeSections)
-			.use(reorderSections)
-			.use(deduplicateItems)
-			.use(contributorFootnotes)
-			.use(issueLinkRefs)
-			.use(normalizeFormat)
+			.use(MergeSectionsPlugin)
+			.use(ReorderSectionsPlugin)
+			.use(DeduplicateItemsPlugin)
+			.use(ContributorFootnotesPlugin)
+			.use(IssueLinkRefsPlugin)
+			.use(NormalizeFormatPlugin)
 			.use(remarkStringify);
 
 		const file = processor.processSync(content);

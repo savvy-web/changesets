@@ -11,10 +11,9 @@ import type { Heading, Root } from "mdast";
 import { toString as nodeToString } from "mdast-util-to-string";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
+import { allHeadings, isValidHeading } from "../../categories/index.js";
 
-import { allHeadings, isValidHeading } from "../categories/index.js";
-
-const requiredSections = lintRule("remark-lint:changeset-required-sections", (tree: Root, file) => {
+export const RequiredSectionsRule = lintRule("remark-lint:changeset-required-sections", (tree: Root, file) => {
 	visit(tree, "heading", (node: Heading) => {
 		if (node.depth !== 2) {
 			return;
@@ -27,5 +26,3 @@ const requiredSections = lintRule("remark-lint:changeset-required-sections", (tr
 		}
 	});
 });
-
-export default requiredSections;

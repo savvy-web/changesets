@@ -22,8 +22,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./changelog": "./src/changelog/index.ts",
-		"./remark-lint": "./src/remark-lint/index.ts",
-		"./remark-transform": "./src/remark-transform/index.ts"
+		"./markdownlint": "./src/markdownlint/index.ts",
+		"./remark": "./src/remark/index.ts"
 	},
 	"bin": {
 		"savvy-changeset": "./src/bin/cli.ts"
@@ -75,6 +75,7 @@
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
 		"@vitest/coverage-v8": "catalog:silk",
+		"markdownlint": "^0.40.0",
 		"turbo": "catalog:silk",
 		"typescript": "catalog:silk",
 		"vitest": "catalog:silk"

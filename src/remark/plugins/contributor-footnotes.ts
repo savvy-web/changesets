@@ -17,8 +17,7 @@
 import type { Link, Paragraph, PhrasingContent, Root, Text } from "mdast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
-
-import { getVersionBlocks } from "../utils/version-blocks.js";
+import { getVersionBlocks } from "../../utils/version-blocks.js";
 
 interface Contributor {
 	username: string;
@@ -57,7 +56,7 @@ function extractLinkedAttribution(
 	// Third-to-last must be text ending with "Thanks " (possibly with leading space)
 	if (thirdLast.type !== "text") return undefined;
 	const textNode = thirdLast as Text;
-	if (!textNode.value.match(/\s*Thanks $/)) return undefined;
+	if (!/\s*Thanks $/.test(textNode.value)) return undefined;
 
 	return {
 		contributor: { username, url: linkNode.url },
@@ -69,7 +68,7 @@ function extractLinkedAttribution(
  * Extract inline contributor attributions and aggregate them into
  * a summary paragraph at the end of each version block.
  */
-const contributorFootnotes: Plugin<[], Root> = () => {
+export const ContributorFootnotesPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
 
@@ -168,5 +167,3 @@ const contributorFootnotes: Plugin<[], Root> = () => {
 		}
 	};
 };
-
-export default contributorFootnotes;

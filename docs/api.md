@@ -292,42 +292,42 @@ services, layers, and tagged errors.
 - `CommitHashSchema` -- Commit hash validation
 - `RepoSchema` -- Repository format validation
 
-## Remark Plugins
+## Remark Plugins (`./remark`)
 
-### Lint Rules (`./remark-lint`)
-
-```typescript
-import {
-  changesetPreset,
-  headingHierarchy,
-  requiredSections,
-  contentStructure,
-} from "@savvy-web/changesets/remark-lint";
-```
-
-- `changesetPreset` -- Array of all three rules
-- `headingHierarchy` -- h2 start, no h1, no skips
-- `requiredSections` -- Known category headings
-- `contentStructure` -- Non-empty content
-
-### Transform Plugins (`./remark-transform`)
+All lint rules and transform plugins are exported from
+a single entry point:
 
 ```typescript
 import {
-  changesetTransformPreset,
-  mergeSections,
-  reorderSections,
-  deduplicateItems,
-  contributorFootnotes,
-  issueLinkRefs,
-  normalizeFormat,
-} from "@savvy-web/changesets/remark-transform";
+  // Lint rules
+  SilkChangesetPreset,
+  HeadingHierarchyRule,
+  RequiredSectionsRule,
+  ContentStructureRule,
+  // Transform plugins
+  SilkChangesetTransformPreset,
+  MergeSectionsPlugin,
+  ReorderSectionsPlugin,
+  DeduplicateItemsPlugin,
+  ContributorFootnotesPlugin,
+  IssueLinkRefsPlugin,
+  NormalizeFormatPlugin,
+} from "@savvy-web/changesets/remark";
 ```
 
-- `changesetTransformPreset` -- All six in order
-- `mergeSections` -- Combine duplicate headings
-- `reorderSections` -- Sort by category priority
-- `deduplicateItems` -- Remove duplicate list items
-- `contributorFootnotes` -- Aggregate attributions
-- `issueLinkRefs` -- Consolidate reference links
-- `normalizeFormat` -- Remove empties, clean up
+### Lint Rules
+
+- `SilkChangesetPreset` -- Array of all three rules
+- `HeadingHierarchyRule` -- h2 start, no h1, no skips
+- `RequiredSectionsRule` -- Known category headings
+- `ContentStructureRule` -- Non-empty content
+
+### Transform Plugins
+
+- `SilkChangesetTransformPreset` -- All six in order
+- `MergeSectionsPlugin` -- Combine duplicate headings
+- `ReorderSectionsPlugin` -- Sort by category priority
+- `DeduplicateItemsPlugin` -- Remove duplicate list items
+- `ContributorFootnotesPlugin` -- Aggregate attributions
+- `IssueLinkRefsPlugin` -- Consolidate reference links
+- `NormalizeFormatPlugin` -- Remove empties, clean up

@@ -9,8 +9,7 @@
 import type { Definition, Link, LinkReference, Root } from "mdast";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
-
-import { getVersionBlocks } from "../utils/version-blocks.js";
+import { getVersionBlocks } from "../../utils/version-blocks.js";
 
 /** Pattern matching issue numbers like `#123`. */
 const ISSUE_RE = /^#\d+$/;
@@ -19,7 +18,7 @@ const ISSUE_RE = /^#\d+$/;
  * Convert inline issue links to reference-style links with definitions
  * at the end of each version block.
  */
-const issueLinkRefs: Plugin<[], Root> = () => {
+export const IssueLinkRefsPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
 
@@ -82,5 +81,3 @@ const issueLinkRefs: Plugin<[], Root> = () => {
 		}
 	};
 };
-
-export default issueLinkRefs;

@@ -9,8 +9,8 @@
 import type { Root } from "mdast";
 import type { Plugin } from "unified";
 
-import { fromHeading } from "../categories/index.js";
-import { getBlockSections, getHeadingText, getVersionBlocks } from "../utils/version-blocks.js";
+import { fromHeading } from "../../categories/index.js";
+import { getBlockSections, getHeadingText, getVersionBlocks } from "../../utils/version-blocks.js";
 
 /**
  * Merge duplicate h3 sections within each version block.
@@ -18,7 +18,7 @@ import { getBlockSections, getHeadingText, getVersionBlocks } from "../utils/ver
  * Groups sections by heading text (case-insensitive via `fromHeading`),
  * keeps the first occurrence, and splices content from duplicates into it.
  */
-const mergeSections: Plugin<[], Root> = () => {
+export const MergeSectionsPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
 
@@ -84,5 +84,3 @@ const mergeSections: Plugin<[], Root> = () => {
 		}
 	};
 };
-
-export default mergeSections;

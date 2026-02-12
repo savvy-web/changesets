@@ -6,23 +6,23 @@
  * - Empty list nodes (lists with zero items, e.g. after dedup)
  */
 
-import type { Heading, List, Root } from "mdast";
+import type { Heading, List, Root, RootContent } from "mdast";
 import { toString as mdastToString } from "mdast-util-to-string";
 import type { Plugin } from "unified";
 
-import { getVersionBlocks } from "../utils/version-blocks.js";
+import { getVersionBlocks } from "../../utils/version-blocks.js";
 
 /**
- * Check if a node is an h2 or h3 heading.
+ * Check if a node is a heading at one of the given depths.
  */
-function isHeading(node: { type: string }, depths: number[]): node is Heading {
+function isHeadingAtDepth(node: RootContent, depths: number[]): node is Heading {
 	return node.type === "heading" && depths.includes((node as Heading).depth);
 }
 
 /**
  * Remove empty sections and empty lists from the document.
  */
-const normalizeFormat: Plugin<[], Root> = () => {
+export const NormalizeFormatPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
 
@@ -40,7 +40,7 @@ const normalizeFormat: Plugin<[], Root> = () => {
 				}
 
 				// Detect empty sections: h3 followed immediately by h2/h3 or end of block
-				if (!isHeading(node, [3])) continue;
+				if (!isHeadingAtDepth(node, [3])) continue;
 
 				// Check if the next non-empty content is another heading or end of block
 				let hasContent = false;
@@ -54,7 +54,7 @@ const normalizeFormat: Plugin<[], Root> = () => {
 					}
 
 					// If next real node is a heading, this section is empty
-					if (isHeading(next, [2, 3])) break;
+					if (isHeadingAtDepth(next, [2, 3])) break;
 
 					// Found real content
 					hasContent = true;
@@ -74,5 +74,3 @@ const normalizeFormat: Plugin<[], Root> = () => {
 		}
 	};
 };
-
-export default normalizeFormat;

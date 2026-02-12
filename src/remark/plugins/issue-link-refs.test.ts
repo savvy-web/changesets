@@ -4,10 +4,12 @@ import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
-import issueLinkRefs from "./issue-link-refs.js";
+import { IssueLinkRefsPlugin } from "./issue-link-refs.js";
 
 function transform(md: string): string {
-	return String(unified().use(remarkParse).use(remarkGfm).use(issueLinkRefs).use(remarkStringify).processSync(md));
+	return String(
+		unified().use(remarkParse).use(remarkGfm).use(IssueLinkRefsPlugin).use(remarkStringify).processSync(md),
+	);
 }
 
 describe("issue-link-refs", () => {

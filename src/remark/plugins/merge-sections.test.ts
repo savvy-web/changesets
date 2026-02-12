@@ -5,12 +5,14 @@ import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
-import { parseMarkdown } from "../utils/remark-pipeline.js";
-import { getBlockSections, getHeadingText, getVersionBlocks } from "../utils/version-blocks.js";
-import mergeSections from "./merge-sections.js";
+import { parseMarkdown } from "../../utils/remark-pipeline.js";
+import { getBlockSections, getHeadingText, getVersionBlocks } from "../../utils/version-blocks.js";
+import { MergeSectionsPlugin } from "./merge-sections.js";
 
 function transform(md: string): string {
-	return String(unified().use(remarkParse).use(remarkGfm).use(mergeSections).use(remarkStringify).processSync(md));
+	return String(
+		unified().use(remarkParse).use(remarkGfm).use(MergeSectionsPlugin).use(remarkStringify).processSync(md),
+	);
 }
 
 /** remark-stringify uses `*` bullets; match either `*` or `-` */
@@ -76,7 +78,7 @@ describe("merge-sections", () => {
 	it("preserves content order within merged sections", () => {
 		const md = "## 1.0.0\n\n### Features\n\n- First\n\n### Features\n\n- Second\n";
 		const tree = parseMarkdown(md);
-		const run = (mergeSections as () => (tree: Root) => void)();
+		const run = (MergeSectionsPlugin as () => (tree: Root) => void)();
 		run(tree);
 
 		const blocks = getVersionBlocks(tree);

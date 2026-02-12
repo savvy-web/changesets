@@ -7,9 +7,8 @@
 
 import type { Root, RootContent } from "mdast";
 import type { Plugin } from "unified";
-
-import { fromHeading } from "../categories/index.js";
-import { getBlockSections, getHeadingText, getVersionBlocks } from "../utils/version-blocks.js";
+import { fromHeading } from "../../categories/index.js";
+import { getBlockSections, getHeadingText, getVersionBlocks } from "../../utils/version-blocks.js";
 
 /** Default priority for unrecognized headings (sorts after all known categories). */
 const UNKNOWN_PRIORITY = 999;
@@ -17,7 +16,7 @@ const UNKNOWN_PRIORITY = 999;
 /**
  * Reorder h3 sections within each version block by category priority.
  */
-const reorderSections: Plugin<[], Root> = () => {
+export const ReorderSectionsPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
 
@@ -60,5 +59,3 @@ const reorderSections: Plugin<[], Root> = () => {
 		}
 	};
 };
-
-export default reorderSections;

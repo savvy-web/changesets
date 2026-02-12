@@ -11,9 +11,9 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 
-import contentStructure from "../remark-lint/content-structure.js";
-import headingHierarchy from "../remark-lint/heading-hierarchy.js";
-import requiredSections from "../remark-lint/required-sections.js";
+import { ContentStructureRule } from "../remark/rules/content-structure.js";
+import { HeadingHierarchyRule } from "../remark/rules/heading-hierarchy.js";
+import { RequiredSectionsRule } from "../remark/rules/required-sections.js";
 import { stripFrontmatter } from "../utils/strip-frontmatter.js";
 
 /**
@@ -85,9 +85,9 @@ export class ChangesetLinter {
 		const processor = unified()
 			.use(remarkParse)
 			.use(remarkStringify)
-			.use(headingHierarchy)
-			.use(requiredSections)
-			.use(contentStructure);
+			.use(HeadingHierarchyRule)
+			.use(RequiredSectionsRule)
+			.use(ContentStructureRule);
 
 		const file = processor.processSync(body);
 

@@ -5,11 +5,13 @@ import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
-import { parseMarkdown } from "../utils/remark-pipeline.js";
-import normalizeFormat from "./normalize-format.js";
+import { parseMarkdown } from "../../utils/remark-pipeline.js";
+import { NormalizeFormatPlugin } from "./normalize-format.js";
 
 function transform(md: string): string {
-	return String(unified().use(remarkParse).use(remarkGfm).use(normalizeFormat).use(remarkStringify).processSync(md));
+	return String(
+		unified().use(remarkParse).use(remarkGfm).use(NormalizeFormatPlugin).use(remarkStringify).processSync(md),
+	);
 }
 
 describe("normalize-format", () => {
@@ -60,7 +62,7 @@ describe("normalize-format", () => {
 			}
 		}
 		// Call the plugin transformer directly — cast to bypass unified's `this` typing
-		const run = (normalizeFormat as () => (tree: Root) => void)();
+		const run = (NormalizeFormatPlugin as () => (tree: Root) => void)();
 		run(tree);
 		const listNodes = tree.children.filter((n) => n.type === "list");
 		expect(listNodes).toHaveLength(0);

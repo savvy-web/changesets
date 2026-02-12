@@ -12,7 +12,7 @@ import type { Heading, Root } from "mdast";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
 
-const headingHierarchy = lintRule("remark-lint:changeset-heading-hierarchy", (tree: Root, file) => {
+export const HeadingHierarchyRule = lintRule("remark-lint:changeset-heading-hierarchy", (tree: Root, file) => {
 	let prevDepth = 0;
 
 	visit(tree, "heading", (node: Heading) => {
@@ -28,5 +28,3 @@ const headingHierarchy = lintRule("remark-lint:changeset-heading-hierarchy", (tr
 		prevDepth = node.depth;
 	});
 });
-
-export default headingHierarchy;

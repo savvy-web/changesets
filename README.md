@@ -24,6 +24,11 @@ generated CHANGELOG.md.
   transform, and check subcommands for CI and local use
 - **GitHub integration** -- Automatic PR links, commit
   references, and contributor attribution
+- **Remark plugins** -- Lint rules and transform plugins
+  via `@savvy-web/changesets/remark`
+- **markdownlint rules** -- Custom rules compatible with
+  markdownlint-cli2 and the VS Code extension via
+  `@savvy-web/changesets/markdownlint`
 
 ## Installation
 
@@ -61,40 +66,42 @@ Added a new authentication system with OAuth2 support.
 - Updated integration test fixtures
 ```
 
-## CLI
+## markdownlint Integration
 
-```bash
-savvy-changeset lint [dir]           # Validate changesets
-savvy-changeset check [dir]          # Validate with summary
-savvy-changeset transform [file]     # Post-process CHANGELOG
-savvy-changeset transform --dry-run  # Preview without writing
-savvy-changeset transform --check    # Exit 1 if changed (CI)
+Register the custom rules in your base config
+(e.g., `lib/configs/.markdownlint-cli2.jsonc`):
+
+```jsonc
+{
+  "customRules": [
+    "@savvy-web/changesets/markdownlint"
+  ],
+  "config": {
+    "changeset-heading-hierarchy": false,
+    "changeset-required-sections": false,
+    "changeset-content-structure": false
+  }
+}
 ```
 
-## Programmatic API
+Then enable the rules only for changeset files by
+creating `.changeset/.markdownlint.json`:
 
-```typescript
-import {
-  ChangelogTransformer,
-  ChangesetLinter,
-  Categories,
-} from "@savvy-web/changesets";
-
-// Transform a CHANGELOG.md file in-place
-ChangelogTransformer.transformFile("CHANGELOG.md");
-
-// Validate all changeset files in a directory
-const messages = ChangesetLinter.validate(".changeset");
-
-// Look up a category by commit type
-const category = Categories.fromCommitType("feat");
-// => { heading: "Features", priority: 2, ... }
+```json
+{
+  "extends": "../lib/configs/.markdownlint-cli2.jsonc",
+  "default": false,
+  "changeset-heading-hierarchy": true,
+  "changeset-required-sections": true,
+  "changeset-content-structure": true,
+  "MD041": false
+}
 ```
 
 ## Documentation
 
-For configuration, the changeset format, CLI usage,
-architecture, and API reference, see [docs/](./docs/).
+For CLI usage, the programmatic API, configuration,
+and architecture, see [docs](./docs/).
 
 ## License
 

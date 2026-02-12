@@ -170,3 +170,82 @@ For local development, export it in your shell:
 ```bash
 export GITHUB_TOKEN="ghp_..."
 ```
+
+## markdownlint Integration
+
+The package exports markdownlint-compatible custom rules
+from `@savvy-web/changesets/markdownlint`. This enables
+real-time changeset validation in VS Code (via the
+markdownlint extension) and in CI (via markdownlint-cli2)
+without requiring the remark pipeline.
+
+The default export is an array of three `Rule` objects,
+compatible with markdownlint-cli2's `customRules` config.
+
+### Custom Rules
+
+- **CSH001** `changeset-heading-hierarchy` --
+  h2 start, no h1 allowed, no depth skips
+- **CSH002** `changeset-required-sections` --
+  All h2 headings must match known categories
+- **CSH003** `changeset-content-structure` --
+  Non-empty sections, valid content structure
+
+### Setup
+
+The custom rules should only apply to changeset files,
+not all markdown in the repository. The recommended
+pattern uses a base config with the rules disabled
+globally, and a directory-scoped override that enables
+them for `.changeset/` only.
+
+#### Step 1: Register rules in the base config
+
+Add the rules to your shared markdownlint-cli2 config
+(e.g., `lib/configs/.markdownlint-cli2.jsonc`):
+
+```jsonc
+{
+  "customRules": ["@savvy-web/changesets/markdownlint"]
+}
+```
+
+#### Step 2: Disable rules globally
+
+In the same base config, disable the custom rules so they
+do not fire on non-changeset markdown:
+
+```jsonc
+{
+  "config": {
+    "changeset-heading-hierarchy": false,
+    "changeset-required-sections": false,
+    "changeset-content-structure": false
+  }
+}
+```
+
+#### Step 3: Enable rules for changeset files
+
+Create `.changeset/.markdownlint.json` to scope the rules
+to changeset files only:
+
+```json
+{
+  "extends": "../lib/configs/.markdownlint-cli2.jsonc",
+  "default": false,
+  "changeset-heading-hierarchy": true,
+  "changeset-required-sections": true,
+  "changeset-content-structure": true,
+  "MD041": false
+}
+```
+
+This config:
+
+- Extends the base config (inherits `customRules`)
+- Disables all default rules (`"default": false`) since
+  changeset files do not need standard markdown linting
+- Enables only the three changeset-specific rules
+- Disables MD041 (first-line-heading) because changeset
+  files start with YAML frontmatter, not a heading

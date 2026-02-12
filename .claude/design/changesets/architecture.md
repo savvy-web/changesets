@@ -15,8 +15,8 @@ implementation-status: implemented
 
 A custom changelog formatter and markdown processing pipeline for the Silk Suite that replaces
 the default `@changesets/cli/changelog` formatter. Provides pre-validation of changeset files,
-a structured changelog formatter for the Changesets API, and post-processing transformation of
-generated CHANGELOG.md files.
+a structured changelog formatter for the Changesets API, post-processing transformation of
+generated CHANGELOG.md files, and markdownlint custom rules for editor/CI integration.
 
 ## Table of Contents
 
@@ -27,17 +27,18 @@ generated CHANGELOG.md files.
 5. [System Architecture](#system-architecture)
 6. [Changesets API Integration](#changesets-api-integration)
 7. [Three-Layer Processing Architecture](#three-layer-processing-architecture)
-8. [Section Categories](#section-categories)
-9. [Contributor Tracking](#contributor-tracking)
-10. [Issue and Ticket Linking](#issue-and-ticket-linking)
-11. [Changeset File Format](#changeset-file-format)
-12. [Export Map and CLI](#export-map-and-cli)
-13. [Dependencies](#dependencies)
-14. [Integration Points](#integration-points)
-15. [Compatibility Requirements](#compatibility-requirements)
-16. [Testing Strategy](#testing-strategy)
-17. [Future Enhancements](#future-enhancements)
-18. [Related Documentation](#related-documentation)
+8. [Markdownlint Integration](#markdownlint-integration)
+9. [Section Categories](#section-categories)
+10. [Contributor Tracking](#contributor-tracking)
+11. [Issue and Ticket Linking](#issue-and-ticket-linking)
+12. [Changeset File Format](#changeset-file-format)
+13. [Export Map and CLI](#export-map-and-cli)
+14. [Dependencies](#dependencies)
+15. [Integration Points](#integration-points)
+16. [Compatibility Requirements](#compatibility-requirements)
+17. [Testing Strategy](#testing-strategy)
+18. [Future Enhancements](#future-enhancements)
+19. [Related Documentation](#related-documentation)
 
 ---
 
@@ -57,6 +58,8 @@ all Silk Suite repositories with a structured, section-aware changelog generatio
   consistent, composable plugin architecture
 - **AI-agent friendly**: Pre-validation rules ensure Claude and other AI agents write valid
   changesets in real-time during development
+- **Editor integration**: markdownlint custom rules provide real-time
+  validation in VS Code and markdownlint-cli2 without remark
 - **Backward compatible**: Generated CHANGELOG.md maintains compatibility with
   workflow-release-action, GitHub rendering, and Biome formatting
 
@@ -67,6 +70,7 @@ all Silk Suite repositories with a structured, section-aware changelog generatio
 - When integrating with the Changesets API or remark pipeline
 - When modifying the CLI commands or export map
 - When ensuring compatibility with workflow-release-action
+- When adding or modifying markdownlint custom rules
 
 ---
 
@@ -76,9 +80,9 @@ all Silk Suite repositories with a structured, section-aware changelog generatio
 
 Phases 1-8 of 9 are complete. All three processing
 layers are fully implemented and tested, along with
-the Effect CLI and integration test suite. The package
-is functional with 360 tests passing across 37 test
-files.
+the Effect CLI, integration test suite, and
+markdownlint custom rules. The package is functional
+with 398 tests passing across 40 test files.
 
 **Coverage:**
 
@@ -92,7 +96,7 @@ files.
 - Package renamed and configured as
   `@savvy-web/changesets`
 - Multi-entry export map: `.`, `./changelog`,
-  `./remark-lint`, `./remark-transform`
+  `./markdownlint`, `./remark`
 - CLI binary `savvy-changeset` with 3 subcommands:
   `lint`, `transform`, `check`
 - 13-category system with priority ordering and
@@ -104,6 +108,10 @@ files.
 - Layer 1 (Remark Lint): 3 rules --
   heading-hierarchy, required-sections,
   content-structure
+- Markdownlint Integration: 3 custom rules
+  (CSH001, CSH002, CSH003) reimplementing
+  remark-lint validation for markdownlint-cli2
+  and VS Code
 - Layer 3 (Remark Transform): 6 plugins --
   merge-sections, reorder-sections,
   deduplicate-items, contributor-footnotes,
@@ -157,25 +165,32 @@ src/
 │   ├── getReleaseLine.ts       # Per-changeset line formatter
 │   └── getDependencyReleaseLine.ts  # Dependency update formatter
 │
-├── remark-lint/                # Layer 1: Pre-validation rules
-│   ├── index.ts                # Lint rules entry point
-│   ├── heading-hierarchy.ts    # Must start with h2, no h1, no skips
-│   ├── required-sections.ts    # Validate required section structure
-│   └── content-structure.ts    # Content validation rules
+├── remark/                     # Remark lint rules + transform plugins
+│   ├── index.ts                # Public entry point for ./remark export
+│   ├── presets.ts              # SilkChangesetPreset + SilkChangesetTransformPreset
+│   ├── plugins/                # Layer 3: Post-processing transform plugins
+│   │   ├── contributor-footnotes.ts  # Aggregate + deduplicate contributor footnotes
+│   │   ├── deduplicate-items.ts      # Remove duplicate list items
+│   │   ├── issue-link-refs.ts        # Collect + deduplicate reference-style links
+│   │   ├── merge-sections.ts         # Merge duplicate section headings
+│   │   ├── normalize-format.ts       # Normalize markdown formatting
+│   │   └── reorder-sections.ts       # Reorder by priority (Breaking first)
+│   └── rules/                  # Layer 1: Pre-validation remark-lint rules
+│       ├── content-structure.ts      # Content validation rules
+│       ├── heading-hierarchy.ts      # Must start with h2, no h1, no skips
+│       └── required-sections.ts      # Validate required section structure
 │
-├── remark-transform/           # Layer 3: Post-processing
-│   ├── index.ts                # Transform pipeline entry point
-│   ├── merge-sections.ts       # Merge duplicate section headings
-│   ├── reorder-sections.ts     # Reorder by priority (Breaking first)
-│   ├── deduplicate-items.ts    # Remove duplicate list items
-│   ├── contributor-footnotes.ts # Aggregate + deduplicate contributor footnotes
-│   ├── issue-link-refs.ts      # Collect + deduplicate reference-style links
-│   └── normalize-format.ts     # Normalize markdown formatting
+├── markdownlint/               # markdownlint custom rules (micromark)
+│   ├── index.ts                # Exports all rules + SilkChangesetsRules default array
+│   └── rules/
+│       ├── content-structure.ts      # CSH003: empty sections, code langs
+│       ├── heading-hierarchy.ts      # CSH001: h2 start, no h1, no skips
+│       ├── required-sections.ts      # CSH002: validate h2 vs categories
+│       └── utils.ts                  # Shared getHeadingLevel/getHeadingText helpers
 │
 ├── cli/                        # Effect CLI (savvy-changeset)
 │   ├── index.ts                # Root command
 │   └── commands/
-│       ├── create.ts           # Interactive guided changeset creation
 │       ├── lint.ts             # Validate changeset files
 │       ├── transform.ts        # Post-process CHANGELOG.md
 │       └── check.ts            # Full validation pipeline
@@ -430,10 +445,10 @@ These capabilities do NOT exist in the prior art and are entirely new:
 
 | Capability | Description |
 | :--- | :--- |
-| **Layer 1: remark-lint rules** | Pre-validation of changeset file structure (heading hierarchy, section names, content quality) |
-| **Layer 3: remark-transform** | Post-processing of CHANGELOG.md (section merging, reordering, deduplication, normalization) |
+| **Layer 1: remark lint rules** | Pre-validation of changeset file structure (heading hierarchy, section names, content quality) |
+| **Layer 3: remark transform** | Post-processing of CHANGELOG.md (section merging, reordering, deduplication, normalization) |
 | **Structured changeset format** | Section headings (h2) in changeset files for multi-category changes |
-| **Effect CLI** | `savvy-changeset` binary with create/lint/transform/check commands |
+| **Effect CLI** | `savvy-changeset` binary with lint/transform/check commands |
 | **Remark/Unified ecosystem** | AST-based markdown processing replacing regex-based parsing where appropriate |
 | **Category system as shared data model** | Single category definition used by all three layers |
 | **Breaking Changes category** | Prior art lacks a dedicated breaking changes section |
@@ -468,7 +483,7 @@ not call directly -- it was likely used for testing or custom tooling. In the ne
 the category grouping it performs should be split:
 
 - Per-changeset categorization moves into `getReleaseLine` (Layer 2)
-- Cross-changeset merging and ordering moves into Layer 3 (remark-transform)
+- Cross-changeset merging and ordering moves into Layer 3 (remark transform)
 
 ---
 
@@ -820,24 +835,26 @@ API requires.
 │   │   ├── getDependencyReleaseLine.ts  # Dependency update formatting
 │   │   ├── github.ts               # GitHub API integration (ported from prior art)
 │   │   └── formatting.ts           # Entry formatting, PR/user attribution (ported)
-│   ├── remark-lint/                # Layer 1: Pre-validation rules
-│   │   ├── index.ts                # Lint preset entry point
-│   │   ├── heading-hierarchy.ts    # Heading structure validation
-│   │   ├── required-sections.ts    # Required section validation
-│   │   └── content-structure.ts    # Content quality validation
-│   ├── remark-transform/           # Layer 3: Post-processing
-│   │   ├── index.ts                # Transform pipeline entry point
-│   │   ├── merge-sections.ts       # Merge duplicate sections
-│   │   ├── reorder-sections.ts     # Priority-based reordering
-│   │   ├── deduplicate-items.ts    # Remove duplicate list items
-│   │   └── normalize-format.ts     # Markdown normalization
-│   ├── categories/                 # Section category system
-│   │   ├── index.ts                # Category definitions and mapping
+│   ├── remark/                     # Lint + transform
+│   │   ├── index.ts                # Public entry point
+│   │   ├── presets.ts              # Preset arrays
+│   │   ├── rules/                  # Layer 1: Lint
+│   │   │   ├── heading-hierarchy.ts
+│   │   │   ├── required-sections.ts
+│   │   │   └── content-structure.ts
+│   │   └── plugins/                # Layer 3: Transform
+│   │       ├── merge-sections.ts
+│   │       ├── reorder-sections.ts
+│   │       ├── deduplicate-items.ts
+│   │       ├── contributor-footnotes.ts
+│   │       ├── issue-link-refs.ts
+│   │       └── normalize-format.ts
+│   ├── categories/                 # Category system
+│   │   ├── index.ts                # Definitions + mapping
 │   │   └── types.ts                # Category types
 │   ├── cli/                        # Effect CLI
 │   │   ├── index.ts                # Root command
 │   │   └── commands/
-│   │       ├── create.ts           # Interactive changeset creation
 │   │       ├── lint.ts             # Validate changeset files
 │   │       ├── transform.ts        # Post-process CHANGELOG.md
 │   │       └── check.ts            # Full validation pipeline
@@ -863,13 +880,14 @@ API requires.
 │                        @savvy-web/changesets                            │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                 Layer 1: Pre-Validation (remark-lint)              │  │
+│  │              Layer 1: Pre-Validation (remark lint rules)            │  │
 │  │                                                                    │  │
 │  │  heading-hierarchy    Enforce h2 start, no h1, no depth skips     │  │
 │  │  required-sections    Validate section headings match categories   │  │
 │  │  content-structure    Content quality rules (non-empty, etc.)      │  │
 │  │                                                                    │  │
-│  │  Entry: @savvy-web/changesets/remark-lint                          │  │
+│  │  Entry: @savvy-web/changesets/remark                               │  │
+│  │  Alt:   @savvy-web/changesets/markdownlint (editor/CI)            │  │
 │  │  Runs: CI, pre-commit hooks, CLI (savvy-changeset lint)           │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
@@ -891,8 +909,19 @@ API requires.
 │  │  deduplicate-items    Remove duplicate list items                 │  │
 │  │  normalize-format     Clean up markdown formatting                │  │
 │  │                                                                    │  │
-│  │  Entry: @savvy-web/changesets/remark-transform                     │  │
+│  │  Entry: @savvy-web/changesets/remark                               │  │
 │  │  Runs: After `changeset version` in ci:version script             │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │          Markdownlint Integration (micromark token API)           │  │
+│  │                                                                    │  │
+│  │  CSH001  changeset-heading-hierarchy  (no h1, no depth skips)     │  │
+│  │  CSH002  changeset-required-sections  (h2 vs category system)     │  │
+│  │  CSH003  changeset-content-structure   (empty, code lang, lists)  │  │
+│  │                                                                    │  │
+│  │  Entry: @savvy-web/changesets/markdownlint                         │  │
+│  │  Runs: VS Code extension, markdownlint-cli2, CI                   │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
@@ -905,7 +934,6 @@ API requires.
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                   CLI (savvy-changeset)                            │  │
 │  │                                                                    │  │
-│  │  create      Interactive guided changeset creation                │  │
 │  │  lint        Validate changeset files against rules               │  │
 │  │  transform   Post-process CHANGELOG.md after changeset version    │  │
 │  │  check       Full validation pipeline (lint + structure check)    │  │
@@ -964,7 +992,7 @@ API requires.
 │     .changeset/my-change.md                                             │
 │         │                                                               │
 │         ▼                                                               │
-│     Layer 1: remark-lint validates structure                            │
+│     Layer 1: remark lint rules validate structure                       │
 │         │  - Heading hierarchy correct?                                 │
 │         │  - Section headings match known categories?                   │
 │         │  - Content structure valid?                                   │
@@ -1121,12 +1149,13 @@ in the Effect Schema migration.
 
 ## Three-Layer Processing Architecture
 
-### Layer 1: Pre-Validation (remark-lint)
+### Layer 1: Pre-Validation (remark lint rules)
 
-Custom remark-lint rules that validate `.changeset/*.md` files match the required structure.
+Custom remark lint rules that validate `.changeset/*.md` files match the required structure.
 These run in CI, pre-commit hooks, or via the CLI.
 
-**Entry point:** `@savvy-web/changesets/remark-lint`
+**Entry point:** `@savvy-web/changesets/remark`
+**Alt entry point:** `@savvy-web/changesets/markdownlint` (editor/CI integration)
 
 #### Rule: heading-hierarchy
 
@@ -1220,7 +1249,7 @@ reports failures to `@actions/core.warning()` in CI or `console.warn` locally.
 A remark transform pipeline that runs after `changeset version` generates the raw CHANGELOG.md.
 This layer compensates for the line-level API limitation by operating on the full document.
 
-**Entry point:** `@savvy-web/changesets/remark-transform`
+**Entry point:** `@savvy-web/changesets/remark`
 
 #### Plugin: merge-sections
 
@@ -1261,6 +1290,105 @@ Cleans up markdown formatting:
 - Normalizes heading levels
 - Trims trailing whitespace
 - Ensures file ends with a newline
+
+---
+
+## Markdownlint Integration
+
+The `./markdownlint` export provides custom markdownlint rules
+that reimplement the same validation as the remark-lint rules
+(Layer 1) using markdownlint's micromark token API. This
+enables real-time changeset validation in VS Code via the
+markdownlint extension and in CI via markdownlint-cli2,
+without requiring the remark/unified pipeline.
+
+### Why Two Validation Implementations
+
+The remark-lint rules operate on the MDAST (unified AST) and
+integrate with the remark pipeline used by the CLI and
+Effect services. However, many editors and CI environments
+already use markdownlint (via VS Code extension or
+markdownlint-cli2). Rather than requiring consumers to set
+up a remark pipeline just for validation, the markdownlint
+rules provide the same checks using markdownlint's native
+micromark token API.
+
+Both implementations share the category system
+(`src/categories/index.ts`) to keep heading validation
+logic DRY. The markdownlint rules import `isValidHeading()`
+and `allHeadings()` directly from the category module.
+
+### Rules
+
+All three rules use `parser: "micromark"` and
+`tags: ["changeset"]`.
+
+#### CSH001: changeset-heading-hierarchy
+
+Validates heading structure in changeset files:
+
+- No h1 headings allowed
+- No heading depth skips (e.g., h2 to h4)
+
+Names: `changeset-heading-hierarchy`, `CSH001`
+
+#### CSH002: changeset-required-sections
+
+Validates that all h2 headings match a known category
+heading from the shared category system. Reports
+unrecognized headings with the list of valid options.
+
+Names: `changeset-required-sections`, `CSH002`
+
+#### CSH003: changeset-content-structure
+
+Validates content quality:
+
+- Sections must not be empty (h2 followed immediately
+  by another h2 or end of file)
+- Code blocks must have a language identifier
+- List items must have meaningful content
+
+Names: `changeset-content-structure`, `CSH003`
+
+### Consumer Configuration
+
+```jsonc
+// .markdownlint-cli2.jsonc
+{
+  "customRules": ["@savvy-web/changesets/markdownlint"]
+}
+```
+
+The default export is an array of all three rules, suitable
+for the `customRules` config field. Named exports are also
+available for individual rule use.
+
+### Runtime Dependencies
+
+The markdownlint rules use `import type` for the
+`markdownlint` package (types only). At runtime, the rules
+are plain objects conforming to the `Rule` interface with
+no markdownlint import. The `markdownlint` package is a
+devDependency used only for types and test infrastructure.
+
+### Architecture Relationship
+
+```text
+src/categories/index.ts  (shared category system)
+        |
+        +--- src/remark/rules/      (MDAST, unified)
+        |      Layer 1 rules
+        |
+        +--- src/markdownlint/      (micromark tokens)
+               CSH001, CSH002, CSH003
+```
+
+The remark-lint rules and markdownlint rules validate the
+same invariants but through different AST/token APIs. This
+is intentional: remark-lint integrates with the Effect CLI
+pipeline, while markdownlint integrates with editor tooling
+and standalone CI. Neither depends on the other.
 
 ---
 
@@ -1317,6 +1445,8 @@ interface SectionCategory {
 The category definitions live in `src/categories/index.ts` and are imported by:
 
 - **Layer 1 (remark-lint):** Uses category headings to validate section names
+- **Markdownlint rules:** Uses `isValidHeading()` and `allHeadings()` for
+  section name validation via micromark tokens
 - **Layer 2 (changelog formatter):** Uses categories to identify and format sections
 - **Layer 3 (remark-transform):** Uses priority ordering for section reordering
 
@@ -1546,8 +1676,8 @@ list items.
   "exports": {
     ".": "./src/index.ts",
     "./changelog": "./src/changelog/index.ts",
-    "./remark-lint": "./src/remark-lint/index.ts",
-    "./remark-transform": "./src/remark-transform/index.ts"
+    "./markdownlint": "./src/markdownlint/index.ts",
+    "./remark": "./src/remark/index.ts"
   }
 }
 ```
@@ -1556,8 +1686,8 @@ list items.
 | :--- | :--- | :--- | :--- |
 | `.` | Main library: Effect primitives + class-based API | Dual (see below) | Direct import, Silk Suite packages |
 | `./changelog` | Changesets API formatter | Plain async (bridge) | `.changeset/config.json` |
-| `./remark-lint` | Custom lint rules for changeset validation | Remark plugin API | CI, pre-commit, CLI |
-| `./remark-transform` | Post-processing transformation pipeline | Remark plugin API | CI script, CLI |
+| `./markdownlint` | markdownlint custom rules (micromark) | markdownlint Rule API | markdownlint-cli2, VS Code |
+| `./remark` | Lint rules + transform plugins | Remark plugin API | CI, pre-commit, CLI |
 
 ### Dual API Surface (main export)
 
@@ -1612,9 +1742,8 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 
 | Command | Description | Usage |
 | :--- | :--- | :--- |
-| `savvy-changeset create` | Interactive guided changeset creation | Developer workflow |
-| `savvy-changeset lint` | Validate changeset files against remark-lint rules | CI, pre-commit |
-| `savvy-changeset transform` | Post-process CHANGELOG.md with remark-transform pipeline | ci:version script |
+| `savvy-changeset lint` | Validate changeset files against remark rules | CI, pre-commit |
+| `savvy-changeset transform` | Post-process CHANGELOG.md with remark transform pipeline | ci:version script |
 | `savvy-changeset check` | Run full validation pipeline (lint + structure) | CI gate |
 
 ### CI Integration
@@ -1692,7 +1821,12 @@ Each vendored file includes:
 
 ### Dev Dependencies
 
-Inherited from the template repository (Rslib, Turbo, Vitest, Biome, etc.).
+| Package | Purpose | Notes |
+| :--- | :--- | :--- |
+| `markdownlint` | Types + test runner for custom rules | devDependency only; not imported at runtime |
+
+Plus inherited dependencies from the template repository
+(Rslib, Turbo, Vitest, Biome, etc.).
 
 ---
 
@@ -1734,12 +1868,28 @@ No changes needed to `workflow-release-action`. It reads `## <version>` sections
 CHANGELOG.md, which our output preserves. The version heading format is controlled by
 Changesets internally and we do not modify it.
 
-### 5. pnpm-plugin-silk
+### 5. markdownlint-cli2 / VS Code
+
+Consuming repositories can enable real-time
+changeset validation in VS Code and CI by adding
+the custom rules to their markdownlint config:
+
+```jsonc
+// .markdownlint-cli2.jsonc
+{ "customRules": ["@savvy-web/changesets/markdownlint"] }
+```
+
+This provides the same heading hierarchy, section
+name, and content structure validation as the
+remark-lint rules without requiring the remark
+pipeline.
+
+### 6. pnpm-plugin-silk
 
 Once published, `@savvy-web/changesets` should be added to `catalog:silk` in
 pnpm-plugin-silk so all Silk Suite repos get a managed version.
 
-### 6. Dogfooding
+### 7. Dogfooding
 
 This repository itself will use `@savvy-web/changesets/changelog` in its own
 `.changeset/config.json` once implemented. The `ci:version` script will include
@@ -1789,7 +1939,7 @@ The output must survive Biome formatting without structural changes:
 
 The test suite uses a combination of inline
 fixture tests and unit tests across all layers.
-360 tests pass across 37 test files with coverage
+398 tests pass across 40 test files with coverage
 thresholds enforced at 85% lines/80% functions.
 
 **Actual Coverage (as of Phase 8 completion):**

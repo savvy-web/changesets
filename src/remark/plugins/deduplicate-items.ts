@@ -8,8 +8,7 @@
 import type { List, Root } from "mdast";
 import { toString as mdastToString } from "mdast-util-to-string";
 import type { Plugin } from "unified";
-
-import { getBlockSections, getVersionBlocks } from "../utils/version-blocks.js";
+import { getBlockSections, getVersionBlocks } from "../../utils/version-blocks.js";
 
 /**
  * Remove duplicate list items within each h3 section.
@@ -17,7 +16,7 @@ import { getBlockSections, getVersionBlocks } from "../utils/version-blocks.js";
  * Items are compared by their plain text content. If a list becomes
  * empty after deduplication, it is removed from the tree.
  */
-const deduplicateItems: Plugin<[], Root> = () => {
+export const DeduplicateItemsPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
 
@@ -49,5 +48,3 @@ const deduplicateItems: Plugin<[], Root> = () => {
 		});
 	};
 };
-
-export default deduplicateItems;

@@ -4,10 +4,12 @@ import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
-import reorderSections from "./reorder-sections.js";
+import { ReorderSectionsPlugin } from "./reorder-sections.js";
 
 function transform(md: string): string {
-	return String(unified().use(remarkParse).use(remarkGfm).use(reorderSections).use(remarkStringify).processSync(md));
+	return String(
+		unified().use(remarkParse).use(remarkGfm).use(ReorderSectionsPlugin).use(remarkStringify).processSync(md),
+	);
 }
 
 describe("reorder-sections", () => {

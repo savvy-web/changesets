@@ -66,7 +66,7 @@ limitations with a dedicated processing stage.
 
 ## Layer 1: Pre-Validation (remark-lint)
 
-**Entry point:** `@savvy-web/changesets/remark-lint`
+**Entry point:** `@savvy-web/changesets/remark`
 
 **When it runs:** CI, pre-commit hooks, CLI
 (`savvy-changeset lint`)
@@ -106,7 +106,7 @@ contribute to the same category.
 
 ## Layer 3: Post-Transformation (remark-transform)
 
-**Entry point:** `@savvy-web/changesets/remark-transform`
+**Entry point:** `@savvy-web/changesets/remark`
 
 **When it runs:** After `changeset version`, via
 `savvy-changeset transform` or CI scripts
@@ -154,5 +154,5 @@ normalizes formatting with Biome.
 | :--- | :--- |
 | `.` | Main library (classes + Effect) |
 | `./changelog` | Changesets API formatter |
-| `./remark-lint` | Lint rules for changesets |
-| `./remark-transform` | Transform plugins |
+| `./markdownlint` | markdownlint custom rules for editor/CI |
+| `./remark` | Lint rules + transform plugins |

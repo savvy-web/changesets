@@ -12,6 +12,8 @@ import { toString as mdastToString } from "mdast-util-to-string";
 
 /**
  * A version block within a CHANGELOG document.
+ *
+ * @internal
  */
 export interface VersionBlock {
 	/** Index of the h2 heading in root.children. */
@@ -24,6 +26,8 @@ export interface VersionBlock {
 
 /**
  * A section within a version block, delimited by h3 headings.
+ *
+ * @internal
  */
 export interface BlockSection {
 	/** The h3 heading node. */
@@ -42,6 +46,8 @@ export interface BlockSection {
  *
  * @param tree - The mdast root node
  * @returns Array of version blocks in document order
+ *
+ * @internal
  */
 export function getVersionBlocks(tree: Root): VersionBlock[] {
 	const blocks: VersionBlock[] = [];
@@ -71,6 +77,8 @@ export function getVersionBlocks(tree: Root): VersionBlock[] {
  * @param tree - The mdast root node
  * @param block - The version block to extract sections from
  * @returns Array of sections in document order
+ *
+ * @internal
  */
 export function getBlockSections(tree: Root, block: VersionBlock): BlockSection[] {
 	const sections: BlockSection[] = [];
@@ -96,6 +104,8 @@ export function getBlockSections(tree: Root, block: VersionBlock): BlockSection[
  *
  * @param heading - The heading node
  * @returns The heading text
+ *
+ * @internal
  */
 export function getHeadingText(heading: Heading): string {
 	return mdastToString(heading);

@@ -1,25 +1,25 @@
-import remarkParse from "remark-parse";
-import remarkStringify from "remark-stringify";
-import { unified } from "unified";
+import { lint } from "markdownlint/sync";
 import { describe, expect, it } from "vitest";
+import { RequiredSectionsRule } from "./required-sections.js";
 
-import requiredSections from "./required-sections.js";
-
-function lint(markdown: string) {
-	const processor = unified().use(remarkParse).use(remarkStringify).use(requiredSections);
-	const file = processor.processSync(markdown);
-	return file.messages.map((m) => m.message);
+function check(markdown: string) {
+	const result = lint({
+		strings: { test: markdown },
+		customRules: [RequiredSectionsRule],
+		config: { default: false, CSH002: true },
+	});
+	return (result.test ?? []).map((e) => e.errorDetail ?? "");
 }
 
-describe("required-sections", () => {
+describe("markdownlint/required-sections", () => {
 	// Valid cases
 	it("passes with a valid heading", () => {
-		expect(lint("## Features\n\nContent\n")).toEqual([]);
+		expect(check("## Features\n\nContent\n")).toEqual([]);
 	});
 
 	it("passes with multiple valid headings", () => {
 		const md = "## Features\n\nContent\n\n## Bug Fixes\n\nContent\n";
-		expect(lint(md)).toEqual([]);
+		expect(check(md)).toEqual([]);
 	});
 
 	it("passes with all 13 category headings", () => {
@@ -39,53 +39,53 @@ describe("required-sections", () => {
 			"Other",
 		];
 		const md = headings.map((h) => `## ${h}\n\nContent\n`).join("\n");
-		expect(lint(md)).toEqual([]);
+		expect(check(md)).toEqual([]);
 	});
 
 	it("passes with case-insensitive match", () => {
-		expect(lint("## features\n\nContent\n")).toEqual([]);
-		expect(lint("## FEATURES\n\nContent\n")).toEqual([]);
-		expect(lint("## bug fixes\n\nContent\n")).toEqual([]);
+		expect(check("## features\n\nContent\n")).toEqual([]);
+		expect(check("## FEATURES\n\nContent\n")).toEqual([]);
+		expect(check("## bug fixes\n\nContent\n")).toEqual([]);
 	});
 
 	it("ignores non-h2 headings", () => {
-		expect(lint("### Random Subsection\n\nContent\n")).toEqual([]);
-		expect(lint("#### Deep Heading\n\nContent\n")).toEqual([]);
+		expect(check("### Random Subsection\n\nContent\n")).toEqual([]);
+		expect(check("#### Deep Heading\n\nContent\n")).toEqual([]);
 	});
 
 	it("passes with no headings", () => {
-		expect(lint("Just a paragraph\n")).toEqual([]);
+		expect(check("Just a paragraph\n")).toEqual([]);
 	});
 
 	// Invalid cases
 	it("rejects an unknown heading", () => {
-		const messages = lint("## Improvements\n\nContent\n");
+		const messages = check("## Improvements\n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section "Improvements"');
 		expect(messages[0]).toContain("Valid sections:");
 	});
 
 	it("rejects a typo heading", () => {
-		const messages = lint("## Featurs\n\nContent\n");
+		const messages = check("## Featurs\n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section "Featurs"');
 	});
 
 	it("reports multiple unknown headings", () => {
 		const md = "## Foo\n\nContent\n\n## Bar\n\nContent\n";
-		const messages = lint(md);
+		const messages = check(md);
 		expect(messages).toHaveLength(2);
 	});
 
 	it("includes valid headings list in error message", () => {
-		const messages = lint("## Unknown\n\nContent\n");
+		const messages = check("## Unknown\n\nContent\n");
 		expect(messages[0]).toContain("Features");
 		expect(messages[0]).toContain("Bug Fixes");
 		expect(messages[0]).toContain("Breaking Changes");
 	});
 
 	it("rejects empty heading text", () => {
-		const messages = lint("## \n\nContent\n");
+		const messages = check("## \n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section ""');
 	});

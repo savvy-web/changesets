@@ -4,10 +4,12 @@ import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
-import deduplicateItems from "./deduplicate-items.js";
+import { DeduplicateItemsPlugin } from "./deduplicate-items.js";
 
 function transform(md: string): string {
-	return String(unified().use(remarkParse).use(remarkGfm).use(deduplicateItems).use(remarkStringify).processSync(md));
+	return String(
+		unified().use(remarkParse).use(remarkGfm).use(DeduplicateItemsPlugin).use(remarkStringify).processSync(md),
+	);
 }
 
 describe("deduplicate-items", () => {

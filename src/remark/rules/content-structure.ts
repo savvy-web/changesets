@@ -13,7 +13,7 @@ import { toString as nodeToString } from "mdast-util-to-string";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
 
-const contentStructure = lintRule("remark-lint:changeset-content-structure", (tree: Root, file) => {
+export const ContentStructureRule = lintRule("remark-lint:changeset-content-structure", (tree: Root, file) => {
 	// Check for empty sections (h2 followed by h2 or end of file)
 	visit(tree, "heading", (node: Heading, index, parent) => {
 		if (node.depth !== 2 || parent == null || index == null) {
@@ -41,5 +41,3 @@ const contentStructure = lintRule("remark-lint:changeset-content-structure", (tr
 		}
 	});
 });
-
-export default contentStructure;
