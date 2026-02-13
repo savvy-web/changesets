@@ -72,7 +72,7 @@
 		"@changesets/types": "^6.1.0",
 		"@savvy-web/commitlint": "^0.3.2",
 		"@savvy-web/lint-staged": "^0.4.0",
-		"@savvy-web/rslib-builder": "^0.12.2",
+		"@savvy-web/rslib-builder": "^0.13.1",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",

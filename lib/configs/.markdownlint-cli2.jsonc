@@ -13,7 +13,7 @@
 		"**/CHANGELOG.md",
 		"**/.claude/plans"
 	],
-	"customRules": ["../../dist/npm/markdownlint.js"],
+	"customRules": ["../../dist/npm/cjs/markdownlint.cjs"],
 	"config": {
 		"default": true,
 		"MD001": true,
