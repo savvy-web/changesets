@@ -38,6 +38,7 @@
 		"ci:version": "npx tsx src/bin/cli.ts version && biome format --write .",
 		"commit:check": "savvy-commit check",
 		"commit:init": "savvy-commit init",
+		"postinstall": "rslib build --config-loader native --env-mode dev",
 		"lint": "biome check --max-diagnostics=none",
 		"lint:fix": "biome check --write --max-diagnostics=none",
 		"lint:fix:unsafe": "biome check --write --unsafe --max-diagnostics=none",
