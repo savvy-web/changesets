@@ -3,11 +3,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
+import type { CheckIssue } from "./init.js";
 import {
 	InitError,
+	checkBaseMarkdownlint,
+	checkChangesetDir,
+	checkChangesetMarkdownlint,
+	checkConfig,
 	detectGitHubRepo,
 	ensureChangesetDir,
+	findMarkdownlintConfig,
 	handleBaseMarkdownlint,
 	handleChangesetMarkdownlint,
 	handleConfig,
@@ -118,6 +123,49 @@ describe("resolveWorkspaceRoot", () => {
 		const { findProjectRoot } = await import("workspace-tools");
 		vi.mocked(findProjectRoot).mockReturnValue(undefined as unknown as string);
 		expect(resolveWorkspaceRoot("/standalone/project")).toBe("/standalone/project");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// findMarkdownlintConfig
+// ---------------------------------------------------------------------------
+describe("findMarkdownlintConfig", () => {
+	it("returns first matching path (lib/configs/.markdownlint-cli2.jsonc)", () => {
+		vi.mocked(existsSync).mockImplementation((p) => {
+			return String(p) === join("/project", "lib/configs/.markdownlint-cli2.jsonc");
+		});
+		expect(findMarkdownlintConfig("/project")).toBe("lib/configs/.markdownlint-cli2.jsonc");
+	});
+
+	it("falls back to lib/configs/.markdownlint-cli2.json", () => {
+		vi.mocked(existsSync).mockImplementation((p) => {
+			return String(p) === join("/project", "lib/configs/.markdownlint-cli2.json");
+		});
+		expect(findMarkdownlintConfig("/project")).toBe("lib/configs/.markdownlint-cli2.json");
+	});
+
+	it("falls back to root .markdownlint-cli2.jsonc", () => {
+		vi.mocked(existsSync).mockImplementation((p) => {
+			return String(p) === join("/project", ".markdownlint-cli2.jsonc");
+		});
+		expect(findMarkdownlintConfig("/project")).toBe(".markdownlint-cli2.jsonc");
+	});
+
+	it("falls back to root .markdownlint-cli2.json", () => {
+		vi.mocked(existsSync).mockImplementation((p) => {
+			return String(p) === join("/project", ".markdownlint-cli2.json");
+		});
+		expect(findMarkdownlintConfig("/project")).toBe(".markdownlint-cli2.json");
+	});
+
+	it("returns null when no config exists", () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		expect(findMarkdownlintConfig("/project")).toBeNull();
+	});
+
+	it("prefers lib/configs over root when both exist", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		expect(findMarkdownlintConfig("/project")).toBe("lib/configs/.markdownlint-cli2.jsonc");
 	});
 });
 
@@ -275,12 +323,13 @@ describe("handleBaseMarkdownlint", () => {
 	const root = "/project";
 	const baseConfigPath = join(root, "lib/configs/.markdownlint-cli2.jsonc");
 
-	it("returns null when base config file does not exist", async () => {
+	it("returns warning when no config file is found", async () => {
 		vi.mocked(existsSync).mockReturnValue(false);
 
 		const result = await Effect.runPromise(handleBaseMarkdownlint(root));
 
-		expect(result).toBeNull();
+		expect(result).toContain("Warning:");
+		expect(result).toContain("no markdownlint config found");
 		expect(writeFileSync).not.toHaveBeenCalled();
 	});
 
@@ -443,7 +492,7 @@ describe("handleBaseMarkdownlint", () => {
 		expect(result._tag).toBe("Left");
 		if (result._tag === "Left") {
 			expect(result.left).toBeInstanceOf(InitError);
-			expect(result.left.step).toBe("lib/configs/.markdownlint-cli2.jsonc");
+			expect(result.left.step).toBe("markdownlint config");
 			expect(result.left.reason).toBe("EACCES: permission denied");
 		}
 	});
@@ -612,5 +661,222 @@ describe("handleChangesetMarkdownlint", () => {
 			expect(result.left).toBeInstanceOf(InitError);
 			expect(result.left.step).toBe(".changeset/.markdownlint.json");
 		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// checkChangesetDir (--check mode)
+// ---------------------------------------------------------------------------
+describe("checkChangesetDir", () => {
+	it("returns empty array when .changeset/ exists", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		expect(checkChangesetDir("/project")).toEqual([]);
+	});
+
+	it("returns issue when .changeset/ does not exist", () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		const issues = checkChangesetDir("/project");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].file).toBe(".changeset/");
+		expect(issues[0].message).toContain("does not exist");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// checkConfig (--check mode)
+// ---------------------------------------------------------------------------
+describe("checkConfig", () => {
+	const changesetDir = "/project/.changeset";
+
+	it("returns empty array when config is correct", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: ["@savvy-web/changesets/changelog", { repo: "owner/repo" }],
+			}),
+		);
+		expect(checkConfig(changesetDir, "owner/repo")).toEqual([]);
+	});
+
+	it("returns issue when config.json does not exist", () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("does not exist");
+	});
+
+	it("returns issue when changelog formatter is wrong", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ changelog: "@changesets/cli/changelog" }));
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("changelog formatter");
+	});
+
+	it("returns issue when changelog formatter is correct but repo is wrong", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: ["@savvy-web/changesets/changelog", { repo: "wrong/repo" }],
+			}),
+		);
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain('changelog repo is "wrong/repo"');
+	});
+
+	it("returns issue when changelog is tuple but repo option is missing", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: ["@savvy-web/changesets/changelog", {}],
+			}),
+		);
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("(not set)");
+	});
+
+	it("returns issue when file cannot be parsed", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue("not json{{{");
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("could not parse");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// checkBaseMarkdownlint (--check mode)
+// ---------------------------------------------------------------------------
+describe("checkBaseMarkdownlint", () => {
+	const root = "/project";
+
+	it("returns issue when no config file is found", () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		const issues = checkBaseMarkdownlint(root);
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("not found");
+	});
+
+	it("returns empty array when config is correct", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				customRules: ["@savvy-web/changesets/markdownlint"],
+				config: {
+					"changeset-heading-hierarchy": false,
+					"changeset-required-sections": false,
+					"changeset-content-structure": false,
+				},
+			}),
+		);
+		expect(checkBaseMarkdownlint(root)).toEqual([]);
+	});
+
+	it("returns issue when customRules is missing our entry", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				customRules: ["other-plugin"],
+				config: {
+					"changeset-heading-hierarchy": false,
+					"changeset-required-sections": false,
+					"changeset-content-structure": false,
+				},
+			}),
+		);
+		const issues = checkBaseMarkdownlint(root);
+		expect(issues.some((i: CheckIssue) => i.message.includes("customRules"))).toBe(true);
+	});
+
+	it("returns issue when config section is missing", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				customRules: ["@savvy-web/changesets/markdownlint"],
+			}),
+		);
+		const issues = checkBaseMarkdownlint(root);
+		expect(issues.some((i: CheckIssue) => i.message.includes("config section is missing"))).toBe(true);
+	});
+
+	it("returns issues for missing rule entries", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				customRules: ["@savvy-web/changesets/markdownlint"],
+				config: {
+					"changeset-heading-hierarchy": false,
+				},
+			}),
+		);
+		const issues = checkBaseMarkdownlint(root);
+		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-required-sections"))).toBe(true);
+		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-content-structure"))).toBe(true);
+	});
+
+	it("returns issue when file cannot be parsed", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue("invalid json");
+		const issues = checkBaseMarkdownlint(root);
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("could not parse");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// checkChangesetMarkdownlint (--check mode)
+// ---------------------------------------------------------------------------
+describe("checkChangesetMarkdownlint", () => {
+	const changesetDir = "/project/.changeset";
+
+	it("returns empty array when all rules are enabled", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				default: false,
+				"changeset-heading-hierarchy": true,
+				"changeset-required-sections": true,
+				"changeset-content-structure": true,
+			}),
+		);
+		expect(checkChangesetMarkdownlint(changesetDir)).toEqual([]);
+	});
+
+	it("returns issue when file does not exist", () => {
+		vi.mocked(existsSync).mockReturnValue(false);
+		const issues = checkChangesetMarkdownlint(changesetDir);
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("does not exist");
+	});
+
+	it("returns issues for rules not set to true", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				"changeset-heading-hierarchy": false,
+				"changeset-required-sections": true,
+				"changeset-content-structure": true,
+			}),
+		);
+		const issues = checkChangesetMarkdownlint(changesetDir);
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("changeset-heading-hierarchy");
+	});
+
+	it("returns issues for all missing rules", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ default: false }));
+		const issues = checkChangesetMarkdownlint(changesetDir);
+		expect(issues).toHaveLength(3);
+	});
+
+	it("returns issue when file cannot be parsed", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue("broken{json");
+		const issues = checkChangesetMarkdownlint(changesetDir);
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("could not parse");
 	});
 });

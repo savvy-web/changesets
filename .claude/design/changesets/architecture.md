@@ -3,8 +3,8 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-02-12
-last-synced: 2026-02-12
+updated: 2026-02-14
+last-synced: 2026-02-14
 completeness: 95
 related: []
 dependencies: []
@@ -191,6 +191,7 @@ src/
 ├── cli/                        # Effect CLI (savvy-changesets)
 │   ├── index.ts                # Root command
 │   └── commands/
+│       ├── init.ts             # Bootstrap repo config (--force, --quiet, --markdownlint, --check)
 │       ├── lint.ts             # Validate changeset files
 │       ├── transform.ts        # Post-process CHANGELOG.md
 │       ├── check.ts            # Full validation pipeline
@@ -450,7 +451,7 @@ These capabilities do NOT exist in the prior art and are entirely new:
 | **Layer 1: remark lint rules** | Pre-validation of changeset file structure (heading hierarchy, section names, content quality) |
 | **Layer 3: remark transform** | Post-processing of CHANGELOG.md (section merging, reordering, deduplication, normalization) |
 | **Structured changeset format** | Section headings (h2) in changeset files for multi-category changes |
-| **Effect CLI** | `savvy-changesets` binary with lint/transform/check/version commands |
+| **Effect CLI** | `savvy-changesets` binary with init/lint/transform/check/version commands |
 | **Remark/Unified ecosystem** | AST-based markdown processing replacing regex-based parsing where appropriate |
 | **Category system as shared data model** | Single category definition used by all three layers |
 | **Breaking Changes category** | Prior art lacks a dedicated breaking changes section |
@@ -857,9 +858,11 @@ API requires.
 │   ├── cli/                        # Effect CLI
 │   │   ├── index.ts                # Root command
 │   │   └── commands/
+│   │       ├── init.ts             # Bootstrap repo config
 │   │       ├── lint.ts             # Validate changeset files
 │   │       ├── transform.ts        # Post-process CHANGELOG.md
-│   │       └── check.ts            # Full validation pipeline
+│   │       ├── check.ts            # Full validation pipeline
+│   │       └── version.ts          # Orchestrate version + transform
 │   └── utils/
 │       ├── remark-pipeline.ts      # Shared unified pipeline config
 │       ├── section-parser.ts       # Section extraction from content
@@ -936,9 +939,11 @@ API requires.
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                   CLI (savvy-changesets)                            │  │
 │  │                                                                    │  │
+│  │  init        Bootstrap repo: config, markdownlint, .changeset/    │  │
 │  │  lint        Validate changeset files against rules               │  │
 │  │  transform   Post-process CHANGELOG.md after changeset version    │  │
 │  │  check       Full validation pipeline (lint + structure check)    │  │
+│  │  version     Run changeset version + transform all CHANGELOGs    │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
@@ -1744,10 +1749,79 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 
 | Command | Description | Usage |
 | :--- | :--- | :--- |
+| `savvy-changesets init` | Bootstrap a repo for @savvy-web/changesets | Setup, postinstall |
 | `savvy-changesets lint` | Validate changeset files against remark rules | CI, pre-commit |
 | `savvy-changesets transform` | Post-process CHANGELOG.md with remark transform pipeline | Standalone use |
 | `savvy-changesets check` | Run full validation pipeline (lint + structure) | CI gate |
 | `savvy-changesets version` | Run changeset version + discover and transform all workspace CHANGELOGs | ci:version script |
+
+#### init Command
+
+Bootstraps a repository for `@savvy-web/changesets` by creating the `.changeset/`
+directory, writing (or patching) `config.json` with the correct changelog entry,
+and configuring markdownlint rules scoped to changeset files.
+
+**Options:**
+
+| Option | Alias | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `--force` | `-f` | `false` | Overwrite existing config files |
+| `--quiet` | `-q` | `false` | Silence warnings, always exit 0 |
+| `--markdownlint` | | `true` | Register rules in base markdownlint config |
+| `--check` | | `false` | Check configuration without writing (for postinstall scripts) |
+
+**`--check` mode:** Inspects the current configuration state without writing any files.
+Always exits 0 (purely informational). Designed for postinstall scripts to advise
+users when config is out of date. Runs the following checks and outputs warnings for
+any issues found:
+
+1. `.changeset/` directory exists
+2. `.changeset/config.json` exists and has the correct changelog formatter entry
+3. Base markdownlint config has `customRules` and rule entries (if `--markdownlint`)
+4. `.changeset/.markdownlint.json` exists and has rules enabled
+
+When issues are found, advises the user to run `savvy-changesets init --force` to fix.
+
+**Multi-path markdownlint config lookup:** The init command searches for the base
+markdownlint config in 4 locations in priority order:
+
+1. `lib/configs/.markdownlint-cli2.jsonc`
+2. `lib/configs/.markdownlint-cli2.json`
+3. `.markdownlint-cli2.jsonc`
+4. `.markdownlint-cli2.json`
+
+The first match wins. When no config is found, a warning is emitted rather than
+silently skipping.
+
+**Exported functions from `init.ts`:**
+
+| Function | Purpose |
+| :--- | :--- |
+| `detectGitHubRepo(cwd)` | Detect `owner/repo` from git remote origin URL |
+| `stripJsoncComments(text)` | Strip JSONC comments for parsing |
+| `resolveWorkspaceRoot(cwd)` | Resolve workspace root via `workspace-tools` |
+| `findMarkdownlintConfig(root)` | Find first existing markdownlint config from candidate paths |
+| `ensureChangesetDir(root)` | Create `.changeset/` directory (Effect) |
+| `handleConfig(dir, repo, force)` | Write or patch `.changeset/config.json` (Effect) |
+| `handleBaseMarkdownlint(root)` | Update base markdownlint config; always returns a message (Effect) |
+| `handleChangesetMarkdownlint(dir, root, force)` | Write or patch `.changeset/.markdownlint.json` (Effect) |
+| `checkChangesetDir(root)` | Check `.changeset/` exists (returns `CheckIssue[]`) |
+| `checkConfig(dir, repo)` | Check config has correct changelog entry (returns `CheckIssue[]`) |
+| `checkBaseMarkdownlint(root)` | Check base markdownlint config (returns `CheckIssue[]`) |
+| `checkChangesetMarkdownlint(dir)` | Check `.changeset/.markdownlint.json` rules (returns `CheckIssue[]`) |
+
+**`CheckIssue` interface:**
+
+```typescript
+interface CheckIssue {
+  readonly file: string;
+  readonly message: string;
+}
+```
+
+**`InitError` tagged error:** Uses `Data.TaggedError("InitError")` with `step` and
+`reason` fields. Each init step can fail independently; errors are collected and
+reported at the end (non-fatal unless `--quiet` is not set).
 
 ### CI Integration
 
@@ -1835,7 +1909,28 @@ Plus inherited dependencies from the template repository
 
 ## Integration Points
 
-### 1. .changeset/config.json
+### 1. Repository Bootstrap (init)
+
+New consuming repositories run `savvy-changesets init` to bootstrap all config:
+
+```bash
+savvy-changesets init
+```
+
+This creates `.changeset/config.json` with the correct changelog entry, registers
+custom markdownlint rules in the base config, and creates
+`.changeset/.markdownlint.json`. Existing repos can use `--check` in postinstall
+scripts to detect stale config without writing files:
+
+```json
+{
+  "scripts": {
+    "postinstall": "savvy-changesets init --check --quiet"
+  }
+}
+```
+
+### 2. .changeset/config.json
 
 Each consuming repository configures the changelog formatter:
 
@@ -1845,7 +1940,7 @@ Each consuming repository configures the changelog formatter:
 }
 ```
 
-### 2. ci:version Script
+### 3. ci:version Script
 
 Each consuming repository updates its `ci:version` script:
 
@@ -1857,7 +1952,7 @@ Each consuming repository updates its `ci:version` script:
 }
 ```
 
-### 3. Pre-Commit / CI Validation
+### 4. Pre-Commit / CI Validation
 
 Changeset files can be validated in pre-commit hooks or CI:
 
@@ -1865,13 +1960,13 @@ Changeset files can be validated in pre-commit hooks or CI:
 savvy-changesets lint
 ```
 
-### 4. workflow-release-action
+### 5. workflow-release-action
 
 No changes needed to `workflow-release-action`. It reads `## <version>` sections from
 CHANGELOG.md, which our output preserves. The version heading format is controlled by
 Changesets internally and we do not modify it.
 
-### 5. markdownlint-cli2 / VS Code
+### 6. markdownlint-cli2 / VS Code
 
 Consuming repositories can enable real-time
 changeset validation in VS Code and CI by adding
@@ -1887,12 +1982,12 @@ name, and content structure validation as the
 remark-lint rules without requiring the remark
 pipeline.
 
-### 6. pnpm-plugin-silk
+### 7. pnpm-plugin-silk
 
 Once published, `@savvy-web/changesets` should be added to `catalog:silk` in
 pnpm-plugin-silk so all Silk Suite repos get a managed version.
 
-### 7. Dogfooding
+### 8. Dogfooding
 
 This repository itself will use `@savvy-web/changesets/changelog` in its own
 `.changeset/config.json` once implemented. The `ci:version` script will include
@@ -2321,30 +2416,22 @@ not future enhancements:
 
 ---
 
-**Document Status:** Draft - Architecture design based on research, Silk Suite patterns, and prior
-art analysis of `@savvy-web/changelog`
+**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining.
 
-**Implementation Notes:**
+**Architecture Notes:**
 
-- Repository is in template state; no implementation exists yet
-- Package name must be changed from `@savvy-web/pnpm-module-template` to `@savvy-web/changesets`
 - All three layers share the category system as their common data model
 - The three-layer architecture directly addresses the Changesets API limitation of line-level-only
   formatting hooks
 - Post-transformation is the key innovation: it compensates for the lack of an aggregate hook by
   operating on the full CHANGELOG.md after Changesets generates it
 - Effect CLI and static class patterns are consistent with `@savvy-web/lint-staged`
-- Prior art at `workflow/pkgs/changelog/` provides proven patterns for GitHub API integration,
-  batched API calls, streaming mode, graceful degradation, and runtime validation
-- Valibot schemas from prior art must be migrated to Effect Schema during implementation
-- Prior art's `getFormattedReleaseLines()` aggregate function should be decomposed: per-changeset
-  logic stays in Layer 2, cross-changeset merging moves to Layer 3
-- Prior art's test suite (50+ tests) provides a reference for expected behavior and edge cases
+- Valibot schemas from prior art have been migrated to Effect Schema
+- Prior art's `getFormattedReleaseLines()` has been decomposed: per-changeset logic in Layer 2,
+  cross-changeset merging in Layer 3
 
 **Maintenance:**
 
-- Update this document when implementing each layer
 - Keep the category table in sync with `src/categories/index.ts`
 - Update the "Current State" section as implementation progresses
 - Update completeness score to reflect actual documentation coverage
-- Cross-reference prior art tests when writing new test cases

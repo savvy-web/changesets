@@ -56,8 +56,7 @@ This project uses:
 
 ### Commit Format
 
-All commits must follow the [Conventional Commits](https://conventionalcommits.org)
-specification and include a DCO signoff:
+All commits must follow the [Conventional Commits](https://conventionalcommits.org) specification and include a DCO signoff:
 
 ```text
 feat: add new feature
@@ -123,5 +122,4 @@ import type { MyType } from "./types.js";
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the
-MIT License.
+By contributing, you agree that your contributions will be licensed under the MIT License.
