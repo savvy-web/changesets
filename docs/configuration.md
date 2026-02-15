@@ -201,10 +201,29 @@ pattern uses a base config with the rules disabled
 globally, and a directory-scoped override that enables
 them for `.changeset/` only.
 
+#### Automatic Setup
+
+Run `savvy-changesets init` to configure everything
+automatically. The init command searches for your
+markdownlint config in these locations (first match wins):
+
+1. `lib/configs/.markdownlint-cli2.jsonc`
+2. `lib/configs/.markdownlint-cli2.json`
+3. `.markdownlint-cli2.jsonc`
+4. `.markdownlint-cli2.json`
+
+To verify config after install, use `--check` (always
+exits 0, suitable for postinstall scripts):
+
+```bash
+savvy-changesets init --check
+```
+
 #### Step 1: Register rules in the base config
 
 Add the rules to your shared markdownlint-cli2 config
-(e.g., `lib/configs/.markdownlint-cli2.jsonc`):
+(e.g., `lib/configs/.markdownlint-cli2.jsonc` or
+`.markdownlint-cli2.jsonc` in the project root):
 
 ```jsonc
 {

@@ -33,17 +33,37 @@ savvy-changesets init
 | `--force` | `-f` | `false` | Overwrite existing config files |
 | `--quiet` | `-q` | `false` | Silence warnings, always exit 0 |
 | `--markdownlint` | | `true` | Register rules in base config |
+| `--check` | | `false` | Check config without writing (for postinstall) |
 
 **Behavior:**
 
 - Creates `.changeset/` directory if missing
 - Writes `.changeset/config.json` with detected GitHub
   repo (or patches the `changelog` key if file exists)
-- If `lib/configs/.markdownlint-cli2.jsonc` exists,
-  registers custom rules and disables them globally
-  (skip with `--markdownlint=false`)
+- Searches for an existing markdownlint config in order:
+  `lib/configs/.markdownlint-cli2.jsonc`,
+  `lib/configs/.markdownlint-cli2.json`,
+  `.markdownlint-cli2.jsonc`,
+  `.markdownlint-cli2.json`.
+  If found, registers custom rules and disables them
+  globally. If not found, logs a warning.
+  (Skip with `--markdownlint=false`)
 - Writes `.changeset/.markdownlint.json` to enable rules
-  for changeset files only (auto-detects `extends` path)
+  for changeset files only (auto-detects `extends` path
+  from the discovered base config)
+
+**Check mode** (`--check`):
+
+Inspects current configuration without writing any files.
+Reports issues as warnings and advises the user to run
+`init --force` to fix. Always exits 0 — intended for
+use in `postinstall` scripts to inform users when config
+is out of date.
+
+```bash
+# Postinstall check (informational only)
+savvy-changesets init --check
+```
 
 **Examples:**
 
@@ -56,13 +76,16 @@ savvy-changesets init --force
 
 # Skip base markdownlint registration
 savvy-changesets init --markdownlint=false
+
+# Check config in postinstall (always exits 0)
+savvy-changesets init --check
 ```
 
 **Exit codes:**
 
 | Code | Meaning |
 | :--- | :--- |
-| 0 | Initialization successful |
+| 0 | Initialization successful (or `--check` mode) |
 | 1 | Error (unless `--quiet`) |
 
 ### `savvy-changesets lint`
