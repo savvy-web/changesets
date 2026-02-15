@@ -18,6 +18,8 @@ Effect CLI and markdownlint rules for editor/CI integration.
 ```bash
 pnpm run lint              # Check code with Biome
 pnpm run lint:fix          # Auto-fix lint issues
+pnpm run lint:md           # Check markdown with markdownlint
+pnpm run lint:md:fix       # Auto-fix markdown lint issues
 pnpm run typecheck         # Type-check via Turbo (tsgo)
 pnpm run test              # Run all tests
 pnpm run test:watch        # Run tests in watch mode
@@ -113,7 +115,7 @@ Turbo orchestrates tasks: `typecheck` depends on `build` completing first.
 ## Design Documentation
 
 **For full architecture, rationale, and implementation details:**
--> `@./.claude/design/changesets/architecture.md`
+--> `@./.claude/design/changesets/architecture.md`
 
 Load when working on architectural changes, understanding the three-layer
 pipeline, section categories, contributor tracking, or integration points.

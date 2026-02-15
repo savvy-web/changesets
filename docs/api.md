@@ -1,14 +1,11 @@
 # API Reference
 
-This document covers the public classes and types
-exported from `@savvy-web/changesets`.
+This document covers the public classes and types exported from `@savvy-web/changesets`.
 
 The package provides two API surfaces:
 
-- **Class-based API** -- Static classes for consumers
-  who do not use Effect
-- **Effect services** -- Services, layers, schemas,
-  and tagged errors for Effect-native consumers
+- **Class-based API** -- Static classes for consumers who do not use Effect
+- **Effect services** -- Services, layers, schemas, and tagged errors for Effect-native consumers
 
 ## Class-Based API
 
@@ -26,13 +23,11 @@ import {
 
 ### ChangelogTransformer
 
-Runs all six remark transform plugins against
-CHANGELOG markdown content.
+Runs all six remark transform plugins against CHANGELOG markdown content.
 
 #### `ChangelogTransformer.transformContent(content)`
 
-Transform a markdown string by running all transform
-plugins.
+Transform a markdown string by running all transform plugins.
 
 - **Parameters:**
   - `content` (`string`) -- Raw CHANGELOG markdown
@@ -45,8 +40,7 @@ const result =
 
 #### `ChangelogTransformer.transformFile(filePath)`
 
-Transform a CHANGELOG file in-place. Reads the file,
-runs all plugins, and writes the result back.
+Transform a CHANGELOG file in-place. Reads the file, runs all plugins, and writes the result back.
 
 - **Parameters:**
   - `filePath` (`string`) -- Path to the file
@@ -58,13 +52,11 @@ ChangelogTransformer.transformFile("CHANGELOG.md");
 
 ### ChangesetLinter
 
-Runs the three remark-lint rules against changeset
-markdown and returns structured diagnostic messages.
+Runs the three remark-lint rules against changeset markdown and returns structured diagnostic messages.
 
 #### `ChangesetLinter.validate(dir)`
 
-Validate all `.md` files in a directory (excluding
-`README.md`).
+Validate all `.md` files in a directory (excluding `README.md`).
 
 - **Parameters:**
   - `dir` (`string`) -- Directory path to scan
@@ -90,13 +82,11 @@ const messages =
 
 #### `ChangesetLinter.validateContent(content, filePath?)`
 
-Validate a markdown string directly. Strips YAML
-frontmatter before running lint rules.
+Validate a markdown string directly. Strips YAML frontmatter before running lint rules.
 
 - **Parameters:**
   - `content` (`string`) -- Raw markdown content
-  - `filePath` (`string`, optional) -- For error
-    reporting, defaults to `"<input>"`
+  - `filePath` (`string`, optional) -- For error reporting, defaults to `"<input>"`
 - **Returns:** `LintMessage[]` -- Lint messages
 
 ```typescript
@@ -106,8 +96,7 @@ const messages =
 
 ### LintMessage
 
-A single lint diagnostic returned by
-`ChangesetLinter`.
+A single lint diagnostic returned by `ChangesetLinter`.
 
 ```typescript
 interface LintMessage {
@@ -126,9 +115,7 @@ interface LintMessage {
 
 ### Categories
 
-Static class for category operations. Maps
-conventional commit types to changelog section
-categories and validates section headings.
+Static class for category operations. Maps conventional commit types to changelog section categories and validates section headings.
 
 #### `Categories.fromCommitType(type, scope?, breaking?)`
 
@@ -136,8 +123,7 @@ Resolve a conventional commit type to its category.
 
 - **Parameters:**
   - `type` (`string`) -- Commit type (e.g., `"feat"`)
-  - `scope` (`string`, optional) -- Scope
-    (e.g., `"deps"`)
+  - `scope` (`string`, optional) -- Scope (e.g., `"deps"`)
   - `breaking` (`boolean`, optional) -- Breaking flag
 - **Returns:** `SectionCategory`
 
@@ -161,8 +147,7 @@ const bc = Categories.fromCommitType(
 
 #### `Categories.fromHeading(heading)`
 
-Look up a category by its section heading text.
-Case-insensitive.
+Look up a category by its section heading text. Case-insensitive.
 
 - **Parameters:**
   - `heading` (`string`) -- The heading text
@@ -175,8 +160,7 @@ const cat = Categories.fromHeading("Bug Fixes");
 
 #### `Categories.isValidHeading(heading)`
 
-Check whether a heading matches a known category.
-Case-insensitive.
+Check whether a heading matches a known category. Case-insensitive.
 
 - **Parameters:**
   - `heading` (`string`) -- The heading text
@@ -184,8 +168,7 @@ Case-insensitive.
 
 #### `Categories.allHeadings()`
 
-Get all valid section heading strings in priority
-order.
+Get all valid section heading strings in priority order.
 
 - **Returns:** `readonly string[]`
 
@@ -197,21 +180,16 @@ All 13 categories ordered by priority (ascending).
 
 ### Changelog
 
-Static class wrapper for changelog formatting.
-Delegates to the Changesets-compatible functions with
-Effect-based internals.
+Static class wrapper for changelog formatting. Delegates to the Changesets-compatible functions with Effect-based internals.
 
 #### `Changelog.formatReleaseLine(changeset, versionType, options)`
 
-Format a single changeset into a changelog release
-line.
+Format a single changeset into a changelog release line.
 
 - **Parameters:**
   - `changeset` -- The changeset object
-  - `versionType` -- `"major"`, `"minor"`, or
-    `"patch"`
-  - `options` -- Config with `repo` in `owner/repo`
-    format
+  - `versionType` -- `"major"`, `"minor"`, or `"patch"`
+  - `options` -- Config with `repo` in `owner/repo` format
 - **Returns:** `Promise<string>`
 
 #### `Changelog.formatDependencyReleaseLine(changesets, dependenciesUpdated, options)`
@@ -226,18 +204,14 @@ Format dependency update release lines.
 
 ### Workspace
 
-Static class for workspace operations. Used internally
-by the `version` command but also available for
-programmatic use.
+Static class for workspace operations. Used internally by the `version` command but also available for programmatic use.
 
 #### `Workspace.detectPackageManager(cwd?)`
 
-Detect the package manager from the root `package.json`
-`packageManager` field.
+Detect the package manager from the root `package.json` `packageManager` field.
 
 - **Parameters:**
-  - `cwd` (`string`, optional) -- Project root, defaults
-    to `process.cwd()`
+  - `cwd` (`string`, optional) -- Project root, defaults to `process.cwd()`
 - **Returns:** `"npm" | "pnpm" | "yarn" | "bun"`
 
 ```typescript
@@ -260,8 +234,7 @@ Workspace.getChangesetVersionCommand("pnpm");
 
 #### `Workspace.discoverChangelogs(cwd?)`
 
-Discover all CHANGELOG.md files across workspace
-packages.
+Discover all CHANGELOG.md files across workspace packages.
 
 - **Parameters:**
   - `cwd` (`string`, optional) -- Project root
@@ -328,8 +301,7 @@ interface ChangesetOptions {
 
 ## Effect Services (Advanced)
 
-For Effect-native consumers, the package exports
-services, layers, and tagged errors.
+For Effect-native consumers, the package exports services, layers, and tagged errors.
 
 ### Services
 
@@ -359,8 +331,7 @@ services, layers, and tagged errors.
 
 ## Remark Plugins (`./remark`)
 
-All lint rules and transform plugins are exported from
-a single entry point:
+All lint rules and transform plugins are exported from a single entry point:
 
 ```typescript
 import {

@@ -3,33 +3,17 @@
 [![npm version][npm-badge]][npm-url]
 [![License: MIT][license-badge]][license-url]
 
-Custom changelog formatter and markdown processing pipeline
-for the Silk Suite. Replaces the default
-`@changesets/cli/changelog` formatter with a three-layer
-architecture that validates changeset files, formats
-structured changelog entries, and post-processes the
-generated CHANGELOG.md.
+Custom changelog formatter and markdown processing pipeline for the Silk Suite. Replaces the default `@changesets/cli/changelog` formatter with a three-layer architecture that validates changeset files, formats structured changelog entries, and post-processes the generated CHANGELOG.md.
 
 ## Features
 
-- **Section-aware changesets** -- Use h2 headings in
-  changeset files to categorize changes (Features,
-  Bug Fixes, Breaking Changes, etc.)
-- **Three-layer pipeline** -- Pre-validation
-  (remark-lint), changelog formatting (Changesets API),
-  and post-processing (remark-transform)
-- **13 section categories** -- Consistent categorization
-  with priority-based ordering across all layers
-- **CLI tooling** -- `savvy-changesets` binary with init,
-  lint, transform, check, and version subcommands for CI
-  and local use
-- **GitHub integration** -- Automatic PR links, commit
-  references, and contributor attribution
-- **Remark plugins** -- Lint rules and transform plugins
-  via `@savvy-web/changesets/remark`
-- **markdownlint rules** -- Custom rules compatible with
-  markdownlint-cli2 and the VS Code extension via
-  `@savvy-web/changesets/markdownlint`
+- **Section-aware changesets** -- Use h2 headings in changeset files to categorize changes (Features, Bug Fixes, Breaking Changes, etc.)
+- **Three-layer pipeline** -- Pre-validation (remark-lint), changelog formatting (Changesets API), and post-processing (remark-transform)
+- **13 section categories** -- Consistent categorization with priority-based ordering across all layers
+- **CLI tooling** -- `savvy-changesets` binary with init, lint, transform, check, and version subcommands for CI and local use
+- **GitHub integration** -- Automatic PR links, commit references, and contributor attribution
+- **Remark plugins** -- Lint rules and transform plugins via `@savvy-web/changesets/remark`
+- **markdownlint rules** -- Custom rules compatible with [markdownlint-cli2](https://www.npmjs.com/package/markdownlint-cli2) and the VS Code extension via `@savvy-web/changesets/markdownlint`
 
 ## Installation
 
@@ -45,8 +29,7 @@ Bootstrap your repository:
 savvy-changesets init
 ```
 
-This creates `.changeset/config.json` with auto-detected
-GitHub repo settings. Or configure manually:
+This creates `.changeset/config.json` with auto-detected GitHub repo settings. Or configure manually:
 
 ```json
 {
@@ -57,7 +40,7 @@ GitHub repo settings. Or configure manually:
 }
 ```
 
-Write section-aware changeset files:
+Write [section-aware changeset files](docs/section-aware-pipeline.md):
 
 ```markdown
 ---
@@ -76,8 +59,7 @@ Added a new authentication system with OAuth2 support.
 
 ## markdownlint Integration
 
-Register the custom rules in your base config
-(e.g., `lib/configs/.markdownlint-cli2.jsonc`):
+Register the custom rules in your base config (e.g., `lib/configs/.markdownlint-cli2.jsonc`):
 
 ```jsonc
 {
@@ -92,8 +74,7 @@ Register the custom rules in your base config
 }
 ```
 
-Then enable the rules only for changeset files by
-creating `.changeset/.markdownlint.json`:
+Then enable the rules only for changeset files by creating `.changeset/.markdownlint.json`:
 
 ```json
 {
@@ -108,11 +89,8 @@ creating `.changeset/.markdownlint.json`:
 
 ## Documentation
 
-- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) --
-  End-to-end walkthrough of how section-aware changesets
-  flow through the three-layer pipeline
-- [Full documentation](./docs/) -- CLI usage, API
-  reference, configuration, and architecture
+- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the three-layer pipeline
+- [Full documentation](./docs/) -- CLI usage, API reference, configuration, and architecture
 
 ## License
 
