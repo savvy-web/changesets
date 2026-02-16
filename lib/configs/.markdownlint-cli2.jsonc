@@ -13,7 +13,7 @@
 		"**/CHANGELOG.md",
 		"**/.claude/plans"
 	],
-	"customRules": ["../../dist/npm/cjs/markdownlint.cjs"],
+	"customRules": ["@savvy-web/changesets/markdownlint"],
 	"config": {
 		"default": true,
 		"MD001": true,
