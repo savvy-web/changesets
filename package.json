@@ -71,9 +71,9 @@
 	"devDependencies": {
 		"@changesets/cli": "catalog:silk",
 		"@changesets/types": "^6.1.0",
-		"@savvy-web/commitlint": "^0.3.2",
-		"@savvy-web/lint-staged": "^0.4.0",
-		"@savvy-web/rslib-builder": "^0.14.1",
+		"@savvy-web/commitlint": "^0.3.3",
+		"@savvy-web/lint-staged": "^0.4.2",
+		"@savvy-web/rslib-builder": "^0.14.2",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
