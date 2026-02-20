@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ChangesetOptions } from "../schemas/options.js";
 import { makeGitHubTest } from "../services/github.js";
 import type { GitHubCommitInfo } from "../vendor/github-info.js";
@@ -51,7 +51,6 @@ describe("getReleaseLine", () => {
 	});
 
 	it("handles API failure gracefully", async () => {
-		vi.spyOn(console, "warn").mockImplementation(() => {});
 		const failLayer = makeGitHubTest(new Map());
 		const result = await Effect.runPromise(
 			getReleaseLine(

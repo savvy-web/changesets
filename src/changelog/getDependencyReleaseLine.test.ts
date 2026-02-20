@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { ChangesetOptions } from "../schemas/options.js";
 import { makeGitHubTest } from "../services/github.js";
@@ -78,7 +78,6 @@ describe("getDependencyReleaseLine", () => {
 	});
 
 	it("handles API failure with fallback links", async () => {
-		vi.spyOn(console, "warn").mockImplementation(() => {});
 		const failLayer = makeGitHubTest(new Map());
 		const changesets: NewChangesetWithCommit[] = [
 			{ id: "cs-1", summary: "bump", releases: [], commit: "deadbeef1234567" },
