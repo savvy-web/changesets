@@ -5,10 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
-  default:
-    tinyglobby:
-      specifier: ^0.2.15
-      version: 0.2.15
   silk:
     '@changesets/cli':
       specifier: ^2.29.8
@@ -63,7 +59,7 @@ importers:
         specifier: ^11.0.0
         version: 11.0.0
       tinyglobby:
-        specifier: 'catalog:'
+        specifier: ^0.2.15
         version: 0.2.15
       unified:
         specifier: ^11.0.5
