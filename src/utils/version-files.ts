@@ -69,24 +69,34 @@ export class VersionFiles {
 			return undefined;
 		}
 
+		let raw: string;
 		try {
-			const raw = readFileSync(configPath, "utf-8");
-			const config = parseJsonc(raw) as Record<string, unknown>;
+			raw = readFileSync(configPath, "utf-8");
+		} catch {
+			return undefined;
+		}
 
-			// changelog is expected to be a tuple: [formatter, options]
-			const changelog = config.changelog;
-			if (!Array.isArray(changelog) || changelog.length < 2) {
-				return undefined;
-			}
+		const config = parseJsonc(raw) as Record<string, unknown>;
 
-			const options = changelog[1] as Record<string, unknown>;
-			if (!options || typeof options !== "object" || !("versionFiles" in options)) {
-				return undefined;
-			}
+		// changelog is expected to be a tuple: [formatter, options]
+		const changelog = config.changelog;
+		if (!Array.isArray(changelog) || changelog.length < 2) {
+			return undefined;
+		}
 
+		const options = changelog[1] as Record<string, unknown>;
+		if (!options || typeof options !== "object" || !("versionFiles" in options)) {
+			return undefined;
+		}
+
+		// versionFiles key is present — schema errors are now worth reporting
+		try {
 			const decoded = Schema.decodeUnknownSync(VersionFilesSchema)(options.versionFiles);
 			return decoded.length > 0 ? decoded : undefined;
-		} catch {
+		} catch (error) {
+			console.warn(
+				`[changesets] Invalid versionFiles configuration: ${error instanceof Error ? error.message : String(error)}`,
+			);
 			return undefined;
 		}
 	}
@@ -264,7 +274,9 @@ export class VersionFiles {
 				const content = readFileSync(filePath, "utf-8");
 				const obj = JSON.parse(content) as unknown;
 				const previousValues = jsonPaths.flatMap((jp) => jsonPathGet(obj, jp));
-				updates.push({ filePath, jsonPaths, version, previousValues });
+				if (previousValues.length > 0) {
+					updates.push({ filePath, jsonPaths, version, previousValues });
+				}
 			} else {
 				const result = VersionFiles.updateFile(filePath, jsonPaths, version);
 				if (result) {

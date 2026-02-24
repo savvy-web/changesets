@@ -174,7 +174,7 @@ describe("runVersion Effect handler", () => {
 		});
 
 		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
-			"Version file update failed: EACCES: permission denied",
+			"EACCES: permission denied",
 		);
 	});
 });

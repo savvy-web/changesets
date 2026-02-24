@@ -12,6 +12,7 @@ import { Command, Options } from "@effect/cli";
 import { Effect } from "effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";
+import { VersionFileError } from "../../errors.js";
 import { VersionFiles } from "../../utils/version-files.js";
 import { Workspace } from "../../utils/workspace.js";
 
@@ -73,7 +74,10 @@ export function runVersion(dryRun: boolean) {
 			const updates = yield* Effect.try({
 				try: () => VersionFiles.processVersionFiles(cwd, versionFileConfigs, dryRun),
 				catch: (error) =>
-					new Error(`Version file update failed: ${error instanceof Error ? error.message : String(error)}`),
+					new VersionFileError({
+						filePath: cwd,
+						reason: `Version file update failed: ${error instanceof Error ? error.message : String(error)}`,
+					}),
 			});
 			for (const update of updates) {
 				const action = dryRun ? "Would update" : "Updated";

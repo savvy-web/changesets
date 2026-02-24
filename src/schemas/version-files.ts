@@ -13,8 +13,8 @@ import { Schema } from "effect";
  * and array index access (`$.foo[0].bar`).
  */
 export const JsonPathSchema = Schema.String.pipe(
-	Schema.pattern(/^\$\./, {
-		message: () => 'JSONPath must start with "$." (e.g., "$.version", "$.metadata.version")',
+	Schema.pattern(/^\$\.[^.]/, {
+		message: () => 'JSONPath must start with "$." followed by a property (e.g., "$.version", "$.metadata.version")',
 	}),
 );
 

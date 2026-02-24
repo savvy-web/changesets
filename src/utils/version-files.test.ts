@@ -100,6 +100,26 @@ describe("VersionFiles.readConfig", () => {
 		expect(VersionFiles.readConfig("/project")).toBeUndefined();
 	});
 
+	it("warns when versionFiles is present but invalid", () => {
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: [
+					"@savvy-web/changesets/changelog",
+					{
+						repo: "owner/repo",
+						versionFiles: [{ glob: "", paths: ["invalid-path"] }],
+					},
+				],
+			}),
+		);
+
+		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[changesets] Invalid versionFiles configuration"));
+		warnSpy.mockRestore();
+	});
+
 	it("strips JSONC comments before parsing", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFileSync).mockReturnValue(`{
@@ -335,6 +355,22 @@ describe("VersionFiles.processVersionFiles", () => {
 
 		expect(result).toHaveLength(1);
 		expect(result[0].jsonPaths).toEqual(["$.version"]);
+	});
+
+	it("skips files with no matching paths in dry-run mode", () => {
+		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
+		vi.mocked(readFileSync).mockImplementation((p) => {
+			const s = String(p);
+			if (s.endsWith("package.json")) return JSON.stringify({ name: "root", version: "2.0.0" });
+			if (s.endsWith("other.json")) return JSON.stringify({ unrelated: "field" });
+			throw new Error("ENOENT");
+		});
+		vi.mocked(globSync).mockReturnValue(["other.json"]);
+
+		const configs = [{ glob: "other.json", paths: ["$.version"] }];
+		const result = VersionFiles.processVersionFiles("/project", configs, true);
+
+		expect(result).toHaveLength(0);
 	});
 
 	it("returns empty array when no globs match", () => {

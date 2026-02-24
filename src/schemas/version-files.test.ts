@@ -19,6 +19,10 @@ describe("JsonPathSchema", () => {
 		expect(() => decode("$version")).toThrow();
 	});
 
+	it("rejects bare root path", () => {
+		expect(() => decode("$.")).toThrow();
+	});
+
 	it("rejects non-string values", () => {
 		expect(() => decode(123)).toThrow();
 		expect(() => decode(null)).toThrow();
