@@ -1,5 +1,6 @@
-import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { globSync } from "tinyglobby";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WorkspaceInfos } from "workspace-tools";
 import { getWorkspaceInfos } from "workspace-tools";
@@ -8,9 +9,12 @@ import { VersionFiles } from "./version-files.js";
 
 vi.mock("node:fs", () => ({
 	existsSync: vi.fn(),
-	globSync: vi.fn(),
 	readFileSync: vi.fn(),
 	writeFileSync: vi.fn(),
+}));
+
+vi.mock("tinyglobby", () => ({
+	globSync: vi.fn(),
 }));
 
 vi.mock("workspace-tools", () => ({
