@@ -1,5 +1,13 @@
 # @savvy-web/changesets
 
+## 0.2.1
+
+### Bug Fixes
+
+* [`4eb8772`](https://github.com/savvy-web/changesets/commit/4eb8772580e5ebe26aa39fc99f607dcb78661aae) ### Replace Node 22+ fs.globSync with tinyglobby
+
+The `versionFiles` feature used `fs.globSync` which is only available in Node 22+. Consumers running on Node 20 (LTS) hit a `SyntaxError` at import time. Replaced with `tinyglobby` for cross-version compatibility.
+
 ## 0.2.0
 
 ### Minor Changes
