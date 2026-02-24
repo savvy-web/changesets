@@ -8,10 +8,11 @@
  * @internal
  */
 
-import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { Schema } from "effect";
 import { parse as parseJsonc } from "jsonc-parser";
+import { globSync } from "tinyglobby";
 import type { WorkspaceInfos } from "workspace-tools";
 import { getWorkspaceInfos } from "workspace-tools";
 
@@ -188,7 +189,7 @@ export class VersionFiles {
 		for (const config of configs) {
 			const matches = globSync(config.glob, {
 				cwd: resolvedCwd,
-				exclude: (f) => f.includes("node_modules"),
+				ignore: ["**/node_modules/**"],
 			});
 
 			for (const match of matches) {
