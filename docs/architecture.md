@@ -50,6 +50,14 @@ The three-layer architecture solves each of these limitations with a dedicated p
          |  - Normalize formatting
          v
    Final CHANGELOG.md
+         |
+         v
+   Version files: update additional JSON files
+         |  - Resolve glob patterns
+         |  - Match nearest workspace version
+         |  - Set JSONPath fields
+         v
+   Updated version files (if configured)
 
 4. FORMAT PHASE
    biome format --write .
@@ -110,6 +118,27 @@ All three layers share a single category definition with 13 categories ordered b
 
 The category system maps conventional commit types to section headings (e.g., `feat` maps to "Features") and defines the display order in the final CHANGELOG.
 
+## Version Files
+
+After the three-layer pipeline produces the final CHANGELOG, an optional step updates version fields in additional JSON files. This is driven by the `versionFiles` configuration in `.changeset/config.json` (see [Configuration: Version Files](./configuration.md#versionfiles-optional)).
+
+The version files subsystem consists of three internal components:
+
+| Component | Source | Purpose |
+| :--- | :--- | :--- |
+| `VersionFilesSchema` | `src/schemas/version-files.ts` | Effect Schema for config validation (`glob` + `paths`) |
+| `jsonpath` utilities | `src/utils/jsonpath.ts` | Minimal JSONPath parser supporting `$.foo.bar`, `[*]`, and `[n]` |
+| `VersionFiles` class | `src/utils/version-files.ts` | Orchestrates glob resolution, workspace version matching, and file updates |
+
+The flow is:
+
+1. **Read config** -- Parse `versionFiles` from the changelog options in `.changeset/config.json`
+2. **Resolve globs** -- Expand each glob pattern against the project root (excluding `node_modules`)
+3. **Match versions** -- For each matched file, determine the correct version using longest-prefix workspace path matching
+4. **Update fields** -- Parse each JSON file, set values at the specified JSONPath locations, and write back with preserved formatting
+
+This step adds zero new runtime dependencies. The JSONPath implementation is a custom minimal parser (~200 lines) that supports only the subset of JSONPath syntax needed for version field access. The `VersionFileError` tagged error is raised if a file cannot be read, parsed, or updated.
+
 ## CI Integration
 
 The `ci:version` script uses the `version` command:
@@ -118,7 +147,7 @@ The `ci:version` script uses the `version` command:
 savvy-changesets version && biome format --write .
 ```
 
-The `version` command detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, and runs Layer 3 transform on each. Biome then normalizes formatting.
+The `version` command detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, runs Layer 3 transform on each, and then updates any configured version files. Biome then normalizes formatting.
 
 ## Export Map
 

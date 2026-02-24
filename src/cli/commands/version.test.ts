@@ -22,8 +22,16 @@ vi.mock("../../api/transformer.js", () => ({
 	},
 }));
 
+vi.mock("../../utils/version-files.js", () => ({
+	VersionFiles: {
+		readConfig: vi.fn(),
+		processVersionFiles: vi.fn(),
+	},
+}));
+
 // Import the mocked modules so we can configure them per-test
 import { ChangelogTransformer } from "../../api/transformer.js";
+import { VersionFiles } from "../../utils/version-files.js";
 import { Workspace } from "../../utils/workspace.js";
 
 const silentLogger = Logger.replace(Logger.defaultLogger, Logger.none);
@@ -116,6 +124,57 @@ describe("runVersion Effect handler", () => {
 
 		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
 			"Failed to transform /project/packages/a/CHANGELOG.md: ENOENT: no such file",
+		);
+	});
+
+	it("skips version files when readConfig returns undefined", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
+		vi.mocked(VersionFiles.readConfig).mockReturnValue(undefined);
+
+		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+
+		expect(VersionFiles.readConfig).toHaveBeenCalledWith(process.cwd());
+		expect(VersionFiles.processVersionFiles).not.toHaveBeenCalled();
+	});
+
+	it("processes version files when config is present", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
+		const configs = [{ glob: "plugin.json", paths: ["$.version"] }];
+		vi.mocked(VersionFiles.readConfig).mockReturnValue(configs);
+		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([
+			{ filePath: "/project/plugin.json", jsonPaths: ["$.version"], version: "2.0.0", previousValues: ["1.0.0"] },
+		]);
+
+		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+
+		expect(VersionFiles.processVersionFiles).toHaveBeenCalledWith(process.cwd(), configs, true);
+	});
+
+	it("passes dryRun=false to processVersionFiles when not in dry-run mode", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.getChangesetVersionCommand).mockReturnValue("pnpm exec changeset version");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
+		const configs = [{ glob: "plugin.json" }];
+		vi.mocked(VersionFiles.readConfig).mockReturnValue(configs);
+		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([]);
+
+		await Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)));
+
+		expect(VersionFiles.processVersionFiles).toHaveBeenCalledWith(process.cwd(), configs, false);
+	});
+
+	it("rejects when processVersionFiles throws an error", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
+		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
+		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
+			throw new Error("EACCES: permission denied");
+		});
+
+		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
+			"Version file update failed: EACCES: permission denied",
 		);
 	});
 });

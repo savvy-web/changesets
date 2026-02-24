@@ -5,6 +5,7 @@
 import { Effect, Schema } from "effect";
 
 import { ConfigurationError } from "../errors.js";
+import { VersionFilesSchema } from "./version-files.js";
 
 /** Regex for `owner/repo` format, shared between schema and validation. */
 const REPO_PATTERN = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
@@ -36,6 +37,8 @@ export const ChangesetOptionsSchema = Schema.Struct({
 	issueLinks: Schema.optional(Schema.Boolean),
 	/** Custom issue reference prefixes (e.g., `["#", "GH-"]`). */
 	issuePrefixes: Schema.optional(Schema.Array(Schema.String)),
+	/** Additional JSON files to update with version numbers. */
+	versionFiles: Schema.optional(VersionFilesSchema),
 });
 
 /**

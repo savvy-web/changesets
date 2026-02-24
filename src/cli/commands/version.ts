@@ -12,6 +12,7 @@ import { Command, Options } from "@effect/cli";
 import { Effect } from "effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";
+import { VersionFiles } from "../../utils/version-files.js";
 import { Workspace } from "../../utils/workspace.js";
 
 /* v8 ignore start -- CLI option definitions; handler tested via runVersion */
@@ -49,21 +50,35 @@ export function runVersion(dryRun: boolean) {
 
 		if (changelogs.length === 0) {
 			yield* Effect.log("No CHANGELOG.md files found.");
-			return;
+		} else {
+			yield* Effect.log(`Found ${changelogs.length} CHANGELOG.md file(s)`);
+
+			// 4. Transform each changelog
+			for (const entry of changelogs) {
+				yield* Effect.try({
+					try: () => ChangelogTransformer.transformFile(entry.changelogPath),
+					catch: (error) =>
+						new Error(
+							`Failed to transform ${entry.changelogPath}: ${error instanceof Error ? error.message : String(error)}`,
+						),
+				});
+				yield* Effect.log(`Transformed ${entry.name} → ${entry.changelogPath}`);
+			}
 		}
 
-		yield* Effect.log(`Found ${changelogs.length} CHANGELOG.md file(s)`);
-
-		// 4. Transform each changelog
-		for (const entry of changelogs) {
-			yield* Effect.try({
-				try: () => ChangelogTransformer.transformFile(entry.changelogPath),
+		// 5. Update version files (if configured)
+		const versionFileConfigs = VersionFiles.readConfig(cwd);
+		if (versionFileConfigs) {
+			yield* Effect.log(`Found ${versionFileConfigs.length} versionFiles config(s)`);
+			const updates = yield* Effect.try({
+				try: () => VersionFiles.processVersionFiles(cwd, versionFileConfigs, dryRun),
 				catch: (error) =>
-					new Error(
-						`Failed to transform ${entry.changelogPath}: ${error instanceof Error ? error.message : String(error)}`,
-					),
+					new Error(`Version file update failed: ${error instanceof Error ? error.message : String(error)}`),
 			});
-			yield* Effect.log(`Transformed ${entry.name} → ${entry.changelogPath}`);
+			for (const update of updates) {
+				const action = dryRun ? "Would update" : "Updated";
+				yield* Effect.log(`${action} ${update.filePath} → ${update.version}`);
+			}
 		}
 	});
 }

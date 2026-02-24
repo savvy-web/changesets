@@ -150,3 +150,37 @@ export class ConfigurationError extends ConfigurationErrorBase<{
 		return `Configuration error (${this.field}): ${this.reason}`;
 	}
 }
+
+/**
+ * Base class for VersionFileError.
+ *
+ * @privateRemarks
+ * This export is required for api-extractor documentation generation.
+ * Effect's Data.TaggedError creates an anonymous base class that must be
+ * explicitly exported to avoid "forgotten export" warnings. Do not delete.
+ *
+ * @internal
+ */
+export const VersionFileErrorBase = Data.TaggedError("VersionFileError");
+
+/**
+ * Version file update failure.
+ *
+ * Raised when a JSON file targeted by the `versionFiles` config cannot
+ * be read, parsed, or updated at the specified JSONPath.
+ *
+ * @public
+ */
+export class VersionFileError extends VersionFileErrorBase<{
+	/** Absolute path to the file that failed. */
+	readonly filePath: string;
+	/** JSONPath expression that failed, if applicable. */
+	readonly jsonPath?: string | undefined;
+	/** Human-readable failure reason. */
+	readonly reason: string;
+}> {
+	get message() {
+		const path = this.jsonPath ? ` at ${this.jsonPath}` : "";
+		return `Version file error (${this.filePath}${path}): ${this.reason}`;
+	}
+}

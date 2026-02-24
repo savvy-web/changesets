@@ -51,6 +51,38 @@ describe("ChangesetOptionsSchema", () => {
 	it("rejects missing repo", () => {
 		expect(() => decode({})).toThrow();
 	});
+
+	it("accepts versionFiles option", () => {
+		const opts = decode({
+			repo: "owner/repo",
+			versionFiles: [{ glob: "plugin.json", paths: ["$.version"] }, { glob: "**/manifest.json" }],
+		});
+		expect(opts.versionFiles).toHaveLength(2);
+		expect(opts.versionFiles?.[0].glob).toBe("plugin.json");
+	});
+
+	it("accepts options without versionFiles", () => {
+		const opts = decode({ repo: "owner/repo" });
+		expect(opts.versionFiles).toBeUndefined();
+	});
+
+	it("rejects versionFiles with invalid JSONPath", () => {
+		expect(() =>
+			decode({
+				repo: "owner/repo",
+				versionFiles: [{ glob: "plugin.json", paths: ["invalid"] }],
+			}),
+		).toThrow();
+	});
+
+	it("rejects versionFiles with empty glob", () => {
+		expect(() =>
+			decode({
+				repo: "owner/repo",
+				versionFiles: [{ glob: "" }],
+			}),
+		).toThrow();
+	});
 });
 
 describe("validateChangesetOptions", () => {
