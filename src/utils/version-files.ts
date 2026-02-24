@@ -11,6 +11,7 @@
 import { existsSync, globSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { Schema } from "effect";
+import { parse as parseJsonc } from "jsonc-parser";
 import type { WorkspaceInfos } from "workspace-tools";
 import { getWorkspaceInfos } from "workspace-tools";
 
@@ -70,8 +71,7 @@ export class VersionFiles {
 
 		try {
 			const raw = readFileSync(configPath, "utf-8");
-			const content = stripJsoncComments(raw);
-			const config = JSON.parse(content) as Record<string, unknown>;
+			const config = parseJsonc(raw) as Record<string, unknown>;
 
 			// changelog is expected to be a tuple: [formatter, options]
 			const changelog = config.changelog;
@@ -287,9 +287,4 @@ function readPackageVersion(dir: string): string | undefined {
 	} catch {
 		return undefined;
 	}
-}
-
-/** Strip JSONC comments (line and block) from a string. */
-function stripJsoncComments(input: string): string {
-	return input.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
 }
