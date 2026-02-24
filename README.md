@@ -12,6 +12,7 @@ Custom changelog formatter and markdown processing pipeline for the Silk Suite. 
 - **13 section categories** -- Consistent categorization with priority-based ordering across all layers
 - **CLI tooling** -- `savvy-changesets` binary with init, lint, transform, check, and version subcommands for CI and local use
 - **GitHub integration** -- Automatic PR links, commit references, and contributor attribution
+- **Version file syncing** -- Bump version fields in additional JSON files (beyond `package.json`) using glob patterns and JSONPath expressions
 - **Remark plugins** -- Lint rules and transform plugins via `@savvy-web/changesets/remark`
 - **markdownlint rules** -- Custom rules compatible with [markdownlint-cli2](https://www.npmjs.com/package/markdownlint-cli2) and the VS Code extension via `@savvy-web/changesets/markdownlint`
 
@@ -56,6 +57,24 @@ Added a new authentication system with OAuth2 support.
 - Added unit tests for OAuth2 flow
 - Updated integration test fixtures
 ```
+
+## Version File Syncing
+
+If your project has JSON files beyond `package.json` that contain version fields (e.g., `plugin.json`, `marketplace.json`), add `versionFiles` to your changelog options to keep them in sync during `changeset version`:
+
+```json
+{
+  "changelog": ["@savvy-web/changesets/changelog", {
+    "repo": "owner/repo",
+    "versionFiles": [
+      { "glob": "plugin.json" },
+      { "glob": ".claude-plugin/marketplace.json", "paths": ["$.metadata.version", "$.plugins[*].version"] }
+    ]
+  }]
+}
+```
+
+When `paths` is omitted it defaults to `["$.version"]`. In monorepos, each matched file inherits the version from its nearest workspace package. See [Configuration -- versionFiles](./docs/configuration.md#versionfiles-optional) for full details including supported JSONPath syntax.
 
 ## markdownlint Integration
 

@@ -57,7 +57,8 @@
 		"@effect/cli": "^0.73.2",
 		"@effect/platform": "^0.94.5",
 		"@effect/platform-node": "^0.104.1",
-		"effect": "^3.19.18",
+		"effect": "^3.19.19",
+		"jsonc-parser": "^3.3.1",
 		"mdast-util-heading-range": "^4.0.0",
 		"mdast-util-to-string": "^4.0.0",
 		"remark-gfm": "^4.0.1",
@@ -71,7 +72,7 @@
 	"devDependencies": {
 		"@changesets/cli": "catalog:silk",
 		"@changesets/types": "^6.1.0",
-		"@savvy-web/commitlint": "^0.3.3",
+		"@savvy-web/commitlint": "^0.3.4",
 		"@savvy-web/lint-staged": "^0.4.6",
 		"@savvy-web/rslib-builder": "^0.14.4",
 		"@savvy-web/vitest": "^0.1.0",

@@ -60,6 +60,51 @@ Custom issue reference prefixes to recognize.
 - Default: not set
 - Example: `["#", "GH-"]`
 
+### `versionFiles` (optional)
+
+Additional JSON files to update with version numbers during `changeset version`. Each entry specifies a glob pattern to match files and optional JSONPath expressions pointing to the version fields within those files.
+
+- Type: `Array<{ glob: string; paths?: string[] }>`
+- Default: not set (step is skipped entirely)
+
+```json
+{
+  "changelog": ["@savvy-web/changesets/changelog", {
+    "repo": "owner/repo",
+    "versionFiles": [
+      { "glob": "plugin.json", "paths": ["$.version"] },
+      { "glob": ".claude-plugin/marketplace.json", "paths": ["$.metadata.version", "$.plugins[*].version"] }
+    ]
+  }]
+}
+```
+
+**`glob`** (required) -- A glob pattern matched against the project root. Uses Node's built-in `fs.globSync` with `node_modules` excluded automatically. Examples: `"plugin.json"`, `"**/manifest.json"`, `".claude-plugin/*.json"`.
+
+**`paths`** (optional) -- An array of JSONPath expressions identifying which fields to update. Defaults to `["$.version"]` when omitted.
+
+#### Supported JSONPath Syntax
+
+| Pattern | Description | Example |
+| :--- | :--- | :--- |
+| `$.foo.bar` | Nested property access | `$.metadata.version` |
+| `$.foo[*].bar` | Array wildcard (iterates all elements) | `$.plugins[*].version` |
+| `$.foo[0].bar` | Array index access | `$.entries[0].version` |
+
+All expressions must start with `$.`.
+
+#### Monorepo Version Resolution
+
+In monorepos, each matched file is assigned the version from its nearest workspace package using longest-prefix path matching. A file at `packages/core/plugin.json` gets the version from `packages/core/package.json`, while a file at the project root gets the root `package.json` version.
+
+#### Formatting Preservation
+
+The updater detects the existing indent style (tabs or spaces) and preserves trailing newlines, so version bumps produce minimal diffs.
+
+#### Dry Run
+
+When `savvy-changesets version --dry-run` is used, version file updates are simulated and logged without writing to disk.
+
 ## CI Integration
 
 ### Version Script

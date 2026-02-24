@@ -205,10 +205,18 @@ savvy-changesets version
 | :--- | :--- | :--- | :--- |
 | `--dry-run` | `-n` | `false` | Skip changeset version, only transform |
 
+**Steps (in order):**
+
+1. Detect the package manager (pnpm, npm, or yarn)
+2. Run `changeset version` (skipped in dry-run mode)
+3. Discover all workspace CHANGELOG.md files
+4. Transform each CHANGELOG.md through the remark pipeline
+5. Update version files if [`versionFiles`](./configuration.md#versionfiles-optional) is configured (simulated in dry-run mode)
+
 **Modes:**
 
-- **Default** -- Runs `changeset version` via the detected package manager, then discovers and transforms all workspace CHANGELOG.md files
-- **Dry run** (`--dry-run`) -- Skips `changeset version` and only transforms existing CHANGELOG.md files (useful for testing transforms locally)
+- **Default** -- Runs `changeset version` via the detected package manager, discovers and transforms all workspace CHANGELOG.md files, and updates any configured version files
+- **Dry run** (`--dry-run`) -- Skips `changeset version`, transforms existing CHANGELOG.md files, and simulates version file updates without writing (useful for testing locally)
 
 **Examples:**
 

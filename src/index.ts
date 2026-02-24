@@ -45,6 +45,8 @@ export {
 	GitHubApiErrorBase,
 	MarkdownParseError,
 	MarkdownParseErrorBase,
+	VersionFileError,
+	VersionFileErrorBase,
 } from "./errors.js";
 
 // === Schemas ===
@@ -69,6 +71,8 @@ export {
 export type { ChangesetOptions } from "./schemas/options.js";
 export { ChangesetOptionsSchema, RepoSchema } from "./schemas/options.js";
 export { NonEmptyString, PositiveInteger } from "./schemas/primitives.js";
+export type { VersionFileConfig } from "./schemas/version-files.js";
+export { JsonPathSchema, VersionFileConfigSchema, VersionFilesSchema } from "./schemas/version-files.js";
 
 // === Types ===
 

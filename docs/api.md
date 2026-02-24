@@ -296,6 +296,21 @@ interface ChangesetOptions {
   issueLinks?: boolean;
   /** Custom issue prefixes (e.g., ["#", "GH-"]). */
   issuePrefixes?: string[];
+  /** Additional JSON files to update with version numbers. */
+  versionFiles?: VersionFileConfig[];
+}
+```
+
+### VersionFileConfig
+
+Configuration for a single version file entry. Used inside the `versionFiles` array. See [Configuration: Version Files](./configuration.md#versionfiles-optional) for full usage details.
+
+```typescript
+interface VersionFileConfig {
+  /** Glob pattern to match JSON files. */
+  glob: string;
+  /** JSONPath expressions to locate version fields. Defaults to ["$.version"]. */
+  paths?: string[];
 }
 ```
 
@@ -321,6 +336,7 @@ For Effect-native consumers, the package exports services, layers, and tagged er
 - `GitHubApiError` -- GitHub API failures
 - `MarkdownParseError` -- Markdown parsing failures
 - `ChangesetValidationError` -- Validation failures
+- `VersionFileError` -- Version file update failures (file read/parse/JSONPath errors)
 
 ### Schemas
 
@@ -328,6 +344,9 @@ For Effect-native consumers, the package exports services, layers, and tagged er
 - `SectionCategorySchema` -- Category validation
 - `CommitHashSchema` -- Commit hash validation
 - `RepoSchema` -- Repository format validation
+- `JsonPathSchema` -- JSONPath expression validation (must start with `$.`)
+- `VersionFileConfigSchema` -- Single version file entry validation
+- `VersionFilesSchema` -- Array of version file configs validation
 
 ## Remark Plugins (`./remark`)
 

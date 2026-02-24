@@ -3,8 +3,8 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-02-14
-last-synced: 2026-02-14
+updated: 2026-02-24
+last-synced: 2026-02-24
 completeness: 95
 related: []
 dependencies: []
@@ -31,14 +31,15 @@ generated CHANGELOG.md files, and markdownlint custom rules for editor/CI integr
 9. [Section Categories](#section-categories)
 10. [Contributor Tracking](#contributor-tracking)
 11. [Issue and Ticket Linking](#issue-and-ticket-linking)
-12. [Changeset File Format](#changeset-file-format)
-13. [Export Map and CLI](#export-map-and-cli)
-14. [Dependencies](#dependencies)
-15. [Integration Points](#integration-points)
-16. [Compatibility Requirements](#compatibility-requirements)
-17. [Testing Strategy](#testing-strategy)
-18. [Future Enhancements](#future-enhancements)
-19. [Related Documentation](#related-documentation)
+12. [Version Files](#version-files)
+13. [Changeset File Format](#changeset-file-format)
+14. [Export Map and CLI](#export-map-and-cli)
+15. [Dependencies](#dependencies)
+16. [Integration Points](#integration-points)
+17. [Compatibility Requirements](#compatibility-requirements)
+18. [Testing Strategy](#testing-strategy)
+19. [Future Enhancements](#future-enhancements)
+20. [Related Documentation](#related-documentation)
 
 ---
 
@@ -102,7 +103,7 @@ with 424 tests passing across 42 test files.
 - 13-category system with priority ordering and
   commit type mapping
 - Effect schemas for all system boundary types +
-  4 tagged errors
+  5 tagged errors
 - Layer 2 (Changelog Formatter): `getReleaseLine`,
   `getDependencyReleaseLine`, GitHub API integration
 - Layer 1 (Remark Lint): 3 rules --
@@ -128,6 +129,9 @@ with 424 tests passing across 42 test files.
   workflow-release-action compatibility, and
   round-trip validation
 - Coverage thresholds enforced at 85%/80%
+- Version files feature: bump version fields in
+  additional JSON files (plugin.json, manifest.json,
+  etc.) via configurable glob + JSONPath
 
 **What remains:**
 
@@ -152,7 +156,8 @@ src/
 │   ├── git.ts                  # CommitHashSchema, conventional commit patterns
 │   ├── github.ts               # GitHubInfoSchema, PR/user response schemas
 │   ├── categories.ts           # SectionCategorySchema, category definitions
-│   └── changeset.ts            # Changeset file schema, frontmatter
+│   ├── changeset.ts            # Changeset file schema, frontmatter
+│   └── version-files.ts        # JsonPathSchema, VersionFileConfigSchema, VersionFilesSchema
 │
 ├── api/                        # Class-based API (bridges Effect to plain async)
 │   ├── changelog.ts            # Changelog.formatReleaseLine(), etc.
@@ -208,7 +213,9 @@ src/
     ├── section-parser.ts       # Parse sections from changeset content
     ├── commit-parser.ts        # Conventional commit type(scope): desc parsing
     ├── issue-refs.ts           # closes/fixes/refs/resolves pattern extraction
-    └── workspace.ts            # Package manager detection + changelog discovery
+    ├── workspace.ts            # Package manager detection + changelog discovery
+    ├── jsonpath.ts             # Minimal JSONPath get/set (property, wildcard, index)
+    └── version-files.ts        # VersionFiles static utility class
 ```
 
 ---
@@ -791,6 +798,27 @@ The class-based API internally runs Effect programs via `Effect.runPromise()`, p
 a clean bridge between the Effect world and the plain-async world that the Changesets
 API requires.
 
+#### Decision 9: Custom Minimal JSONPath Implementation
+
+**Context:** The `versionFiles` feature needs to read and write version fields at arbitrary locations in JSON files, specified via JSONPath expressions like `$.version`, `$.metadata[*].version`, or `$.engines[0].version`.
+
+**Options considered:**
+
+1. **Custom minimal implementation (~80 lines) (Chosen):**
+   - Pros: Zero new dependencies; supports both get AND set (most libraries are read-only); only ~80 lines for the three segment types we need (property access, array wildcard, array index); easy to audit and maintain
+   - Cons: Does not support the full JSONPath spec (filters, recursive descent, etc.)
+   - Why chosen: The version file use case needs a tiny subset of JSONPath -- property access, array wildcard, and array index. The critical requirement is bidirectional (get + set), which most JSONPath libraries do not provide. A focused implementation avoids a dependency for ~80 lines of straightforward code.
+
+2. **jsonpath-plus or similar library:**
+   - Pros: Full JSONPath spec support; community maintained
+   - Cons: Read-only (no set operation); adds a new production dependency; overkill for three segment types; some libraries pull in transitive dependencies
+   - Why rejected: No library provides the set operation we need; would require wrapping a query library with custom mutation logic anyway
+
+3. **Simple `key.key.key` dot notation (no JSONPath):**
+   - Pros: Trivially simple to implement
+   - Cons: Cannot handle array wildcard (`[*]`) or array index (`[0]`) patterns; too limited for real-world manifest files that use arrays
+   - Why rejected: Real plugin manifests use array structures (e.g., `$.engines[*].version`)
+
 ### Constraints and Trade-offs
 
 #### Constraint 1: Changesets Line-Level API
@@ -869,7 +897,9 @@ API requires.
 │       ├── schemas.ts              # Effect Schema definitions (ported from valibot)
 │       ├── commit-parser.ts        # Conventional commit parsing (ported from prior art)
 │       ├── issue-refs.ts           # Issue reference extraction (ported from prior art)
-│       └── logger.ts               # Environment-aware logging (CI vs local)
+│       ├── logger.ts               # Environment-aware logging (CI vs local)
+│       ├── jsonpath.ts             # Minimal JSONPath get/set (~80 lines)
+│       └── version-files.ts        # VersionFiles utility: glob + JSONPath version updates
 ├── lib/configs/
 │   └── lint-staged.config.ts       # Dogfooding config
 ├── dist/
@@ -967,6 +997,16 @@ API requires.
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │              Version Files (post-version JSON updater)             │  │
+│  │                                                                    │  │
+│  │  version-files.ts   Glob resolution, workspace version discovery, │  │
+│  │                     JSONPath-based JSON file updates               │  │
+│  │  jsonpath.ts        Minimal get/set: $.prop, $[*], $[0]           │  │
+│  │                                                                    │  │
+│  │  Runs: After Layer 3 in `savvy-changesets version`                │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                    Shared Utilities                                │  │
 │  │                                                                    │  │
 │  │  remark-pipeline    Configured unified processor (parse/stringify) │  │
@@ -984,6 +1024,7 @@ API requires.
 │  │  @changesets/types                           Changesets API types  │  │
 │  │  @changesets/get-github-info                 GitHub API client     │  │
 │  │  effect + @effect/cli + @effect/platform     CLI + validation     │  │
+│  │  workspace-tools                              Workspace discovery  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1045,6 +1086,25 @@ API requires.
 │         │  - Stringify MDAST back to markdown                           │
 │         ▼                                                               │
 │     Final CHANGELOG.md                                                  │
+│                                                                         │
+│  3b. VERSION FILES PHASE (update non-package.json versions)             │
+│                                                                         │
+│     savvy-changesets version (continued)                                 │
+│         │                                                               │
+│         ├── Read versionFiles config from .changeset/config.json        │
+│         ├── Resolve globs to file paths                                 │
+│         ├── Discover workspace versions                                 │
+│         ├── For each matched file:                                      │
+│         │       │                                                       │
+│         │       ▼                                                       │
+│         │   Longest-prefix workspace match → version                    │
+│         │       │  - Read JSON, detect indent + trailing newline        │
+│         │       │  - Update JSONPath locations with resolved version    │
+│         │       │  - Write file preserving formatting                   │
+│         │       ▼                                                       │
+│         │   Updated JSON file                                           │
+│         ▼                                                               │
+│     All version files updated                                           │
 │                                                                         │
 │  4. FORMAT PHASE (Biome normalizes markdown)                            │
 │                                                                         │
@@ -1136,10 +1196,11 @@ validated at runtime using Effect Schema (ported from prior art's valibot valida
   Validated via regex pattern `^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$`. If missing or invalid,
   descriptive error messages guide the user to correct their `.changeset/config.json`.
 
-**Planned options (new):**
+**Implemented options:**
 
 - `commitLinks`: Whether to include commit links in output (default: `true`)
 - `prLinks`: Whether to include PR links in output (default: `true`)
+- `versionFiles`: Array of `{ glob, paths? }` objects specifying additional JSON files to update with version numbers during `savvy-changesets version`. See [Version Files](#version-files) for full details.
 
 **Error messages (ported from prior art):**
 
@@ -1598,6 +1659,140 @@ Issue linking is configured via `changelogOpts`:
 
 ---
 
+## Version Files
+
+The `versionFiles` feature bumps version fields in additional JSON files beyond `package.json` during the `savvy-changesets version` flow. This addresses a common monorepo need where version numbers must be synchronized across plugin manifests, app manifests, and other non-npm configuration files.
+
+### Motivation
+
+Many projects maintain version numbers in files other than `package.json` -- for example, `plugin.json` for editor plugins, `manifest.json` for browser extensions, or custom metadata files. Without `versionFiles`, developers must manually update these after every `changeset version` run, which is error-prone and easy to forget.
+
+### Version Files Configuration
+
+The `versionFiles` option lives inside the changelog options tuple in `.changeset/config.json`:
+
+```json
+{
+  "changelog": [
+    "@savvy-web/changesets/changelog",
+    {
+      "repo": "savvy-web/my-package",
+      "versionFiles": [
+        { "glob": "plugin.json", "paths": ["$.version"] },
+        { "glob": "**/manifest.json" },
+        { "glob": "packages/*/metadata.json", "paths": ["$.metadata.version", "$.engines[*].version"] }
+      ]
+    }
+  ]
+}
+```
+
+Each entry in the `versionFiles` array is an object with:
+
+| Field | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `glob` | `string` | Yes | -- | Glob pattern to match JSON files (resolved from project root) |
+| `paths` | `string[]` | No | `["$.version"]` | JSONPath expressions locating version fields to update |
+
+When `paths` is omitted, it defaults to `["$.version"]`, which covers the most common case.
+
+### JSONPath Support
+
+A custom minimal JSONPath implementation (`src/utils/jsonpath.ts`, ~80 lines) provides the get/set operations needed for version file updates. The implementation supports three segment types:
+
+| Syntax | Example | Description |
+| :--- | :--- | :--- |
+| Property access | `$.foo.bar` | Navigate nested object properties |
+| Array wildcard | `$.foo[*].bar` | Iterate all elements of an array |
+| Array index | `$.foo[0].bar` | Access a specific array element by index |
+
+**Why custom instead of a library:** The version file use case requires both read (to report previous values) and write (to update in-place) at JSONPath locations. Most JSONPath libraries are read-only query engines. The needed subset -- property access, array wildcard, and array index -- is small enough that a custom implementation (~80 lines) is simpler and avoids adding a new dependency. See [Decision 9](#decision-9-custom-minimal-jsonpath-implementation) for the full rationale.
+
+**Key functions:**
+
+- `parseJsonPath(path)` -- Tokenize a JSONPath string into typed segments
+- `jsonPathGet(obj, path)` -- Collect all values matching a JSONPath expression
+- `jsonPathSet(obj, path, value)` -- Mutate all matching locations in-place, returns count of updates
+
+### Version Resolution
+
+In a monorepo, different files may need different versions depending on which workspace they belong to. The `VersionFiles` utility uses **longest-prefix workspace matching** to determine the correct version for each file:
+
+1. Discover all workspace packages and their current versions (from `package.json` files, using `workspace-tools`)
+2. For each matched file, compute the relative path from every workspace root
+3. The workspace whose path is the longest prefix of the file path wins
+4. If no workspace matches, fall back to the root `package.json` version
+
+This ensures that a `manifest.json` inside `packages/my-plugin/` gets the version from `packages/my-plugin/package.json`, not from the monorepo root.
+
+### Processing Flow
+
+The version file update runs as **step 5** in the `version` CLI command, after changelog transforms:
+
+```text
+savvy-changesets version
+  1. Detect package manager
+  2. Run changeset version (Layer 2 generates CHANGELOGs)
+  3. Discover all CHANGELOG.md files
+  4. Transform each CHANGELOG (Layer 3 post-processing)
+  5. Update version files (if configured)
+     a. Read versionFiles config from .changeset/config.json
+     b. Resolve glob patterns to file paths (excludes node_modules)
+     c. Discover workspace versions via workspace-tools
+     d. For each matched file:
+        - Determine version via longest-prefix workspace matching
+        - Read file, detect indent style and trailing newline
+        - Update JSONPath locations with new version
+        - Write file preserving original formatting
+     e. Log each update (or "Would update" in dry-run mode)
+```
+
+### Formatting Preservation
+
+When updating JSON files, the utility preserves the original formatting:
+
+- **Indent detection:** Scans for the first indented line containing a quote to detect the indent style (tabs vs spaces, indent width)
+- **Trailing newline:** Preserves whether the original file ended with a newline
+- **JSON serialization:** Uses `JSON.stringify(obj, null, detectedIndent)` to maintain consistent formatting
+
+### Schemas
+
+Three Effect Schemas validate the configuration at the system boundary (`src/schemas/version-files.ts`):
+
+| Schema | Purpose |
+| :--- | :--- |
+| `JsonPathSchema` | Validates JSONPath strings start with `$.` |
+| `VersionFileConfigSchema` | Validates a single `{ glob, paths? }` entry |
+| `VersionFilesSchema` | Validates the full `versionFiles` array |
+
+These schemas are exported from the main package entry point (`.`) for consumers who need to validate configuration programmatically.
+
+### Error Handling
+
+A `VersionFileError` tagged error (`src/errors.ts`) represents version file update failures. It carries the file path, the JSONPath expression that failed (if applicable), and a human-readable reason.
+
+**Graceful degradation:** If the `versionFiles` config is malformed, missing, or the changelog options tuple does not contain a second element, `VersionFiles.readConfig()` returns `undefined` rather than throwing. This means a misconfigured `versionFiles` entry will not break the normal `changeset version` flow -- version file updates are silently skipped.
+
+### Static Utility Class
+
+The `VersionFiles` class (`src/utils/version-files.ts`) follows the established static class pattern (see [Decision 5](#decision-5-static-class--factory-pattern)) and exposes these methods:
+
+| Method | Description |
+| :--- | :--- |
+| `readConfig(cwd)` | Read and validate `versionFiles` from `.changeset/config.json` |
+| `discoverVersions(cwd)` | Discover all workspace packages and their current versions |
+| `resolveVersion(filePath, workspaces, rootVersion)` | Determine version for a file via longest-prefix matching |
+| `resolveGlobs(configs, cwd)` | Resolve glob patterns to `[filePath, config]` tuples |
+| `detectIndent(content)` | Detect indentation from file content |
+| `updateFile(filePath, jsonPaths, version)` | Update a single JSON file at specified JSONPath locations |
+| `processVersionFiles(cwd, configs, dryRun?)` | Orchestrate the full update flow |
+
+### Dry Run Support
+
+The `version` command's `--dry-run` flag is respected by `processVersionFiles`. In dry-run mode, files are read and analyzed but not written. The CLI logs "Would update" instead of "Updated" for each file, allowing users to preview what would change.
+
+---
+
 ## Changeset File Format
 
 Individual `.changeset/*.md` files use this structure:
@@ -1710,10 +1905,10 @@ import { ChangelogService, GitHubService, MarkdownService } from '@savvy-web/cha
 import { ChangelogLive, GitHubLive, GitHubTest } from '@savvy-web/changesets'
 
 // Schemas (validate external data, define branded types)
-import { ChangesetOptionsSchema, CommitHashSchema } from '@savvy-web/changesets'
+import { ChangesetOptionsSchema, CommitHashSchema, VersionFilesSchema } from '@savvy-web/changesets'
 
 // Tagged Errors (pattern match in error channels)
-import { ChangesetValidationError, GitHubApiError } from '@savvy-web/changesets'
+import { ChangesetValidationError, GitHubApiError, VersionFileError } from '@savvy-web/changesets'
 ```
 
 **Class-Based API** -- for higher-level consumers who don't use Effect:
@@ -1753,7 +1948,7 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 | `savvy-changesets lint` | Validate changeset files against remark rules | CI, pre-commit |
 | `savvy-changesets transform` | Post-process CHANGELOG.md with remark transform pipeline | Standalone use |
 | `savvy-changesets check` | Run full validation pipeline (lint + structure) | CI gate |
-| `savvy-changesets version` | Run changeset version + discover and transform all workspace CHANGELOGs | ci:version script |
+| `savvy-changesets version` | Run changeset version, transform all workspace CHANGELOGs, and update version files | ci:version script |
 
 #### init Command
 
@@ -1837,7 +2032,7 @@ The `ci:version` script in `package.json` integrates all layers:
 
 This runs:
 
-1. `savvy-changesets version` -- Detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, and runs Layer 3 transform on each
+1. `savvy-changesets version` -- Detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, runs Layer 3 transform on each, and updates any configured version files
 2. `biome format --write .` -- Biome normalizes all formatting
 
 ---
