@@ -73,11 +73,13 @@ export function runVersion(dryRun: boolean) {
 			yield* Effect.log(`Found ${versionFileConfigs.length} versionFiles config(s)`);
 			const updates = yield* Effect.try({
 				try: () => VersionFiles.processVersionFiles(cwd, versionFileConfigs, dryRun),
-				catch: (error) =>
-					new VersionFileError({
-						filePath: cwd,
-						reason: `Version file update failed: ${error instanceof Error ? error.message : String(error)}`,
-					}),
+				catch: (error) => {
+					const message = error instanceof Error ? error.message : String(error);
+					return new VersionFileError({
+						filePath: message.match(/Failed to update (.+?):/)?.[1] ?? cwd,
+						reason: message,
+					});
+				},
 			});
 			for (const update of updates) {
 				const action = dryRun ? "Would update" : "Updated";

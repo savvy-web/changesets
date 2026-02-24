@@ -170,11 +170,27 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
 		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
-			throw new Error("EACCES: permission denied");
+			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
 		});
 
 		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
 			"EACCES: permission denied",
 		);
+	});
+
+	it("extracts per-file path into VersionFileError.filePath", async () => {
+		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
+		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
+		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
+		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
+			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
+		});
+
+		const exit = await Effect.runPromiseExit(runVersion(true).pipe(Effect.provide(silentLogger)));
+		expect(exit._tag).toBe("Failure");
+		if (exit._tag === "Failure") {
+			const err = exit.cause as { _tag: string; error?: { filePath?: string } };
+			expect(err.error?.filePath).toBe("/project/plugin.json");
+		}
 	});
 });

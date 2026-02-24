@@ -373,6 +373,21 @@ describe("VersionFiles.processVersionFiles", () => {
 		expect(result).toHaveLength(0);
 	});
 
+	it("wraps per-file errors with file path context", () => {
+		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
+		vi.mocked(readFileSync).mockImplementation((p) => {
+			const s = String(p);
+			if (s.endsWith("package.json")) return JSON.stringify({ name: "root", version: "1.0.0" });
+			throw new Error("EACCES: permission denied");
+		});
+		vi.mocked(globSync).mockReturnValue(["plugin.json"]);
+
+		const configs = [{ glob: "plugin.json" }];
+		expect(() => VersionFiles.processVersionFiles("/project", configs)).toThrow(
+			"Failed to update /project/plugin.json: EACCES: permission denied",
+		);
+	});
+
 	it("returns empty array when no globs match", () => {
 		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ name: "root", version: "1.0.0" }));

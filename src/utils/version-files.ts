@@ -270,18 +270,22 @@ export class VersionFiles {
 			const jsonPaths = config.paths ?? ["$.version"];
 			const version = VersionFiles.resolveVersion(filePath, workspaces, rootVersion);
 
-			if (dryRun) {
-				const content = readFileSync(filePath, "utf-8");
-				const obj = JSON.parse(content) as unknown;
-				const previousValues = jsonPaths.flatMap((jp) => jsonPathGet(obj, jp));
-				if (previousValues.length > 0) {
-					updates.push({ filePath, jsonPaths, version, previousValues });
+			try {
+				if (dryRun) {
+					const content = readFileSync(filePath, "utf-8");
+					const obj = JSON.parse(content) as unknown;
+					const previousValues = jsonPaths.flatMap((jp) => jsonPathGet(obj, jp));
+					if (previousValues.length > 0) {
+						updates.push({ filePath, jsonPaths, version, previousValues });
+					}
+				} else {
+					const result = VersionFiles.updateFile(filePath, jsonPaths, version);
+					if (result) {
+						updates.push(result);
+					}
 				}
-			} else {
-				const result = VersionFiles.updateFile(filePath, jsonPaths, version);
-				if (result) {
-					updates.push(result);
-				}
+			} catch (error) {
+				throw new Error(`Failed to update ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
 
