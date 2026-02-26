@@ -197,13 +197,14 @@ export GITHUB_TOKEN="ghp_..."
 
 The package exports markdownlint-compatible custom rules from `@savvy-web/changesets/markdownlint`. This enables real-time changeset validation in VS Code (via the markdownlint extension) and in CI (via markdownlint-cli2) without requiring the remark pipeline.
 
-The default export is an array of three `Rule` objects, compatible with markdownlint-cli2's `customRules` config.
+The default export is an array of four `Rule` objects, compatible with markdownlint-cli2's `customRules` config.
 
 ### Custom Rules
 
 - **CSH001** `changeset-heading-hierarchy` -- h2 start, no h1 allowed, no depth skips
 - **CSH002** `changeset-required-sections` -- All h2 headings must match known categories
 - **CSH003** `changeset-content-structure` -- Non-empty sections, valid content structure
+- **CSH004** `changeset-uncategorized-content` -- All content must appear under a category heading
 
 ### Setup
 
@@ -243,7 +244,8 @@ In the same base config, disable the custom rules so they do not fire on non-cha
   "config": {
     "changeset-heading-hierarchy": false,
     "changeset-required-sections": false,
-    "changeset-content-structure": false
+    "changeset-content-structure": false,
+    "changeset-uncategorized-content": false
   }
 }
 ```
@@ -259,6 +261,7 @@ Create `.changeset/.markdownlint.json` to scope the rules to changeset files onl
   "changeset-heading-hierarchy": true,
   "changeset-required-sections": true,
   "changeset-content-structure": true,
+  "changeset-uncategorized-content": true,
   "MD041": false
 }
 ```

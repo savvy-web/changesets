@@ -13,6 +13,7 @@ import { ReorderSectionsPlugin } from "./plugins/reorder-sections.js";
 import { ContentStructureRule } from "./rules/content-structure.js";
 import { HeadingHierarchyRule } from "./rules/heading-hierarchy.js";
 import { RequiredSectionsRule } from "./rules/required-sections.js";
+import { UncategorizedContentRule } from "./rules/uncategorized-content.js";
 
 /**
  * Preset combining all changeset lint rules for convenient consumption.
@@ -31,7 +32,12 @@ import { RequiredSectionsRule } from "./rules/required-sections.js";
  *
  * @public
  */
-export const SilkChangesetPreset = [HeadingHierarchyRule, RequiredSectionsRule, ContentStructureRule] as const;
+export const SilkChangesetPreset = [
+	HeadingHierarchyRule,
+	RequiredSectionsRule,
+	ContentStructureRule,
+	UncategorizedContentRule,
+] as const;
 
 /**
  * Ordered array of all transform plugins in the correct execution order.

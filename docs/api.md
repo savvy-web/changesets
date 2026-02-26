@@ -52,7 +52,7 @@ ChangelogTransformer.transformFile("CHANGELOG.md");
 
 ### ChangesetLinter
 
-Runs the three remark-lint rules against changeset markdown and returns structured diagnostic messages.
+Runs the four remark-lint rules against changeset markdown and returns structured diagnostic messages.
 
 #### `ChangesetLinter.validate(dir)`
 
@@ -359,6 +359,7 @@ import {
   HeadingHierarchyRule,
   RequiredSectionsRule,
   ContentStructureRule,
+  UncategorizedContentRule,
   // Transform plugins
   SilkChangesetTransformPreset,
   MergeSectionsPlugin,
@@ -372,10 +373,11 @@ import {
 
 ### Lint Rules
 
-- `SilkChangesetPreset` -- Array of all three rules
+- `SilkChangesetPreset` -- Array of all four rules
 - `HeadingHierarchyRule` -- h2 start, no h1, no skips
 - `RequiredSectionsRule` -- Known category headings
 - `ContentStructureRule` -- Non-empty content
+- `UncategorizedContentRule` -- Content must be under a category heading
 
 ### Transform Plugins
 

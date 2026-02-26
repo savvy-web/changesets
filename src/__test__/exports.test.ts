@@ -57,6 +57,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 		expect(mod.HeadingHierarchyRule).toBeDefined();
 		expect(mod.RequiredSectionsRule).toBeDefined();
 		expect(mod.ContentStructureRule).toBeDefined();
+		expect(mod.UncategorizedContentRule).toBeDefined();
 	});
 
 	it("exports transform plugins", async () => {
@@ -71,7 +72,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 
 	it("exports presets", async () => {
 		const mod = await import("../remark/index.js");
-		expect(mod.SilkChangesetPreset).toHaveLength(3);
+		expect(mod.SilkChangesetPreset).toHaveLength(4);
 		expect(mod.SilkChangesetTransformPreset).toHaveLength(6);
 	});
 });
@@ -79,7 +80,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 describe("remark presets (src/remark/presets.ts)", () => {
 	it("SilkChangesetPreset contains lint rules", async () => {
 		const { SilkChangesetPreset } = await import("../remark/presets.js");
-		expect(SilkChangesetPreset).toHaveLength(3);
+		expect(SilkChangesetPreset).toHaveLength(4);
 	});
 
 	it("SilkChangesetTransformPreset contains transform plugins in order", async () => {
@@ -91,7 +92,7 @@ describe("remark presets (src/remark/presets.ts)", () => {
 describe("markdownlint entry point (src/markdownlint/index.ts)", () => {
 	it("exports default rules array", async () => {
 		const mod = await import("../markdownlint/index.js");
-		expect(mod.default).toHaveLength(3);
+		expect(mod.default).toHaveLength(4);
 	});
 
 	it("exports individual rules", async () => {
@@ -99,5 +100,6 @@ describe("markdownlint entry point (src/markdownlint/index.ts)", () => {
 		expect(mod.HeadingHierarchyRule).toBeDefined();
 		expect(mod.RequiredSectionsRule).toBeDefined();
 		expect(mod.ContentStructureRule).toBeDefined();
+		expect(mod.UncategorizedContentRule).toBeDefined();
 	});
 });

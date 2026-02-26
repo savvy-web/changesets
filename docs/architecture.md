@@ -72,13 +72,14 @@ The three-layer architecture solves each of these limitations with a dedicated p
 
 **When it runs:** CI, pre-commit hooks, CLI (`savvy-changesets lint`)
 
-Validates changeset `.md` files before they enter the formatting pipeline. Three remark-lint rules enforce structural correctness:
+Validates changeset `.md` files before they enter the formatting pipeline. Four remark-lint rules enforce structural correctness:
 
 | Rule | Purpose |
 | :--- | :--- |
 | `heading-hierarchy` | h2 start, no h1, no depth skips |
 | `required-sections` | Headings match known categories |
 | `content-structure` | Non-empty sections, valid content |
+| `uncategorized-content` | Content must appear under a category heading |
 
 By catching malformed changesets early, Layer 1 ensures Layer 2 always receives well-structured input.
 

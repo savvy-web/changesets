@@ -111,6 +111,7 @@ The remark-lint rules (Layer 1) enforce these structural requirements:
 - **heading-hierarchy** -- Must start with h2, no h1 allowed, no depth skips (e.g., h2 to h4)
 - **required-sections** -- All h2 headings must match a known category name
 - **content-structure** -- Every section must contain non-empty content
+- **uncategorized-content** -- All content must appear under a category heading (no loose text before the first h2)
 
 Run validation with the CLI:
 

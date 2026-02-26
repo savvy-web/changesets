@@ -14,6 +14,7 @@ import { unified } from "unified";
 import { ContentStructureRule } from "../remark/rules/content-structure.js";
 import { HeadingHierarchyRule } from "../remark/rules/heading-hierarchy.js";
 import { RequiredSectionsRule } from "../remark/rules/required-sections.js";
+import { UncategorizedContentRule } from "../remark/rules/uncategorized-content.js";
 import { stripFrontmatter } from "../utils/strip-frontmatter.js";
 
 /**
@@ -37,9 +38,9 @@ export interface LintMessage {
 /**
  * Static class for linting changeset files.
  *
- * Runs the three remark-lint rules (heading-hierarchy, required-sections,
- * content-structure) against changeset markdown and returns structured
- * diagnostic messages.
+ * Runs the four remark-lint rules (heading-hierarchy, required-sections,
+ * content-structure, uncategorized-content) against changeset markdown
+ * and returns structured diagnostic messages.
  *
  * @example
  * ```typescript
@@ -87,7 +88,8 @@ export class ChangesetLinter {
 			.use(remarkStringify)
 			.use(HeadingHierarchyRule)
 			.use(RequiredSectionsRule)
-			.use(ContentStructureRule);
+			.use(ContentStructureRule)
+			.use(UncategorizedContentRule);
 
 		const file = processor.processSync(body);
 

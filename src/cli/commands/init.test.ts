@@ -355,6 +355,7 @@ describe("handleBaseMarkdownlint", () => {
 		expect(parsed.config["changeset-heading-hierarchy"]).toBe(false);
 		expect(parsed.config["changeset-required-sections"]).toBe(false);
 		expect(parsed.config["changeset-content-structure"]).toBe(false);
+		expect(parsed.config["changeset-uncategorized-content"]).toBe(false);
 		// Preserved existing config
 		expect(parsed.config.default).toBe(true);
 	});
@@ -393,6 +394,7 @@ describe("handleBaseMarkdownlint", () => {
 		expect(parsed.config["changeset-heading-hierarchy"]).toBe(false);
 		expect(parsed.config["changeset-required-sections"]).toBe(false);
 		expect(parsed.config["changeset-content-structure"]).toBe(false);
+		expect(parsed.config["changeset-uncategorized-content"]).toBe(false);
 	});
 
 	it("creates config object when config is null", async () => {
@@ -421,6 +423,7 @@ describe("handleBaseMarkdownlint", () => {
 				"changeset-heading-hierarchy": false,
 				"changeset-required-sections": false,
 				"changeset-content-structure": false,
+				"changeset-uncategorized-content": false,
 			},
 		};
 
@@ -459,6 +462,7 @@ describe("handleBaseMarkdownlint", () => {
 		// Should add missing rules
 		expect(parsed.config["changeset-required-sections"]).toBe(false);
 		expect(parsed.config["changeset-content-structure"]).toBe(false);
+		expect(parsed.config["changeset-uncategorized-content"]).toBe(false);
 	});
 
 	it("handles JSONC comments in base config", async () => {
@@ -528,6 +532,7 @@ describe("handleChangesetMarkdownlint", () => {
 		expect(mdlint["changeset-heading-hierarchy"]).toBe(true);
 		expect(mdlint["changeset-required-sections"]).toBe(true);
 		expect(mdlint["changeset-content-structure"]).toBe(true);
+		expect(mdlint["changeset-uncategorized-content"]).toBe(true);
 	});
 
 	it("creates new file without extends when base config does not exist", async () => {
@@ -546,6 +551,7 @@ describe("handleChangesetMarkdownlint", () => {
 		expect(mdlint["changeset-heading-hierarchy"]).toBe(true);
 		expect(mdlint["changeset-required-sections"]).toBe(true);
 		expect(mdlint["changeset-content-structure"]).toBe(true);
+		expect(mdlint["changeset-uncategorized-content"]).toBe(true);
 	});
 
 	it("patches existing file by merging rule keys", async () => {
@@ -579,6 +585,7 @@ describe("handleChangesetMarkdownlint", () => {
 		expect(mdlint["changeset-heading-hierarchy"]).toBe(true);
 		expect(mdlint["changeset-required-sections"]).toBe(true);
 		expect(mdlint["changeset-content-structure"]).toBe(true);
+		expect(mdlint["changeset-uncategorized-content"]).toBe(true);
 	});
 
 	it("overwrites file with defaults when --force is true", async () => {
@@ -768,6 +775,7 @@ describe("checkBaseMarkdownlint", () => {
 					"changeset-heading-hierarchy": false,
 					"changeset-required-sections": false,
 					"changeset-content-structure": false,
+					"changeset-uncategorized-content": false,
 				},
 			}),
 		);
@@ -783,6 +791,7 @@ describe("checkBaseMarkdownlint", () => {
 					"changeset-heading-hierarchy": false,
 					"changeset-required-sections": false,
 					"changeset-content-structure": false,
+					"changeset-uncategorized-content": false,
 				},
 			}),
 		);
@@ -814,6 +823,7 @@ describe("checkBaseMarkdownlint", () => {
 		const issues = checkBaseMarkdownlint(root);
 		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-required-sections"))).toBe(true);
 		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-content-structure"))).toBe(true);
+		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-uncategorized-content"))).toBe(true);
 	});
 
 	it("returns issue when file cannot be parsed", () => {
@@ -839,6 +849,7 @@ describe("checkChangesetMarkdownlint", () => {
 				"changeset-heading-hierarchy": true,
 				"changeset-required-sections": true,
 				"changeset-content-structure": true,
+				"changeset-uncategorized-content": true,
 			}),
 		);
 		expect(checkChangesetMarkdownlint(changesetDir)).toEqual([]);
@@ -858,6 +869,7 @@ describe("checkChangesetMarkdownlint", () => {
 				"changeset-heading-hierarchy": false,
 				"changeset-required-sections": true,
 				"changeset-content-structure": true,
+				"changeset-uncategorized-content": true,
 			}),
 		);
 		const issues = checkChangesetMarkdownlint(changesetDir);
@@ -869,7 +881,7 @@ describe("checkChangesetMarkdownlint", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ default: false }));
 		const issues = checkChangesetMarkdownlint(changesetDir);
-		expect(issues).toHaveLength(3);
+		expect(issues).toHaveLength(4);
 	});
 
 	it("returns issue when file cannot be parsed", () => {

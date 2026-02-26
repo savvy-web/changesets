@@ -88,7 +88,8 @@ Register the custom rules in your base config (e.g., `lib/configs/.markdownlint-
   "config": {
     "changeset-heading-hierarchy": false,
     "changeset-required-sections": false,
-    "changeset-content-structure": false
+    "changeset-content-structure": false,
+    "changeset-uncategorized-content": false
   }
 }
 ```
@@ -102,6 +103,7 @@ Then enable the rules only for changeset files by creating `.changeset/.markdown
   "changeset-heading-hierarchy": true,
   "changeset-required-sections": true,
   "changeset-content-structure": true,
+  "changeset-uncategorized-content": true,
   "MD041": false
 }
 ```

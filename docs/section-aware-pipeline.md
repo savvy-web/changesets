@@ -85,11 +85,12 @@ $ savvy-changesets check .changeset
 All changeset files passed validation.
 ```
 
-The three rules verify:
+The four rules verify:
 
 - **heading-hierarchy** -- All headings start at h2, no skips
 - **required-sections** -- "Features", "Bug Fixes", "Documentation", and "Tests" are all valid categories
 - **content-structure** -- Every section has content beneath it
+- **uncategorized-content** -- All content appears under a category heading (no loose text before the first h2)
 
 ### Step 3: Format (Layer 2)
 
