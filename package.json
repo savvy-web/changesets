@@ -1,6 +1,6 @@
 {
 	"name": "@savvy-web/changesets",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"private": true,
 	"description": "Custom changelog formatter and markdown processing pipeline for the Silk Suite. Provides structured changeset sections, remark-based validation and transformation, and an Effect CLI.",
 	"keywords": ["changesets", "changelog", "release-notes", "remark", "markdown", "effect", "silk-suite"],

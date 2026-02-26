@@ -1,5 +1,11 @@
 # @savvy-web/changesets
 
+## 0.3.0
+
+### Features
+
+* [`eda764c`](https://github.com/savvy-web/changesets/commit/eda764c0469214112d336cc1307a78196fef1b04) Added `uncategorized-content` remark-lint rule and `CSH004` markdownlint rule that detect content appearing before the first `##` category heading in changeset files, ensuring all content is properly categorized
+
 ## 0.2.1
 
 ### Bug Fixes
