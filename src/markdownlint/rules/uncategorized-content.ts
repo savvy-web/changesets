@@ -22,8 +22,8 @@ export const UncategorizedContentRule: Rule = {
 				break;
 			}
 
-			// Skip blank lines and line endings
-			if (token.type === "lineEnding" || token.type === "lineEndingBlank") {
+			// Skip blank lines, line endings, and HTML comments
+			if (token.type === "lineEnding" || token.type === "lineEndingBlank" || token.type === "htmlFlow") {
 				continue;
 			}
 

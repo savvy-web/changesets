@@ -80,4 +80,14 @@ describe("uncategorized-content", () => {
 		const md = "## Features\n\nValid content here.\n\nMore valid content.\n";
 		expect(lint(md)).toEqual([]);
 	});
+
+	// HTML comment cases
+	it("ignores HTML comment before first h2", () => {
+		const md = "<!-- note -->\n\n## Features\n\n- Added CLI\n";
+		expect(lint(md)).toEqual([]);
+	});
+
+	it("ignores HTML comment with no headings", () => {
+		expect(lint("<!-- just a comment -->\n")).toEqual([]);
+	});
 });

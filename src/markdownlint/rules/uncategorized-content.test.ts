@@ -74,4 +74,14 @@ describe("markdownlint/uncategorized-content", () => {
 		const md = "## Features\n\nValid content here.\n\nMore valid content.\n";
 		expect(check(md)).toEqual([]);
 	});
+
+	// HTML comment cases
+	it("ignores HTML comment before first h2", () => {
+		const md = "<!-- note -->\n\n## Features\n\n- Added CLI\n";
+		expect(check(md)).toEqual([]);
+	});
+
+	it("ignores HTML comment with no headings", () => {
+		expect(check("<!-- just a comment -->\n")).toEqual([]);
+	});
 });
