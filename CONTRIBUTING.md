@@ -1,50 +1,45 @@
 # Contributing
 
-Thank you for your interest in contributing! This document provides guidelines
-and instructions for development.
+Thank you for your interest in contributing! This document provides guidelines and instructions for development.
 
 ## Prerequisites
 
-- Node.js 20+
-- pnpm 10+
+- Node.js >= 24.0.0
+- pnpm 10.30.0+
+- TypeScript 5.9+
 
 ## Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/savvy-web/pnpm-module-template.git
-cd pnpm-module-template
+git clone https://github.com/savvy-web/changesets.git
+cd changesets
 
 # Install dependencies
 pnpm install
 
-# Build all packages
+# Build all packages (dev + prod)
 pnpm run build
 
 # Run tests
 pnpm run test
 ```
 
-## Project Structure
-
-```text
-pnpm-module-template/
-├── pkgs/                           # Workspace packages
-│   └── ecma-module/                # Example ESM package
-├── lib/
-│   └── configs/                    # Shared configuration files
-└── ...
-```
-
 ## Available Scripts
 
 | Script | Description |
-| --- | --- |
-| `pnpm run build` | Build all packages (dev + prod) |
+| :--- | :--- |
+| `pnpm run build` | Build all (dev + prod) |
+| `pnpm run build:dev` | Development build only |
+| `pnpm run build:prod` | Production/npm build only |
 | `pnpm run test` | Run all tests |
+| `pnpm run test:watch` | Run tests in watch mode |
+| `pnpm run test:coverage` | Run tests with v8 coverage |
 | `pnpm run lint` | Check code with Biome |
 | `pnpm run lint:fix` | Auto-fix lint issues |
-| `pnpm run typecheck` | Type-check all workspaces |
+| `pnpm run lint:md` | Check markdown with markdownlint |
+| `pnpm run lint:md:fix` | Auto-fix markdown lint issues |
+| `pnpm run typecheck` | Type-check via Turbo (tsgo) |
 
 ## Code Quality
 
@@ -68,13 +63,13 @@ Signed-off-by: Your Name <your.email@example.com>
 
 The following checks run automatically:
 
-- **pre-commit**: Runs lint-staged
+- **pre-commit**: Runs lint-staged (Biome format + lint)
 - **commit-msg**: Validates commit message format
-- **pre-push**: Runs tests for affected packages
+- **pre-push**: Runs tests
 
 ## Testing
 
-Tests use [Vitest](https://vitest.dev) with v8 coverage.
+Tests use [Vitest](https://vitest.dev) with v8 coverage. Coverage thresholds are enforced at 85% for lines, branches, and statements, and 80% for functions.
 
 ```bash
 # Run all tests
@@ -86,16 +81,16 @@ pnpm run test:watch
 # Run tests with coverage
 pnpm run test:coverage
 
-# Run tests for a specific package
-pnpm run test -- --filter=@savvy-web/ecma-module
+# Run a single test file
+pnpm vitest run src/changelog/index.test.ts
 ```
 
 ## TypeScript
 
-- Composite builds with project references
 - Strict mode enabled
-- ES2022/ES2023 targets
 - Import extensions required (`.js` for ESM)
+- `node:` protocol for Node.js built-ins
+- Separate type imports with `import type`
 
 ### Import Conventions
 
@@ -104,7 +99,7 @@ pnpm run test -- --filter=@savvy-web/ecma-module
 import { myFunction } from "./utils/helpers.js";
 
 // Use node: protocol for Node.js built-ins
-import { EventEmitter } from "node:events";
+import { readFileSync } from "node:fs";
 
 // Separate type imports
 import type { MyType } from "./types.js";

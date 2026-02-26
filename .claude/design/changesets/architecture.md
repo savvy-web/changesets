@@ -3,8 +3,8 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-02-24
-last-synced: 2026-02-24
+updated: 2026-02-26
+last-synced: 2026-02-26
 completeness: 95
 related: []
 dependencies: []
@@ -106,11 +106,11 @@ with 424 tests passing across 42 test files.
   5 tagged errors
 - Layer 2 (Changelog Formatter): `getReleaseLine`,
   `getDependencyReleaseLine`, GitHub API integration
-- Layer 1 (Remark Lint): 3 rules --
+- Layer 1 (Remark Lint): 4 rules --
   heading-hierarchy, required-sections,
-  content-structure
-- Markdownlint Integration: 3 custom rules
-  (CSH001, CSH002, CSH003) reimplementing
+  content-structure, uncategorized-content
+- Markdownlint Integration: 4 custom rules
+  (CSH001, CSH002, CSH003, CSH004) reimplementing
   remark-lint validation for markdownlint-cli2
   and VS Code
 - Layer 3 (Remark Transform): 6 plugins --
@@ -183,7 +183,8 @@ src/
 │   └── rules/                  # Layer 1: Pre-validation remark-lint rules
 │       ├── content-structure.ts      # Content validation rules
 │       ├── heading-hierarchy.ts      # Must start with h2, no h1, no skips
-│       └── required-sections.ts      # Validate required section structure
+│       ├── required-sections.ts      # Validate required section structure
+│       └── uncategorized-content.ts  # Reject content before first h2
 │
 ├── markdownlint/               # markdownlint custom rules (micromark)
 │   ├── index.ts                # Exports all rules + SilkChangesetsRules default array
@@ -191,6 +192,7 @@ src/
 │       ├── content-structure.ts      # CSH003: empty sections, code langs
 │       ├── heading-hierarchy.ts      # CSH001: h2 start, no h1, no skips
 │       ├── required-sections.ts      # CSH002: validate h2 vs categories
+│       ├── uncategorized-content.ts  # CSH004: content before first h2
 │       └── utils.ts                  # Shared getHeadingLevel/getHeadingText helpers
 │
 ├── cli/                        # Effect CLI (savvy-changesets)
@@ -917,9 +919,10 @@ API requires.
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │              Layer 1: Pre-Validation (remark lint rules)            │  │
 │  │                                                                    │  │
-│  │  heading-hierarchy    Enforce h2 start, no h1, no depth skips     │  │
-│  │  required-sections    Validate section headings match categories   │  │
-│  │  content-structure    Content quality rules (non-empty, etc.)      │  │
+│  │  heading-hierarchy       Enforce h2 start, no h1, no depth skips   │  │
+│  │  required-sections      Validate section headings match categories │  │
+│  │  content-structure      Content quality rules (non-empty, etc.)    │  │
+│  │  uncategorized-content  Reject content before first h2 heading    │  │
 │  │                                                                    │  │
 │  │  Entry: @savvy-web/changesets/remark                               │  │
 │  │  Alt:   @savvy-web/changesets/markdownlint (editor/CI)            │  │
@@ -951,9 +954,10 @@ API requires.
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │          Markdownlint Integration (micromark token API)           │  │
 │  │                                                                    │  │
-│  │  CSH001  changeset-heading-hierarchy  (no h1, no depth skips)     │  │
-│  │  CSH002  changeset-required-sections  (h2 vs category system)     │  │
-│  │  CSH003  changeset-content-structure   (empty, code lang, lists)  │  │
+│  │  CSH001  changeset-heading-hierarchy     (no h1, no depth skips)   │  │
+│  │  CSH002  changeset-required-sections    (h2 vs category system)   │  │
+│  │  CSH003  changeset-content-structure    (empty, code lang, lists) │  │
+│  │  CSH004  changeset-uncategorized-content (content before first h2)│  │
 │  │                                                                    │  │
 │  │  Entry: @savvy-web/changesets/markdownlint                         │  │
 │  │  Runs: VS Code extension, markdownlint-cli2, CI                   │  │
@@ -1044,6 +1048,7 @@ API requires.
 │         │  - Heading hierarchy correct?                                 │
 │         │  - Section headings match known categories?                   │
 │         │  - Content structure valid?                                   │
+│         │  - All content under a category heading?                      │
 │         ▼                                                               │
 │     Valid changeset file (or error reported)                            │
 │                                                                         │
@@ -1267,6 +1272,28 @@ Validates content quality:
 - Code blocks must have language identifiers
 - List items should have meaningful content (not just whitespace)
 
+#### Rule: uncategorized-content
+
+Detects content that appears before the first `## Category` heading in a changeset file. All changeset content must be placed under a categorized section heading to ensure proper changelog generation and section ordering.
+
+- Paragraphs, lists, code blocks, or other content before the first h2 heading are rejected
+- HTML comments and other non-content nodes are ignored
+- Once the first h2 heading is encountered, scanning stops (content after that point is categorized)
+
+```markdown
+<!-- Invalid: content before any h2 heading -->
+This paragraph is uncategorized.
+
+## Features
+
+This is fine.
+
+<!-- Valid: all content under h2 headings -->
+## Features
+
+This paragraph is properly categorized.
+```
+
 ### Layer 2: Changelog Formatter (Changesets API)
 
 The custom `getReleaseLine` and `getDependencyReleaseLine` functions that Changesets calls
@@ -1388,7 +1415,7 @@ and `allHeadings()` directly from the category module.
 
 ### Rules
 
-All three rules use `parser: "micromark"` and
+All four rules use `parser: "micromark"` and
 `tags: ["changeset"]`.
 
 #### CSH001: changeset-heading-hierarchy
@@ -1419,6 +1446,15 @@ Validates content quality:
 
 Names: `changeset-content-structure`, `CSH003`
 
+#### CSH004: changeset-uncategorized-content
+
+Rejects content that appears before the first h2 heading
+in a changeset file. All prose, lists, code blocks, and
+other content must be placed under a category heading to
+ensure proper changelog generation and section ordering.
+
+Names: `changeset-uncategorized-content`, `CSH004`
+
 ### Consumer Configuration
 
 ```jsonc
@@ -1428,7 +1464,7 @@ Names: `changeset-content-structure`, `CSH003`
 }
 ```
 
-The default export is an array of all three rules, suitable
+The default export is an array of all four rules, suitable
 for the `customRules` config field. Named exports are also
 available for individual rule use.
 
@@ -1449,7 +1485,7 @@ src/categories/index.ts  (shared category system)
         |      Layer 1 rules
         |
         +--- src/markdownlint/      (micromark tokens)
-               CSH001, CSH002, CSH003
+               CSH001, CSH002, CSH003, CSH004
 ```
 
 The remark-lint rules and markdownlint rules validate the

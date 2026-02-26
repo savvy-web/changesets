@@ -19,3 +19,4 @@ export { SilkChangesetPreset, SilkChangesetTransformPreset } from "./presets.js"
 export { ContentStructureRule } from "./rules/content-structure.js";
 export { HeadingHierarchyRule } from "./rules/heading-hierarchy.js";
 export { RequiredSectionsRule } from "./rules/required-sections.js";
+export { UncategorizedContentRule } from "./rules/uncategorized-content.js";

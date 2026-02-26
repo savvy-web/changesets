@@ -28,6 +28,7 @@ const RULE_NAMES = [
 	"changeset-heading-hierarchy",
 	"changeset-required-sections",
 	"changeset-content-structure",
+	"changeset-uncategorized-content",
 ] as const;
 
 const DEFAULT_CONFIG = {

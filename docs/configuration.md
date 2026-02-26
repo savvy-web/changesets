@@ -79,7 +79,7 @@ Additional JSON files to update with version numbers during `changeset version`.
 }
 ```
 
-**`glob`** (required) -- A glob pattern matched against the project root. Uses Node's built-in `fs.globSync` with `node_modules` excluded automatically. Examples: `"plugin.json"`, `"**/manifest.json"`, `".claude-plugin/*.json"`.
+**`glob`** (required) -- A glob pattern matched against the project root, with `node_modules` excluded automatically. Examples: `"plugin.json"`, `"**/manifest.json"`, `".claude-plugin/*.json"`.
 
 **`paths`** (optional) -- An array of JSONPath expressions identifying which fields to update. Defaults to `["$.version"]` when omitted.
 
@@ -197,13 +197,14 @@ export GITHUB_TOKEN="ghp_..."
 
 The package exports markdownlint-compatible custom rules from `@savvy-web/changesets/markdownlint`. This enables real-time changeset validation in VS Code (via the markdownlint extension) and in CI (via markdownlint-cli2) without requiring the remark pipeline.
 
-The default export is an array of three `Rule` objects, compatible with markdownlint-cli2's `customRules` config.
+The default export is an array of four `Rule` objects, compatible with markdownlint-cli2's `customRules` config.
 
 ### Custom Rules
 
 - **CSH001** `changeset-heading-hierarchy` -- h2 start, no h1 allowed, no depth skips
 - **CSH002** `changeset-required-sections` -- All h2 headings must match known categories
 - **CSH003** `changeset-content-structure` -- Non-empty sections, valid content structure
+- **CSH004** `changeset-uncategorized-content` -- All content must appear under a category heading
 
 ### Setup
 
@@ -243,7 +244,8 @@ In the same base config, disable the custom rules so they do not fire on non-cha
   "config": {
     "changeset-heading-hierarchy": false,
     "changeset-required-sections": false,
-    "changeset-content-structure": false
+    "changeset-content-structure": false,
+    "changeset-uncategorized-content": false
   }
 }
 ```
@@ -259,6 +261,7 @@ Create `.changeset/.markdownlint.json` to scope the rules to changeset files onl
   "changeset-heading-hierarchy": true,
   "changeset-required-sections": true,
   "changeset-content-structure": true,
+  "changeset-uncategorized-content": true,
   "MD041": false
 }
 ```
@@ -267,5 +270,5 @@ This config:
 
 - Extends the base config (inherits `customRules`)
 - Disables all default rules (`"default": false`) since changeset files do not need standard markdown linting
-- Enables only the three changeset-specific rules
+- Enables the four changeset-specific rules
 - Disables MD041 (first-line-heading) because changeset files start with YAML frontmatter, not a heading

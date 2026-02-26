@@ -17,7 +17,6 @@ import {
   ChangesetLinter,
   Categories,
   Changelog,
-  Workspace,
 } from "@savvy-web/changesets";
 ```
 
@@ -52,7 +51,7 @@ ChangelogTransformer.transformFile("CHANGELOG.md");
 
 ### ChangesetLinter
 
-Runs the three remark-lint rules against changeset markdown and returns structured diagnostic messages.
+Runs the four remark-lint rules against changeset markdown and returns structured diagnostic messages.
 
 #### `ChangesetLinter.validate(dir)`
 
@@ -202,65 +201,6 @@ Format dependency update release lines.
   - `options` -- Config with `repo`
 - **Returns:** `Promise<string>`
 
-### Workspace
-
-Static class for workspace operations. Used internally by the `version` command but also available for programmatic use.
-
-#### `Workspace.detectPackageManager(cwd?)`
-
-Detect the package manager from the root `package.json` `packageManager` field.
-
-- **Parameters:**
-  - `cwd` (`string`, optional) -- Project root, defaults to `process.cwd()`
-- **Returns:** `"npm" | "pnpm" | "yarn" | "bun"`
-
-```typescript
-const pm = Workspace.detectPackageManager();
-// "pnpm"
-```
-
-#### `Workspace.getChangesetVersionCommand(pm)`
-
-Get the full exec command for `changeset version`.
-
-- **Parameters:**
-  - `pm` (`PackageManager`) -- The package manager
-- **Returns:** `string`
-
-```typescript
-Workspace.getChangesetVersionCommand("pnpm");
-// "pnpm exec changeset version"
-```
-
-#### `Workspace.discoverChangelogs(cwd?)`
-
-Discover all CHANGELOG.md files across workspace packages.
-
-- **Parameters:**
-  - `cwd` (`string`, optional) -- Project root
-- **Returns:** `WorkspaceChangelog[]`
-
-```typescript
-const changelogs = Workspace.discoverChangelogs();
-// [{ name: "pkg-a", path: "/project/packages/a",
-//    changelogPath: "/project/packages/a/CHANGELOG.md" }]
-```
-
-### WorkspaceChangelog
-
-A discovered workspace changelog entry.
-
-```typescript
-interface WorkspaceChangelog {
-  /** Package name */
-  name: string;
-  /** Absolute path to the package directory */
-  path: string;
-  /** Absolute path to the CHANGELOG.md file */
-  changelogPath: string;
-}
-```
-
 ## Types
 
 ### SectionCategory
@@ -359,6 +299,7 @@ import {
   HeadingHierarchyRule,
   RequiredSectionsRule,
   ContentStructureRule,
+  UncategorizedContentRule,
   // Transform plugins
   SilkChangesetTransformPreset,
   MergeSectionsPlugin,
@@ -372,10 +313,11 @@ import {
 
 ### Lint Rules
 
-- `SilkChangesetPreset` -- Array of all three rules
+- `SilkChangesetPreset` -- Array of all four rules
 - `HeadingHierarchyRule` -- h2 start, no h1, no skips
 - `RequiredSectionsRule` -- Known category headings
 - `ContentStructureRule` -- Non-empty content
+- `UncategorizedContentRule` -- Content must be under a category heading
 
 ### Transform Plugins
 

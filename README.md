@@ -2,19 +2,18 @@
 
 [![npm version][npm-badge]][npm-url]
 [![License: MIT][license-badge]][license-url]
+[![Node.js >= 24][node-badge]][node-url]
 
 Custom changelog formatter and markdown processing pipeline for the Silk Suite. Replaces the default `@changesets/cli/changelog` formatter with a three-layer architecture that validates changeset files, formats structured changelog entries, and post-processes the generated CHANGELOG.md.
 
 ## Features
 
-- **Section-aware changesets** -- Use h2 headings in changeset files to categorize changes (Features, Bug Fixes, Breaking Changes, etc.)
+- **Section-aware changesets** -- Categorize changes with h2 headings (Features, Bug Fixes, Breaking Changes, etc.)
 - **Three-layer pipeline** -- Pre-validation (remark-lint), changelog formatting (Changesets API), and post-processing (remark-transform)
-- **13 section categories** -- Consistent categorization with priority-based ordering across all layers
-- **CLI tooling** -- `savvy-changesets` binary with init, lint, transform, check, and version subcommands for CI and local use
+- **CLI tooling** -- `savvy-changesets` binary with init, lint, check, transform, and version subcommands
 - **GitHub integration** -- Automatic PR links, commit references, and contributor attribution
-- **Version file syncing** -- Bump version fields in additional JSON files (beyond `package.json`) using glob patterns and JSONPath expressions
-- **Remark plugins** -- Lint rules and transform plugins via `@savvy-web/changesets/remark`
-- **markdownlint rules** -- Custom rules compatible with [markdownlint-cli2](https://www.npmjs.com/package/markdownlint-cli2) and the VS Code extension via `@savvy-web/changesets/markdownlint`
+- **Version file syncing** -- Bump version fields in additional JSON files using glob patterns and JSONPath expressions
+- **Editor support** -- markdownlint rules for real-time validation in VS Code and CI
 
 ## Installation
 
@@ -30,7 +29,7 @@ Bootstrap your repository:
 savvy-changesets init
 ```
 
-This creates `.changeset/config.json` with auto-detected GitHub repo settings. Or configure manually:
+This creates `.changeset/config.json` with auto-detected GitHub repo settings and configures markdownlint rules. Or configure manually:
 
 ```json
 {
@@ -41,7 +40,7 @@ This creates `.changeset/config.json` with auto-detected GitHub repo settings. O
 }
 ```
 
-Write [section-aware changeset files](docs/section-aware-pipeline.md):
+Write section-aware changeset files:
 
 ```markdown
 ---
@@ -58,58 +57,13 @@ Added a new authentication system with OAuth2 support.
 - Updated integration test fixtures
 ```
 
-## Version File Syncing
-
-If your project has JSON files beyond `package.json` that contain version fields (e.g., `plugin.json`, `marketplace.json`), add `versionFiles` to your changelog options to keep them in sync during `changeset version`:
-
-```json
-{
-  "changelog": ["@savvy-web/changesets/changelog", {
-    "repo": "owner/repo",
-    "versionFiles": [
-      { "glob": "plugin.json" },
-      { "glob": ".claude-plugin/marketplace.json", "paths": ["$.metadata.version", "$.plugins[*].version"] }
-    ]
-  }]
-}
-```
-
-When `paths` is omitted it defaults to `["$.version"]`. In monorepos, each matched file inherits the version from its nearest workspace package. See [Configuration -- versionFiles](./docs/configuration.md#versionfiles-optional) for full details including supported JSONPath syntax.
-
-## markdownlint Integration
-
-Register the custom rules in your base config (e.g., `lib/configs/.markdownlint-cli2.jsonc`):
-
-```jsonc
-{
-  "customRules": [
-    "@savvy-web/changesets/markdownlint"
-  ],
-  "config": {
-    "changeset-heading-hierarchy": false,
-    "changeset-required-sections": false,
-    "changeset-content-structure": false
-  }
-}
-```
-
-Then enable the rules only for changeset files by creating `.changeset/.markdownlint.json`:
-
-```json
-{
-  "extends": "../lib/configs/.markdownlint-cli2.jsonc",
-  "default": false,
-  "changeset-heading-hierarchy": true,
-  "changeset-required-sections": true,
-  "changeset-content-structure": true,
-  "MD041": false
-}
-```
-
 ## Documentation
 
-- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the three-layer pipeline
-- [Full documentation](./docs/) -- CLI usage, API reference, configuration, and architecture
+- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the pipeline
+- [Configuration](./docs/configuration.md) -- Options, version files, markdownlint integration, CI scripts
+- [CLI Reference](./docs/cli.md) -- All commands and options
+- [API Reference](./docs/api.md) -- Classes, types, Effect services, remark plugins
+- [Architecture](./docs/architecture.md) -- Three-layer pipeline design and export map
 
 ## License
 
@@ -119,3 +73,5 @@ MIT
 [npm-url]: https://www.npmjs.com/package/@savvy-web/changesets
 [license-badge]: https://img.shields.io/badge/License-MIT-yellow.svg
 [license-url]: https://opensource.org/licenses/MIT
+[node-badge]: https://img.shields.io/badge/node-%3E%3D24-brightgreen
+[node-url]: https://nodejs.org/
