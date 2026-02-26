@@ -7,7 +7,7 @@
  *
  */
 
-import type { Heading, Root, RootContent } from "mdast";
+import type { Root, RootContent } from "mdast";
 import { lintRule } from "unified-lint-rule";
 
 /** Node types that are considered non-content (whitespace / formatting only). */
@@ -23,7 +23,7 @@ function isContentNode(node: RootContent): boolean {
 export const UncategorizedContentRule = lintRule("remark-lint:changeset-uncategorized-content", (tree: Root, file) => {
 	for (const node of tree.children) {
 		// Stop at the first h2 — everything after is categorized
-		if (node.type === "heading" && (node as Heading).depth === 2) {
+		if (node.type === "heading" && node.depth === 2) {
 			break;
 		}
 
