@@ -79,7 +79,7 @@ Additional JSON files to update with version numbers during `changeset version`.
 }
 ```
 
-**`glob`** (required) -- A glob pattern matched against the project root. Uses Node's built-in `fs.globSync` with `node_modules` excluded automatically. Examples: `"plugin.json"`, `"**/manifest.json"`, `".claude-plugin/*.json"`.
+**`glob`** (required) -- A glob pattern matched against the project root, with `node_modules` excluded automatically. Examples: `"plugin.json"`, `"**/manifest.json"`, `".claude-plugin/*.json"`.
 
 **`paths`** (optional) -- An array of JSONPath expressions identifying which fields to update. Defaults to `["$.version"]` when omitted.
 
@@ -270,5 +270,5 @@ This config:
 
 - Extends the base config (inherits `customRules`)
 - Disables all default rules (`"default": false`) since changeset files do not need standard markdown linting
-- Enables only the three changeset-specific rules
+- Enables the four changeset-specific rules
 - Disables MD041 (first-line-heading) because changeset files start with YAML frontmatter, not a heading
