@@ -19,7 +19,7 @@ Custom changelog formatter and markdown processing pipeline for the Silk Suite. 
 ## Installation
 
 ```bash
-pnpm add @savvy-web/changesets
+npm install @savvy-web/changesets -D
 ```
 
 ## Quick Start
