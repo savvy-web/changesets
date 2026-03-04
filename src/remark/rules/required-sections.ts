@@ -12,7 +12,7 @@ import { toString as nodeToString } from "mdast-util-to-string";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
 import { allHeadings, isValidHeading } from "../../categories/index.js";
-import { RULE_DOCS } from "../../markdownlint/rules/utils.js";
+import { RULE_DOCS } from "../../constants.js";
 
 export const RequiredSectionsRule = lintRule("remark-lint:changeset-required-sections", (tree: Root, file) => {
 	visit(tree, "heading", (node: Heading) => {

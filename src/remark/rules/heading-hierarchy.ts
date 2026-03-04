@@ -11,7 +11,7 @@
 import type { Heading, Root } from "mdast";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
-import { RULE_DOCS } from "../../markdownlint/rules/utils.js";
+import { RULE_DOCS } from "../../constants.js";
 
 export const HeadingHierarchyRule = lintRule("remark-lint:changeset-heading-hierarchy", (tree: Root, file) => {
 	let prevDepth = 0;

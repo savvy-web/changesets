@@ -2,7 +2,7 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
-import { RULE_DOCS } from "../../markdownlint/rules/utils.js";
+import { RULE_DOCS } from "../../constants.js";
 import { HeadingHierarchyRule } from "./heading-hierarchy.js";
 
 function lint(markdown: string) {

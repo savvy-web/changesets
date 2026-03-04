@@ -6,16 +6,7 @@
 
 import type { MicromarkToken } from "markdownlint";
 
-/** Base URL for rule documentation on GitHub. */
-const DOCS_BASE = "https://github.com/savvy-web/changesets/blob/main/src/markdownlint/rules/docs";
-
-/** Documentation URLs for each changeset lint rule. */
-export const RULE_DOCS = {
-	CSH001: `${DOCS_BASE}/CSH001.md`,
-	CSH002: `${DOCS_BASE}/CSH002.md`,
-	CSH003: `${DOCS_BASE}/CSH003.md`,
-	CSH004: `${DOCS_BASE}/CSH004.md`,
-} as const;
+export { RULE_DOCS } from "../../constants.js";
 
 /**
  * Get the heading level (1-6) from an `atxHeading` token.

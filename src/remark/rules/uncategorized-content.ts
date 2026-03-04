@@ -9,9 +9,9 @@
 
 import type { Root, RootContent } from "mdast";
 import { lintRule } from "unified-lint-rule";
-import { RULE_DOCS } from "../../markdownlint/rules/utils.js";
+import { RULE_DOCS } from "../../constants.js";
 
-/** Node types that are considered non-content (whitespace / formatting only). */
+/** Node types to ignore when detecting uncategorized content (e.g., HTML comments). */
 const IGNORED_TYPES = new Set(["html"]);
 
 function isContentNode(node: RootContent): boolean {

@@ -12,7 +12,7 @@ import type { Code, Heading, ListItem, Root } from "mdast";
 import { toString as nodeToString } from "mdast-util-to-string";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
-import { RULE_DOCS } from "../../markdownlint/rules/utils.js";
+import { RULE_DOCS } from "../../constants.js";
 
 export const ContentStructureRule = lintRule("remark-lint:changeset-content-structure", (tree: Root, file) => {
 	// Check for empty sections (h2 followed by h2 or end of file)
