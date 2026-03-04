@@ -193,12 +193,7 @@ src/
 │       ├── heading-hierarchy.ts      # CSH001: h2 start, no h1, no skips
 │       ├── required-sections.ts      # CSH002: validate h2 vs categories
 │       ├── uncategorized-content.ts  # CSH004: content before first h2
-│       ├── utils.ts                  # Shared helpers + RULE_DOCS documentation URLs
-│       └── docs/                     # Rule documentation (valid/invalid examples, fix instructions)
-│           ├── CSH001.md             # changeset-heading-hierarchy
-│           ├── CSH002.md             # changeset-required-sections
-│           ├── CSH003.md             # changeset-content-structure
-│           └── CSH004.md             # changeset-uncategorized-content
+│       └── utils.ts                  # Shared helpers (re-exports RULE_DOCS from src/constants.ts)
 │
 ├── cli/                        # Effect CLI (savvy-changesets)
 │   ├── index.ts                # Root command
@@ -1482,7 +1477,7 @@ available for individual rule use.
 ### Rule Documentation
 
 Each rule has a companion documentation file in
-`src/markdownlint/rules/docs/` following the
+`docs/rules/` following the
 [DavidAnson/markdownlint](https://github.com/DavidAnson/markdownlint)
 documentation pattern:
 
@@ -1493,7 +1488,7 @@ documentation pattern:
 
 These docs are published to the repository on GitHub and
 linked from error messages via the `RULE_DOCS` constant
-in `src/markdownlint/rules/utils.ts`.
+in `src/constants.ts`.
 
 ### Error Message Guidelines
 
@@ -1535,11 +1530,10 @@ src/categories/index.ts  (shared category system)
         +--- src/markdownlint/      (micromark tokens)
                |  CSH001, CSH002, CSH003, CSH004
                |
-               +--- rules/utils.ts  (RULE_DOCS constant)
-               |      Shared by both remark + markdownlint rules
-               |
-               +--- rules/docs/     (rule documentation files)
-                      CSH001.md, CSH002.md, CSH003.md, CSH004.md
+               +--- rules/utils.ts  (re-exports RULE_DOCS from src/constants.ts)
+
+docs/rules/          (rule documentation files)
+  CSH001.md, CSH002.md, CSH003.md, CSH004.md
 ```
 
 The remark-lint rules and markdownlint rules validate the

@@ -1,5 +1,5 @@
 /** Base URL for rule documentation on GitHub. */
-const DOCS_BASE = "https://github.com/savvy-web/changesets/blob/main/src/markdownlint/rules/docs";
+const DOCS_BASE = "https://github.com/savvy-web/changesets/blob/main/docs/rules";
 
 /** Documentation URLs for each changeset lint rule. */
 export const RULE_DOCS = {

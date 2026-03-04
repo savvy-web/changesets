@@ -206,7 +206,7 @@ The default export is an array of four `Rule` objects, compatible with markdownl
 - **CSH003** `changeset-content-structure` -- Non-empty sections, valid content structure
 - **CSH004** `changeset-uncategorized-content` -- All content must appear under a category heading
 
-Each rule has detailed documentation with valid/invalid examples, fix instructions, and rationale. See the [rule docs](../src/markdownlint/rules/docs/).
+Each rule has detailed documentation with valid/invalid examples, fix instructions, and rationale. See the [rule docs](rules/).
 
 All error messages include inline fix instructions and a documentation URL, making them self-contained for AI-agent and CI workflows.
 
