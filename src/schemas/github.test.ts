@@ -13,15 +13,15 @@ describe("UsernameSchema", () => {
 	});
 
 	it("rejects usernames starting with a hyphen", () => {
-		expect(() => decode("-user")).toThrow();
+		expect(() => decode("-user")).toThrow(/cannot start or end with a hyphen/);
 	});
 
 	it("rejects usernames ending with a hyphen", () => {
-		expect(() => decode("user-")).toThrow();
+		expect(() => decode("user-")).toThrow(/cannot start or end with a hyphen/);
 	});
 
 	it("rejects usernames with underscores", () => {
-		expect(() => decode("user_name")).toThrow();
+		expect(() => decode("user_name")).toThrow(/alphanumeric characters and hyphens/);
 	});
 });
 
@@ -60,11 +60,11 @@ describe("UrlOrMarkdownLinkSchema", () => {
 	});
 
 	it("rejects plain text", () => {
-		expect(() => decode("not a url")).toThrow();
+		expect(() => decode("not a url")).toThrow(/valid URL or a markdown link/);
 	});
 
 	it("rejects markdown links with invalid URLs", () => {
-		expect(() => decode("[text](not-a-url)")).toThrow();
+		expect(() => decode("[text](not-a-url)")).toThrow(/valid URL or a markdown link/);
 	});
 });
 

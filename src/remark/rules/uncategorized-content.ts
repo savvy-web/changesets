@@ -9,6 +9,7 @@
 
 import type { Root, RootContent } from "mdast";
 import { lintRule } from "unified-lint-rule";
+import { RULE_DOCS } from "../../markdownlint/rules/utils.js";
 
 /** Node types that are considered non-content (whitespace / formatting only). */
 const IGNORED_TYPES = new Set(["html"]);
@@ -28,7 +29,10 @@ export const UncategorizedContentRule = lintRule("remark-lint:changeset-uncatego
 		}
 
 		if (isContentNode(node)) {
-			file.message("Content must be placed under a category heading (## heading)", node);
+			file.message(
+				`Content must be placed under a category heading (## heading). Move this content under an appropriate section like "## Features" or "## Bug Fixes". If it doesn't fit an existing category, use "## Other". See: ${RULE_DOCS.CSH004}`,
+				node,
+			);
 		}
 	}
 });

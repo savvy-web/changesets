@@ -12,8 +12,14 @@ import { NonEmptyString } from "./primitives.js";
  * @public
  */
 export const ChangesetSummarySchema = Schema.String.pipe(
-	Schema.minLength(1, { message: () => "Changeset summary cannot be empty" }),
-	Schema.maxLength(1000, { message: () => "Changeset summary is too long" }),
+	Schema.minLength(1, {
+		message: () =>
+			'Changeset summary cannot be empty. Provide a 1-1000 character description of the change (e.g., "Fix authentication timeout in login flow")',
+	}),
+	Schema.maxLength(1000, {
+		message: () =>
+			"Changeset summary exceeds the 1000 character limit. Shorten the summary to at most 1000 characters — use the changeset body for additional details",
+	}),
 );
 
 /**

@@ -193,7 +193,12 @@ src/
 │       ├── heading-hierarchy.ts      # CSH001: h2 start, no h1, no skips
 │       ├── required-sections.ts      # CSH002: validate h2 vs categories
 │       ├── uncategorized-content.ts  # CSH004: content before first h2
-│       └── utils.ts                  # Shared getHeadingLevel/getHeadingText helpers
+│       ├── utils.ts                  # Shared helpers + RULE_DOCS documentation URLs
+│       └── docs/                     # Rule documentation (valid/invalid examples, fix instructions)
+│           ├── CSH001.md             # changeset-heading-hierarchy
+│           ├── CSH002.md             # changeset-required-sections
+│           ├── CSH003.md             # changeset-content-structure
+│           └── CSH004.md             # changeset-uncategorized-content
 │
 ├── cli/                        # Effect CLI (savvy-changesets)
 │   ├── index.ts                # Root command
@@ -1216,7 +1221,9 @@ The prior art provides excellent developer-facing error messages for configurati
 - Invalid repo format: `"Invalid repository format: \"<value>\". Expected format is \"owner/repository\""`
 
 These error messages and the special `ChangesetOptionsSchema` handling should be preserved
-in the Effect Schema migration.
+in the Effect Schema migration. All Effect Schema annotations include descriptive
+`message` and `identifier`/`title` fields so that validation failures are self-contained
+and actionable -- consumers can fix issues without examining source code.
 
 ---
 
@@ -1225,7 +1232,9 @@ in the Effect Schema migration.
 ### Layer 1: Pre-Validation (remark lint rules)
 
 Custom remark lint rules that validate `.changeset/*.md` files match the required structure.
-These run in CI, pre-commit hooks, or via the CLI.
+These run in CI, pre-commit hooks, or via the CLI. All rules produce actionable error
+messages with fix instructions and documentation URLs (see
+[Error Message Guidelines](#error-message-guidelines) in the Markdownlint Integration section).
 
 **Entry point:** `@savvy-web/changesets/remark`
 **Alt entry point:** `@savvy-web/changesets/markdownlint` (editor/CI integration)
@@ -1412,6 +1421,8 @@ Both implementations share the category system
 (`src/categories/index.ts`) to keep heading validation
 logic DRY. The markdownlint rules import `isValidHeading()`
 and `allHeadings()` directly from the category module.
+Both also share the `RULE_DOCS` constant from
+`src/markdownlint/rules/utils.ts` for documentation URLs.
 
 ### Rules
 
@@ -1468,6 +1479,43 @@ The default export is an array of all four rules, suitable
 for the `customRules` config field. Named exports are also
 available for individual rule use.
 
+### Rule Documentation
+
+Each rule has a companion documentation file in
+`src/markdownlint/rules/docs/` following the
+[DavidAnson/markdownlint](https://github.com/DavidAnson/markdownlint)
+documentation pattern:
+
+- **Valid examples**: Markdown snippets that pass the rule
+- **Invalid examples**: Markdown snippets that trigger the rule, with explanations
+- **Fix instructions**: Concrete steps to resolve violations
+- **Rationale**: Why the rule exists and what it protects
+
+These docs are published to the repository on GitHub and
+linked from error messages via the `RULE_DOCS` constant
+in `src/markdownlint/rules/utils.ts`.
+
+### Error Message Guidelines
+
+All rule error messages (both markdownlint and remark-lint)
+follow these guidelines to support AI-agent workflows:
+
+1. **Actionable**: State what is wrong and how to fix it
+   in the same message. Example: *"h1 headings are not
+   allowed in changeset files. Use h2 (##) for top-level
+   sections like "Features" or "Bug Fixes"."*
+2. **Self-contained**: Include enough context (valid
+   values, format examples) so the reader can fix the
+   issue without examining source code.
+3. **Documentation URL**: Append a `See: <url>` link to
+   the rule's documentation file on GitHub, sourced from
+   the `RULE_DOCS` map.
+
+The `RULE_DOCS` constant maps rule codes (`CSH001`-`CSH004`)
+to their GitHub documentation URLs. It is imported by
+both the markdownlint rules and the remark-lint rules
+to keep URLs consistent across implementations.
+
 ### Runtime Dependencies
 
 The markdownlint rules use `import type` for the
@@ -1485,7 +1533,13 @@ src/categories/index.ts  (shared category system)
         |      Layer 1 rules
         |
         +--- src/markdownlint/      (micromark tokens)
-               CSH001, CSH002, CSH003, CSH004
+               |  CSH001, CSH002, CSH003, CSH004
+               |
+               +--- rules/utils.ts  (RULE_DOCS constant)
+               |      Shared by both remark + markdownlint rules
+               |
+               +--- rules/docs/     (rule documentation files)
+                      CSH001.md, CSH002.md, CSH003.md, CSH004.md
 ```
 
 The remark-lint rules and markdownlint rules validate the

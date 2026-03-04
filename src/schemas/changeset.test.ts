@@ -11,11 +11,11 @@ describe("ChangesetSummarySchema", () => {
 	});
 
 	it("rejects empty strings", () => {
-		expect(() => decode("")).toThrow(/cannot be empty/);
+		expect(() => decode("")).toThrow(/cannot be empty.*1-1000 character/);
 	});
 
 	it("rejects summaries over 1000 characters", () => {
-		expect(() => decode("a".repeat(1001))).toThrow(/too long/);
+		expect(() => decode("a".repeat(1001))).toThrow(/exceeds the 1000 character limit/);
 	});
 });
 

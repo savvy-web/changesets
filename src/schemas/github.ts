@@ -28,7 +28,8 @@ function isValidUrl(value: string): boolean {
  */
 export const UsernameSchema = Schema.String.pipe(
 	Schema.pattern(/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/, {
-		message: () => "Invalid GitHub username format",
+		message: () =>
+			'Invalid GitHub username format. Usernames must contain only alphanumeric characters and hyphens, and cannot start or end with a hyphen. Example: "octocat" or "my-user-123"',
 	}),
 );
 
@@ -57,7 +58,10 @@ export const UrlOrMarkdownLinkSchema = Schema.String.pipe(
 			const match = MARKDOWN_LINK_PATTERN.exec(value);
 			return match?.[2] ? isValidUrl(match[2]) : false;
 		},
-		{ message: () => "Invalid URL or markdown link format" },
+		{
+			message: () =>
+				'Value must be a valid URL or a markdown link. Expected a plain URL (e.g., "https://github.com/owner/repo/pull/42") or a markdown link (e.g., "[#42](https://github.com/owner/repo/pull/42)")',
+		},
 	),
 );
 

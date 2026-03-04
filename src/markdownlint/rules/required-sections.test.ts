@@ -1,6 +1,7 @@
 import { lint } from "markdownlint/sync";
 import { describe, expect, it } from "vitest";
 import { RequiredSectionsRule } from "./required-sections.js";
+import { RULE_DOCS } from "./utils.js";
 
 function check(markdown: string) {
 	const result = lint({
@@ -62,7 +63,8 @@ describe("markdownlint/required-sections", () => {
 		const messages = check("## Improvements\n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section "Improvements"');
-		expect(messages[0]).toContain("Valid sections:");
+		expect(messages[0]).toContain("Valid h2 headings are:");
+		expect(messages[0]).toContain("case-insensitive");
 	});
 
 	it("rejects a typo heading", () => {
@@ -88,5 +90,10 @@ describe("markdownlint/required-sections", () => {
 		const messages = check("## \n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section ""');
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = check("## Invalid\n\nContent\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH002);
 	});
 });

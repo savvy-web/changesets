@@ -1,6 +1,6 @@
 import type { MicromarkToken, Rule } from "markdownlint";
 
-import { getHeadingLevel } from "./utils.js";
+import { RULE_DOCS, getHeadingLevel } from "./utils.js";
 
 function hasContentBetween(tokens: MicromarkToken[], currentIdx: number, nextIdx: number): boolean {
 	for (let i = currentIdx + 1; i < nextIdx; i++) {
@@ -44,7 +44,7 @@ export const ContentStructureRule: Rule = {
 			if (!hasContentBetween(tokens, currentIdx, nextIdx)) {
 				onError({
 					lineNumber: tokens[currentIdx].startLine,
-					detail: "Empty section: heading has no content before the next section or end of file",
+					detail: `Empty section: heading has no content before the next section or end of file. Add a list of changes (e.g., "- Added feature X") under this heading, or remove the empty heading. See: ${RULE_DOCS.CSH003}`,
 				});
 			}
 		}
@@ -61,7 +61,7 @@ export const ContentStructureRule: Rule = {
 			if (!hasInfo) {
 				onError({
 					lineNumber: token.startLine,
-					detail: "Code block is missing a language identifier",
+					detail: `Code block is missing a language identifier. Add a language after the opening fence (e.g., \`\`\`ts, \`\`\`json, \`\`\`bash). See: ${RULE_DOCS.CSH003}`,
 				});
 			}
 		}
@@ -95,7 +95,7 @@ export const ContentStructureRule: Rule = {
 				if (!hasContent) {
 					onError({
 						lineNumber: children[i].startLine,
-						detail: "Empty list item",
+						detail: `Empty list item. Each list item must contain descriptive text (e.g., "- Fixed login timeout issue"). See: ${RULE_DOCS.CSH003}`,
 					});
 				}
 			}

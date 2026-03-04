@@ -17,15 +17,15 @@ describe("CommitHashSchema", () => {
 	});
 
 	it("rejects hashes shorter than 7 characters", () => {
-		expect(() => decode("abc12")).toThrow();
+		expect(() => decode("abc12")).toThrow(/7 or more lowercase hexadecimal/);
 	});
 
 	it("rejects uppercase hex characters", () => {
-		expect(() => decode("ABC123D")).toThrow();
+		expect(() => decode("ABC123D")).toThrow(/Uppercase letters are not allowed/);
 	});
 
 	it("rejects non-hex characters", () => {
-		expect(() => decode("xyz123d")).toThrow();
+		expect(() => decode("xyz123d")).toThrow(/lowercase hexadecimal characters/);
 	});
 
 	it("rejects non-strings", () => {

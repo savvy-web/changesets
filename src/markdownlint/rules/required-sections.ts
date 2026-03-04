@@ -1,7 +1,7 @@
 import type { Rule } from "markdownlint";
 
 import { allHeadings, isValidHeading } from "../../categories/index.js";
-import { getHeadingLevel, getHeadingText } from "./utils.js";
+import { RULE_DOCS, getHeadingLevel, getHeadingText } from "./utils.js";
 
 /**
  * markdownlint rule: changeset-required-sections (CSH002)
@@ -30,7 +30,7 @@ export const RequiredSectionsRule: Rule = {
 			if (!isValidHeading(text)) {
 				onError({
 					lineNumber: token.startLine,
-					detail: `Unknown section "${text}". Valid sections: ${allHeadings().join(", ")}`,
+					detail: `Unknown section "${text}". Valid h2 headings are: ${allHeadings().join(", ")}. Heading comparison is case-insensitive. See: ${RULE_DOCS.CSH002}`,
 				});
 			}
 		}

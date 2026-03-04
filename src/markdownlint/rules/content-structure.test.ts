@@ -1,6 +1,7 @@
 import { lint } from "markdownlint/sync";
 import { describe, expect, it } from "vitest";
 import { ContentStructureRule } from "./content-structure.js";
+import { RULE_DOCS } from "./utils.js";
 
 function check(markdown: string) {
 	const result = lint({
@@ -41,6 +42,7 @@ describe("markdownlint/content-structure", () => {
 		const messages = check(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Empty section");
+		expect(messages[0]).toContain("Add a list of changes");
 	});
 
 	it("rejects empty section at end of file", () => {
@@ -62,6 +64,7 @@ describe("markdownlint/content-structure", () => {
 		const messages = check(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("missing a language identifier");
+		expect(messages[0]).toContain("```ts");
 	});
 
 	it("rejects code block with empty string language", () => {
@@ -76,6 +79,7 @@ describe("markdownlint/content-structure", () => {
 		const messages = check(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Empty list item");
+		expect(messages[0]).toContain("must contain descriptive text");
 	});
 
 	it("passes list items with content", () => {
@@ -90,5 +94,10 @@ describe("markdownlint/content-structure", () => {
 		expect(messages.some((m) => m.includes("Empty section"))).toBe(true);
 		expect(messages.some((m) => m.includes("language identifier"))).toBe(true);
 		expect(messages.some((m) => m.includes("Empty list item"))).toBe(true);
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = check("## Features\n\n## Bug Fixes\n\nContent\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH003);
 	});
 });
