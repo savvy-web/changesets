@@ -89,6 +89,7 @@ describe("VersionFiles.readConfig", () => {
 	});
 
 	it("returns undefined when versionFiles fails schema validation", () => {
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFileSync).mockReturnValue(
 			JSON.stringify({
@@ -102,6 +103,7 @@ describe("VersionFiles.readConfig", () => {
 			}),
 		);
 		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+		warnSpy.mockRestore();
 	});
 
 	it("warns when versionFiles is present but invalid", () => {

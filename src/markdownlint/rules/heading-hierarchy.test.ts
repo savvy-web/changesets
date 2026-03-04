@@ -1,6 +1,7 @@
 import { lint } from "markdownlint/sync";
 import { describe, expect, it } from "vitest";
 import { HeadingHierarchyRule } from "./heading-hierarchy.js";
+import { RULE_DOCS } from "./utils.js";
 
 function check(markdown: string) {
 	const result = lint({
@@ -47,19 +48,22 @@ describe("markdownlint/heading-hierarchy", () => {
 	it("rejects h1 heading", () => {
 		const messages = check("# Title\n\nContent\n");
 		expect(messages).toHaveLength(1);
-		expect(messages[0]).toBe("h1 headings are not allowed in changeset files");
+		expect(messages[0]).toContain("h1 headings are not allowed in changeset files");
+		expect(messages[0]).toContain("Use h2 (##) for top-level sections");
+		expect(messages[0]).toContain(RULE_DOCS.CSH001);
 	});
 
 	it("rejects h1 after h2", () => {
 		const messages = check("## Features\n\n# Title\n");
 		expect(messages).toHaveLength(1);
-		expect(messages[0]).toBe("h1 headings are not allowed in changeset files");
+		expect(messages[0]).toContain("h1 headings are not allowed in changeset files");
 	});
 
 	it("rejects h2 -> h4 skip", () => {
 		const messages = check("## Features\n\n#### Details\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Heading level skipped");
+		expect(messages[0]).toContain(RULE_DOCS.CSH001);
 	});
 
 	it("rejects h3 -> h5 skip", () => {
@@ -72,13 +76,14 @@ describe("markdownlint/heading-hierarchy", () => {
 		const md = "# Title\n\n## Features\n\n#### Skip\n";
 		const messages = check(md);
 		expect(messages).toHaveLength(2);
-		expect(messages[0]).toBe("h1 headings are not allowed in changeset files");
+		expect(messages[0]).toContain("h1 headings are not allowed in changeset files");
 		expect(messages[1]).toContain("Heading level skipped");
 	});
 
 	it("reports correct skip details in message", () => {
 		const messages = check("## Features\n\n#### Details\n");
-		expect(messages[0]).toBe("Heading level skipped: expected h3 or lower, found h4");
+		expect(messages[0]).toContain("expected h3 or lower, found h4");
+		expect(messages[0]).toContain("Headings must increase sequentially");
 	});
 
 	it("handles h2 -> h4 after h3 resets to new h2", () => {
@@ -86,5 +91,10 @@ describe("markdownlint/heading-hierarchy", () => {
 		const messages = check(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Heading level skipped");
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = check("# Title\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH001);
 	});
 });

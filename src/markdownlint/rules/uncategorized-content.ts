@@ -1,6 +1,6 @@
 import type { Rule } from "markdownlint";
 
-import { getHeadingLevel } from "./utils.js";
+import { RULE_DOCS, getHeadingLevel } from "./utils.js";
 
 /**
  * markdownlint rule: changeset-uncategorized-content (CSH004)
@@ -31,7 +31,7 @@ export const UncategorizedContentRule: Rule = {
 			if (token.type !== "atxHeading") {
 				onError({
 					lineNumber: token.startLine,
-					detail: "Content must be placed under a category heading (## heading)",
+					detail: `Content must be placed under a category heading (## heading). Move this content under an appropriate section like "## Features" or "## Bug Fixes". If it doesn't fit an existing category, use "## Other". See: ${RULE_DOCS.CSH004}`,
 				});
 			}
 		}

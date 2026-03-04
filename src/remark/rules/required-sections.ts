@@ -12,6 +12,7 @@ import { toString as nodeToString } from "mdast-util-to-string";
 import { lintRule } from "unified-lint-rule";
 import { visit } from "unist-util-visit";
 import { allHeadings, isValidHeading } from "../../categories/index.js";
+import { RULE_DOCS } from "../../constants.js";
 
 export const RequiredSectionsRule = lintRule("remark-lint:changeset-required-sections", (tree: Root, file) => {
 	visit(tree, "heading", (node: Heading) => {
@@ -22,7 +23,10 @@ export const RequiredSectionsRule = lintRule("remark-lint:changeset-required-sec
 		const text = nodeToString(node);
 
 		if (!isValidHeading(text)) {
-			file.message(`Unknown section "${text}". Valid sections: ${allHeadings().join(", ")}`, node);
+			file.message(
+				`Unknown section "${text}". Valid h2 headings are: ${allHeadings().join(", ")}. Heading comparison is case-insensitive. See: ${RULE_DOCS.CSH002}`,
+				node,
+			);
 		}
 	});
 });

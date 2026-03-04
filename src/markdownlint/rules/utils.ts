@@ -6,6 +6,8 @@
 
 import type { MicromarkToken } from "markdownlint";
 
+export { RULE_DOCS } from "../../constants.js";
+
 /**
  * Get the heading level (1-6) from an `atxHeading` token.
  *

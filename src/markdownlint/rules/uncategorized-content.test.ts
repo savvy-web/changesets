@@ -1,6 +1,7 @@
 import { lint } from "markdownlint/sync";
 import { describe, expect, it } from "vitest";
 import { UncategorizedContentRule } from "./uncategorized-content.js";
+import { RULE_DOCS } from "./utils.js";
 
 function check(markdown: string) {
 	const result = lint({
@@ -41,6 +42,7 @@ describe("markdownlint/uncategorized-content", () => {
 		const messages = check(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("category heading");
+		expect(messages[0]).toContain("## Features");
 	});
 
 	it("rejects bare list before first h2", () => {
@@ -83,5 +85,10 @@ describe("markdownlint/uncategorized-content", () => {
 
 	it("ignores HTML comment with no headings", () => {
 		expect(check("<!-- just a comment -->\n")).toEqual([]);
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = check("Uncategorized text.\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH004);
 	});
 });

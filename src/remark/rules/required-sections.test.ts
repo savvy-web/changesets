@@ -2,6 +2,7 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
+import { RULE_DOCS } from "../../constants.js";
 import { RequiredSectionsRule } from "./required-sections.js";
 
 function lint(markdown: string) {
@@ -61,7 +62,8 @@ describe("required-sections", () => {
 		const messages = lint("## Improvements\n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section "Improvements"');
-		expect(messages[0]).toContain("Valid sections:");
+		expect(messages[0]).toContain("Valid h2 headings are:");
+		expect(messages[0]).toContain("case-insensitive");
 	});
 
 	it("rejects a typo heading", () => {
@@ -87,5 +89,10 @@ describe("required-sections", () => {
 		const messages = lint("## \n\nContent\n");
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain('Unknown section ""');
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = lint("## Invalid\n\nContent\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH002);
 	});
 });

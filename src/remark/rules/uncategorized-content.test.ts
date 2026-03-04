@@ -2,6 +2,7 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
+import { RULE_DOCS } from "../../constants.js";
 import { UncategorizedContentRule } from "./uncategorized-content.js";
 
 function lint(markdown: string) {
@@ -40,6 +41,7 @@ describe("uncategorized-content", () => {
 		const messages = lint(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Content must be placed under a category heading");
+		expect(messages[0]).toContain("## Features");
 	});
 
 	it("rejects bare list before first h2", () => {
@@ -89,5 +91,10 @@ describe("uncategorized-content", () => {
 
 	it("ignores HTML comment with no headings", () => {
 		expect(lint("<!-- just a comment -->\n")).toEqual([]);
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = lint("Uncategorized text.\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH004);
 	});
 });

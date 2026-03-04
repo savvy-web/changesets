@@ -14,11 +14,12 @@ Custom changelog formatter and markdown processing pipeline for the Silk Suite. 
 - **GitHub integration** -- Automatic PR links, commit references, and contributor attribution
 - **Version file syncing** -- Bump version fields in additional JSON files using glob patterns and JSONPath expressions
 - **Editor support** -- markdownlint rules for real-time validation in VS Code and CI
+- **AI-agent-friendly errors** -- All lint and validation errors include inline fix instructions and documentation links, so AI agents can resolve issues without examining source code
 
 ## Installation
 
 ```bash
-pnpm add @savvy-web/changesets
+npm install @savvy-web/changesets -D
 ```
 
 ## Quick Start
@@ -64,6 +65,7 @@ Added a new authentication system with OAuth2 support.
 - [CLI Reference](./docs/cli.md) -- All commands and options
 - [API Reference](./docs/api.md) -- Classes, types, Effect services, remark plugins
 - [Architecture](./docs/architecture.md) -- Three-layer pipeline design and export map
+- [Markdownlint Rule Docs](./docs/rules/) -- Per-rule documentation with examples, fix instructions, and rationale
 
 ## License
 

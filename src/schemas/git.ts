@@ -11,7 +11,8 @@ import { Schema } from "effect";
  */
 export const CommitHashSchema = Schema.String.pipe(
 	Schema.pattern(/^[a-f0-9]{7,}$/, {
-		message: () => "Commit hash must be at least 7 hexadecimal characters",
+		message: () =>
+			'Commit hash must be 7 or more lowercase hexadecimal characters (0-9, a-f). Example: "a1b2c3d" or a full 40-character SHA like "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2". Uppercase letters are not allowed',
 	}),
 );
 

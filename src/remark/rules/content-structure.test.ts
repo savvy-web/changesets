@@ -2,6 +2,7 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
+import { RULE_DOCS } from "../../constants.js";
 import { ContentStructureRule } from "./content-structure.js";
 
 function lint(markdown: string) {
@@ -40,6 +41,7 @@ describe("content-structure", () => {
 		const messages = lint(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Empty section");
+		expect(messages[0]).toContain("Add a list of changes");
 	});
 
 	it("rejects empty section at end of file", () => {
@@ -61,6 +63,7 @@ describe("content-structure", () => {
 		const messages = lint(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("missing a language identifier");
+		expect(messages[0]).toContain("```ts");
 	});
 
 	it("rejects code block with empty string language", () => {
@@ -77,6 +80,7 @@ describe("content-structure", () => {
 		const messages = lint(md);
 		expect(messages).toHaveLength(1);
 		expect(messages[0]).toContain("Empty list item");
+		expect(messages[0]).toContain("must contain descriptive text");
 	});
 
 	it("passes list items with content", () => {
@@ -91,5 +95,10 @@ describe("content-structure", () => {
 		expect(messages.some((m) => m.includes("Empty section"))).toBe(true);
 		expect(messages.some((m) => m.includes("language identifier"))).toBe(true);
 		expect(messages.some((m) => m.includes("Empty list item"))).toBe(true);
+	});
+
+	it("includes documentation URL in error messages", () => {
+		const messages = lint("## Features\n\n## Bug Fixes\n\nContent\n");
+		expect(messages[0]).toContain(RULE_DOCS.CSH003);
 	});
 });
