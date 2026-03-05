@@ -61,23 +61,19 @@ export class InitError extends InitErrorBase<{
 const forceOption = Options.boolean("force").pipe(
 	Options.withAlias("f"),
 	Options.withDescription("Overwrite existing config files"),
-	Options.withDefault(false),
 );
 
 const quietOption = Options.boolean("quiet").pipe(
 	Options.withAlias("q"),
 	Options.withDescription("Silence warnings, always exit 0"),
-	Options.withDefault(false),
 );
 
-const markdownlintOption = Options.boolean("markdownlint").pipe(
-	Options.withDescription("Register rules in base markdownlint config"),
-	Options.withDefault(true),
+const skipMarkdownlintOption = Options.boolean("skip-markdownlint").pipe(
+	Options.withDescription("Skip registering rules in base markdownlint config"),
 );
 
 const checkOption = Options.boolean("check").pipe(
 	Options.withDescription("Check configuration without writing (for postinstall scripts)"),
-	Options.withDefault(false),
 );
 /* v8 ignore stop */
 
@@ -368,8 +364,8 @@ export function checkChangesetMarkdownlint(changesetDir: string): CheckIssue[] {
 /* v8 ignore start -- CLI orchestration; individual functions tested separately */
 export const initCommand = Command.make(
 	"init",
-	{ force: forceOption, quiet: quietOption, markdownlint: markdownlintOption, check: checkOption },
-	({ force, quiet, markdownlint, check }) =>
+	{ force: forceOption, quiet: quietOption, skipMarkdownlint: skipMarkdownlintOption, check: checkOption },
+	({ force, quiet, skipMarkdownlint, check }) =>
 		Effect.gen(function* () {
 			const root = resolveWorkspaceRoot(process.cwd());
 
@@ -386,7 +382,7 @@ export const initCommand = Command.make(
 				const issues: CheckIssue[] = [
 					...checkChangesetDir(root),
 					...checkConfig(changesetDir, repoSlug),
-					...(markdownlint ? checkBaseMarkdownlint(root) : []),
+					...(!skipMarkdownlint ? checkBaseMarkdownlint(root) : []),
 					...checkChangesetMarkdownlint(changesetDir),
 				];
 
@@ -418,7 +414,7 @@ export const initCommand = Command.make(
 			}
 
 			// 4. Handle base markdownlint config
-			if (markdownlint) {
+			if (!skipMarkdownlint) {
 				const baseResult = yield* handleBaseMarkdownlint(root).pipe(Effect.either);
 				if (baseResult._tag === "Right") {
 					yield* Effect.log(baseResult.right);
