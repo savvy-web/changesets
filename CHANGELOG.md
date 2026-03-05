@@ -1,5 +1,13 @@
 # @savvy-web/changesets
 
+## 0.4.1
+
+### Bug Fixes
+
+* [`2d11fba`](https://github.com/savvy-web/changesets/commit/2d11fbaebd37f09cdbc0564d2a93fb4f8f916ea4) Fixed `init` command never patching or checking the base markdownlint config because `Options.boolean("markdownlint").pipe(Options.withDefault(true))` is a no-op in @effect/cli (boolean options default to `false`, and `withDefault` cannot override this)
+* Replaced `--markdownlint` (broken default-true) with `--skip-markdownlint` (correct default-false) so the base config is patched by default
+* Removed misleading `withDefault(false)` from other boolean options since it's equally a no-op
+
 ## 0.4.0
 
 ### Features
