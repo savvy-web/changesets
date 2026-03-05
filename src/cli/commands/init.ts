@@ -12,6 +12,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Data, Effect } from "effect";
+import type { FormattingOptions } from "jsonc-parser";
+import { applyEdits, modify, parse as parseJsonc } from "jsonc-parser";
 import { findProjectRoot } from "workspace-tools";
 
 const CUSTOM_RULES_ENTRY = "@savvy-web/changesets/markdownlint";
@@ -96,10 +98,11 @@ export function detectGitHubRepo(cwd: string): string | null {
 	return null;
 }
 
-/** Strip single-line `//` and multi-line JSONC comments for parsing. */
-export function stripJsoncComments(text: string): string {
-	return text.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
-}
+/** Formatting options for jsonc-parser modify operations (tabs per Biome/Silk Suite convention). */
+const JSONC_FORMAT: FormattingOptions = {
+	tabSize: 1,
+	insertSpaces: false,
+};
 
 /** Resolve workspace root from cwd, falling back to cwd itself. */
 export function resolveWorkspaceRoot(cwd: string): string {
@@ -166,26 +169,37 @@ export function handleBaseMarkdownlint(root: string): Effect.Effect<string, Init
 			}
 
 			const fullPath = join(root, foundPath);
-			const raw = readFileSync(fullPath, "utf-8");
-			const parsed = JSON.parse(stripJsoncComments(raw));
+			let text = readFileSync(fullPath, "utf-8");
+			const parsed = parseJsonc(text);
 
-			if (!Array.isArray(parsed.customRules)) {
-				parsed.customRules = [];
-			}
-			if (!parsed.customRules.includes(CUSTOM_RULES_ENTRY)) {
-				parsed.customRules.push(CUSTOM_RULES_ENTRY);
+			// Add customRules entry if missing
+			if (!Array.isArray(parsed.customRules) || !parsed.customRules.includes(CUSTOM_RULES_ENTRY)) {
+				const edits = modify(text, ["customRules", -1], CUSTOM_RULES_ENTRY, {
+					formattingOptions: JSONC_FORMAT,
+					isArrayInsertion: true,
+				});
+				text = applyEdits(text, edits);
 			}
 
-			if (typeof parsed.config !== "object" || parsed.config === null) {
-				parsed.config = {};
+			// Ensure config is an object (replace null/missing with {})
+			const currentConfig = parseJsonc(text).config;
+			if (typeof currentConfig !== "object" || currentConfig === null) {
+				const edits = modify(text, ["config"], {}, { formattingOptions: JSONC_FORMAT });
+				text = applyEdits(text, edits);
 			}
+
+			// Add missing rule entries — snapshot is safe since RULE_NAMES has unique values
+			const config = parseJsonc(text).config;
 			for (const rule of RULE_NAMES) {
-				if (!(rule in parsed.config)) {
-					parsed.config[rule] = false;
+				if (!(rule in config)) {
+					const edits = modify(text, ["config", rule], false, {
+						formattingOptions: JSONC_FORMAT,
+					});
+					text = applyEdits(text, edits);
 				}
 			}
 
-			writeFileSync(fullPath, `${JSON.stringify(parsed, null, "\t")}\n`);
+			writeFileSync(fullPath, text);
 			return `Updated ${foundPath}`;
 		},
 		catch: (error) =>
@@ -295,7 +309,7 @@ export function checkBaseMarkdownlint(root: string): CheckIssue[] {
 
 	try {
 		const raw = readFileSync(join(root, foundPath), "utf-8");
-		const parsed = JSON.parse(stripJsoncComments(raw));
+		const parsed = parseJsonc(raw);
 		const issues: CheckIssue[] = [];
 
 		if (!Array.isArray(parsed.customRules) || !parsed.customRules.includes(CUSTOM_RULES_ENTRY)) {
