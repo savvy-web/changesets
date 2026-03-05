@@ -1,5 +1,17 @@
 # @savvy-web/changesets
 
+## 0.4.0
+
+### Features
+
+* [`a0fac3a`](https://github.com/savvy-web/changesets/commit/a0fac3a19da8a97ff4e0600e956feb008bd71243) Added AI-agent-friendly error messages to all markdownlint and remark-lint rules with inline fix instructions and documentation URLs
+* Created per-rule documentation files (CSH001-CSH004) following the DavidAnson/markdownlint pattern with valid/invalid examples, fix instructions, and rationale
+* Improved schema validation messages with format examples and expected values
+
+### Bug Fixes
+
+* [`5482ee1`](https://github.com/savvy-web/changesets/commit/5482ee177c45927da4794b59be5057da94ff1c5e) Fixed `init` command destroying JSONC comments and formatting when patching markdownlint config files by switching from regex-based comment stripping + `JSON.stringify` to `jsonc-parser`'s `modify` + `applyEdits` for surgical edits
+
 ## 0.3.0
 
 ### Features
