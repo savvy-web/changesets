@@ -1,5 +1,14 @@
 # @savvy-web/changesets
 
+## 0.4.2
+
+### Dependencies
+
+* [`f414044`](https://github.com/savvy-web/changesets/commit/f41404458c2791d94482b3fd455d94f3c411c8ed) @savvy-web/commitlint: ^0.3.4 → ^0.4.0
+* @savvy-web/lint-staged: ^0.4.6 → ^0.5.0
+* @savvy-web/rslib-builder: ^0.15.0 → ^0.16.0
+* @savvy-web/vitest: ^0.1.0 → ^0.2.0
+
 ## 0.4.1
 
 ### Bug Fixes
