@@ -1,5 +1,5 @@
 {
-	"$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.20.0/schema/markdownlint-cli2-config-schema.json",
+	"$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.21.0/schema/markdownlint-cli2-config-schema.json",
 	"globs": ["**/*.{md,mdx}"],
 	"fix": true,
 	"gitignore": true,
@@ -13,7 +13,7 @@
 		"**/CHANGELOG.md",
 		"**/.claude/plans"
 	],
-	"customRules": ["../../dist/dev/cjs/markdownlint.cjs"],
+	"customRules": ["@savvy-web/changesets/markdownlint"],
 	"config": {
 		"default": true,
 		"MD001": true,
