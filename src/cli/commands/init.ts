@@ -98,7 +98,7 @@ export function detectGitHubRepo(cwd: string): string | null {
 	return null;
 }
 
-/** Formatting options for jsonc-parser modify operations. */
+/** Formatting options for jsonc-parser modify operations (tabs per Biome/Silk Suite convention). */
 const JSONC_FORMAT: FormattingOptions = {
 	tabSize: 1,
 	insertSpaces: false,
@@ -188,7 +188,7 @@ export function handleBaseMarkdownlint(root: string): Effect.Effect<string, Init
 				text = applyEdits(text, edits);
 			}
 
-			// Add missing rule entries to config
+			// Add missing rule entries — snapshot is safe since RULE_NAMES has unique values
 			const config = parseJsonc(text).config;
 			for (const rule of RULE_NAMES) {
 				if (!(rule in config)) {
