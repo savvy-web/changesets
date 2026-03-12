@@ -100,11 +100,89 @@ export function serializeDependencyTableToMarkdown(rows: DependencyTableRow[]): 
 	return unified().use(remarkGfm).use(remarkStringify).stringify(tree).trim();
 }
 
-// Stubs for Task 3 — collapse & sort (imported by test file)
-export function collapseDependencyRows(_rows: DependencyTableRow[]): DependencyTableRow[] {
-	throw new Error("Not implemented — see Task 3");
+const ACTION_ORDER: Record<string, number> = { removed: 0, updated: 1, added: 2 };
+
+/**
+ * Collapse dependency table rows with the same dependency+type key.
+ *
+ * Rules:
+ * - updated+updated → updated (earliest from, latest to)
+ * - added+updated → added (final to)
+ * - added+removed → drop (net zero)
+ * - updated+removed → removed (original from)
+ * - removed+added → updated (original from, new to)
+ * - contradictory/duplicate → warn, keep later entry
+ *
+ * @param rows - Array of DependencyTableRow objects
+ * @returns Collapsed array
+ */
+export function collapseDependencyRows(rows: DependencyTableRow[]): DependencyTableRow[] {
+	const groups = new Map<string, DependencyTableRow>();
+
+	for (const row of rows) {
+		const key = `${row.dependency}\0${row.type}`;
+		const existing = groups.get(key);
+
+		if (!existing) {
+			groups.set(key, { ...row });
+			continue;
+		}
+
+		const merged = collapseTwo(existing, row);
+		if (merged === null) {
+			groups.delete(key);
+		} else {
+			groups.set(key, merged);
+		}
+	}
+
+	return [...groups.values()];
 }
 
-export function sortDependencyRows(_rows: DependencyTableRow[]): DependencyTableRow[] {
-	throw new Error("Not implemented — see Task 3");
+/**
+ * Collapse two rows into one, or return null to drop.
+ */
+function collapseTwo(first: DependencyTableRow, second: DependencyTableRow): DependencyTableRow | null {
+	const a = first.action;
+	const b = second.action;
+
+	if (a === "updated" && b === "updated") {
+		return { ...first, to: second.to };
+	}
+	if (a === "added" && b === "updated") {
+		return { ...first, to: second.to };
+	}
+	if (a === "added" && b === "removed") {
+		return null; // net zero
+	}
+	if (a === "updated" && b === "removed") {
+		return { ...first, action: "removed", to: "\u2014" };
+	}
+	if (a === "removed" && b === "added") {
+		return { ...first, action: "updated", from: first.from, to: second.to };
+	}
+
+	// Contradictory or duplicate: keep later entry
+	return { ...second };
+}
+
+/**
+ * Sort dependency table rows.
+ *
+ * Order: removed → updated → added, then type alphabetically,
+ * then dependency name alphabetically.
+ *
+ * @param rows - Array of DependencyTableRow objects
+ * @returns New sorted array
+ */
+export function sortDependencyRows(rows: DependencyTableRow[]): DependencyTableRow[] {
+	return [...rows].sort((a, b) => {
+		const actionDiff = (ACTION_ORDER[a.action] ?? 99) - (ACTION_ORDER[b.action] ?? 99);
+		if (actionDiff !== 0) return actionDiff;
+
+		const typeDiff = a.type.localeCompare(b.type);
+		if (typeDiff !== 0) return typeDiff;
+
+		return a.dependency.localeCompare(b.dependency);
+	});
 }
