@@ -73,6 +73,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 
 	it("exports transform plugins", async () => {
 		const mod = await import("../remark/index.js");
+		expect(mod.AggregateDependencyTablesPlugin).toBeDefined();
 		expect(mod.MergeSectionsPlugin).toBeDefined();
 		expect(mod.ReorderSectionsPlugin).toBeDefined();
 		expect(mod.DeduplicateItemsPlugin).toBeDefined();
@@ -84,7 +85,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 	it("exports presets", async () => {
 		const mod = await import("../remark/index.js");
 		expect(mod.SilkChangesetPreset).toHaveLength(5);
-		expect(mod.SilkChangesetTransformPreset).toHaveLength(6);
+		expect(mod.SilkChangesetTransformPreset).toHaveLength(7);
 	});
 });
 
@@ -96,7 +97,7 @@ describe("remark presets (src/remark/presets.ts)", () => {
 
 	it("SilkChangesetTransformPreset contains transform plugins in order", async () => {
 		const { SilkChangesetTransformPreset } = await import("../remark/presets.js");
-		expect(SilkChangesetTransformPreset).toHaveLength(6);
+		expect(SilkChangesetTransformPreset).toHaveLength(7);
 	});
 });
 

@@ -7,6 +7,7 @@
  */
 
 // Transform plugins
+export { AggregateDependencyTablesPlugin } from "./plugins/aggregate-dependency-tables.js";
 export { ContributorFootnotesPlugin } from "./plugins/contributor-footnotes.js";
 export { DeduplicateItemsPlugin } from "./plugins/deduplicate-items.js";
 export { IssueLinkRefsPlugin } from "./plugins/issue-link-refs.js";

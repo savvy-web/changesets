@@ -4,6 +4,7 @@
  * @internal
  */
 
+import { AggregateDependencyTablesPlugin } from "./plugins/aggregate-dependency-tables.js";
 import { ContributorFootnotesPlugin } from "./plugins/contributor-footnotes.js";
 import { DeduplicateItemsPlugin } from "./plugins/deduplicate-items.js";
 import { IssueLinkRefsPlugin } from "./plugins/issue-link-refs.js";
@@ -46,16 +47,18 @@ export const SilkChangesetPreset = [
  *
  * @remarks
  * Plugin ordering is significant:
- * 1. `MergeSectionsPlugin` -- merge duplicate h3 headings (must run before reorder)
- * 2. `ReorderSectionsPlugin` -- sort sections by category priority
- * 3. `DeduplicateItemsPlugin` -- remove duplicate list items
- * 4. `ContributorFootnotesPlugin` -- aggregate contributor attributions
- * 5. `IssueLinkRefsPlugin` -- convert inline issue links to reference-style
- * 6. `NormalizeFormatPlugin` -- final cleanup (remove empty sections/lists)
+ * 1. `AggregateDependencyTablesPlugin` -- merge duplicate dependency sections (must run first)
+ * 2. `MergeSectionsPlugin` -- merge duplicate h3 headings (must run before reorder)
+ * 3. `ReorderSectionsPlugin` -- sort sections by category priority
+ * 4. `DeduplicateItemsPlugin` -- remove duplicate list items
+ * 5. `ContributorFootnotesPlugin` -- aggregate contributor attributions
+ * 6. `IssueLinkRefsPlugin` -- convert inline issue links to reference-style
+ * 7. `NormalizeFormatPlugin` -- final cleanup (remove empty sections/lists)
  *
  * @public
  */
 export const SilkChangesetTransformPreset = [
+	AggregateDependencyTablesPlugin,
 	MergeSectionsPlugin,
 	ReorderSectionsPlugin,
 	DeduplicateItemsPlugin,
