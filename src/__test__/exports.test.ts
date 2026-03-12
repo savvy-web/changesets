@@ -49,6 +49,16 @@ describe("main entry point (src/index.ts)", () => {
 		expect(mod.NonEmptyString).toBeDefined();
 		expect(mod.PositiveInteger).toBeDefined();
 	});
+
+	it("exports dependency table utilities", async () => {
+		const mod = await import("../index.js");
+		expect(mod.DependencyTable).toBeDefined();
+		expect(mod.DependencyTableRowSchema).toBeDefined();
+		expect(mod.DependencyTableTypeSchema).toBeDefined();
+		expect(mod.DependencyActionSchema).toBeDefined();
+		expect(mod.DependencyTableSchema).toBeDefined();
+		expect(mod.VersionOrEmptySchema).toBeDefined();
+	});
 });
 
 describe("remark entry point (src/remark/index.ts)", () => {

@@ -16,6 +16,7 @@
 
 export { Categories } from "./api/categories.js";
 export { Changelog } from "./api/changelog.js";
+export { DependencyTable } from "./api/dependency-table.js";
 export type { LintMessage } from "./api/linter.js";
 export { ChangesetLinter } from "./api/linter.js";
 export { ChangelogTransformer } from "./api/transformer.js";
@@ -59,6 +60,14 @@ export {
 	DependencyTypeSchema,
 	DependencyUpdateSchema,
 } from "./schemas/changeset.js";
+export type { DependencyAction, DependencyTableRow, DependencyTableType } from "./schemas/dependency-table.js";
+export {
+	DependencyActionSchema,
+	DependencyTableRowSchema,
+	DependencyTableSchema,
+	DependencyTableTypeSchema,
+	VersionOrEmptySchema,
+} from "./schemas/dependency-table.js";
 export type { VersionType } from "./schemas/git.js";
 export { CommitHashSchema, VersionTypeSchema } from "./schemas/git.js";
 export type { GitHubInfo } from "./schemas/github.js";
