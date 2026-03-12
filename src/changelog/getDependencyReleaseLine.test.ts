@@ -19,31 +19,16 @@ const MOCK_INFO_A: GitHubCommitInfo = {
 	},
 };
 
-const MOCK_INFO_B: GitHubCommitInfo = {
-	user: "bob",
-	pull: 11,
-	links: {
-		commit: "[`def4567`](https://github.com/owner/repo/commit/def4567890abc)",
-		pull: "https://github.com/owner/repo/pull/11",
-		user: "https://github.com/bob",
-	},
-};
+const testLayer = makeGitHubTest(new Map([["abc1234567890", MOCK_INFO_A]]));
 
-const testLayer = makeGitHubTest(
-	new Map([
-		["abc1234567890", MOCK_INFO_A],
-		["def4567890abc", MOCK_INFO_B],
-	]),
-);
-
-function makeDep(name: string, newVersion: string): ModCompWithPackage {
+function makeDep(name: string, newVersion: string, deps?: Record<string, Record<string, string>>): ModCompWithPackage {
 	return {
 		name,
 		type: "patch",
 		oldVersion: "1.0.0",
 		newVersion,
 		changesets: [],
-		packageJson: { name, version: newVersion },
+		packageJson: { name, version: newVersion, ...deps },
 		dir: `/packages/${name}`,
 	};
 }
@@ -59,49 +44,59 @@ describe("getDependencyReleaseLine", () => {
 		expect(result).toBe("");
 	});
 
-	it("generates dependency lines with commit links", async () => {
-		const changesets: NewChangesetWithCommit[] = [
-			{ id: "cs-1", summary: "bump deps", releases: [], commit: "abc1234567890" },
-			{ id: "cs-2", summary: "bump more", releases: [], commit: "def4567890abc" },
-		];
-		const deps = [makeDep("@types/node", "20.0.0"), makeDep("typescript", "5.0.0")];
-
-		const result = await Effect.runPromise(
-			getDependencyReleaseLine(changesets, deps, OPTIONS).pipe(Effect.provide(testLayer)),
-		);
-
-		expect(result).toContain("Updated dependencies");
-		expect(result).toContain("abc1234");
-		expect(result).toContain("def4567");
-		expect(result).toContain("@types/node@20.0.0");
-		expect(result).toContain("typescript@5.0.0");
-	});
-
-	it("handles API failure with fallback links", async () => {
-		const failLayer = makeGitHubTest(new Map());
-		const changesets: NewChangesetWithCommit[] = [
-			{ id: "cs-1", summary: "bump", releases: [], commit: "deadbeef1234567" },
-		];
-		const deps = [makeDep("some-pkg", "2.0.0")];
-
-		const result = await Effect.runPromise(
-			getDependencyReleaseLine(changesets, deps, OPTIONS).pipe(Effect.provide(failLayer)),
-		);
-
-		expect(result).toContain("Updated dependencies");
-		expect(result).toContain("deadbee");
-		expect(result).toContain("some-pkg@2.0.0");
-	});
-
-	it("handles changesets without commits", async () => {
+	it("emits a markdown table with correct columns", async () => {
 		const changesets: NewChangesetWithCommit[] = [{ id: "cs-1", summary: "bump", releases: [] }];
-		const deps = [makeDep("some-pkg", "3.0.0")];
+		const deps = [makeDep("typescript", "5.0.0", { devDependencies: { typescript: "^5.0.0" } })];
 
 		const result = await Effect.runPromise(
 			getDependencyReleaseLine(changesets, deps, OPTIONS).pipe(Effect.provide(testLayer)),
 		);
 
-		expect(result).toContain("Updated dependencies:");
-		expect(result).toContain("some-pkg@3.0.0");
+		// Column headers — remark-stringify pads columns for alignment
+		expect(result).toMatch(/\| Dependency\s*\|/);
+		expect(result).toMatch(/\| Type\s*\|/);
+		expect(result).toMatch(/\| Action\s*\|/);
+		expect(result).toMatch(/\| From\s*\|/);
+		expect(result).toMatch(/\| To\s*\|/);
+		expect(result).toContain("typescript");
+		expect(result).toContain("devDependency");
+		expect(result).toContain("updated");
+	});
+
+	it("infers dependency type from packageJson fields", async () => {
+		const changesets: NewChangesetWithCommit[] = [{ id: "cs-1", summary: "bump", releases: [] }];
+		const deps = [
+			makeDep("foo", "2.0.0", { dependencies: { foo: "^2.0.0" } }),
+			makeDep("bar", "3.0.0", { peerDependencies: { bar: "^3.0.0" } }),
+		];
+
+		const result = await Effect.runPromise(
+			getDependencyReleaseLine(changesets, deps, OPTIONS).pipe(Effect.provide(testLayer)),
+		);
+
+		expect(result).toContain("dependency");
+		expect(result).toContain("peerDependency");
+	});
+
+	it("infers optionalDependency type", async () => {
+		const changesets: NewChangesetWithCommit[] = [{ id: "cs-1", summary: "bump", releases: [] }];
+		const deps = [makeDep("opt-pkg", "2.0.0", { optionalDependencies: { "opt-pkg": "^2.0.0" } })];
+
+		const result = await Effect.runPromise(
+			getDependencyReleaseLine(changesets, deps, OPTIONS).pipe(Effect.provide(testLayer)),
+		);
+
+		expect(result).toContain("optionalDependency");
+	});
+
+	it("falls back to dependency type when not found in any field", async () => {
+		const changesets: NewChangesetWithCommit[] = [{ id: "cs-1", summary: "bump", releases: [] }];
+		const deps = [makeDep("unknown-pkg", "2.0.0")];
+
+		const result = await Effect.runPromise(
+			getDependencyReleaseLine(changesets, deps, OPTIONS).pipe(Effect.provide(testLayer)),
+		);
+
+		expect(result).toContain("dependency");
 	});
 });

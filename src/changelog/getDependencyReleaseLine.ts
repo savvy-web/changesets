@@ -1,73 +1,68 @@
 /**
  * Core formatter: getDependencyReleaseLine.
  *
- * Formats dependency update entries for the changelog with commit links.
- *
+ * Formats dependency update entries as a structured markdown table.
  */
 
 import { Effect } from "effect";
 
+import type { DependencyTableRow, DependencyTableType } from "../schemas/dependency-table.js";
 import type { ChangesetOptions } from "../schemas/options.js";
 import { GitHubService } from "../services/github.js";
-import { logWarning } from "../utils/logger.js";
+import { serializeDependencyTableToMarkdown } from "../utils/dependency-table.js";
 import type { ModCompWithPackage, NewChangesetWithCommit } from "../vendor/types.js";
 
+/** Field-to-type mapping for inferring dependency type from packageJson. */
+const FIELD_MAP: readonly [string, DependencyTableType][] = [
+	["dependencies", "dependency"],
+	["devDependencies", "devDependency"],
+	["peerDependencies", "peerDependency"],
+	["optionalDependencies", "optionalDependency"],
+] as const;
+
 /**
- * Format dependency release lines as an Effect program.
+ * Infer the dependency table type from a package's packageJson.
+ */
+function inferDependencyType(dep: ModCompWithPackage): DependencyTableType {
+	const pkg = dep.packageJson as Record<string, unknown>;
+	for (const [field, type] of FIELD_MAP) {
+		const section = pkg[field];
+		if (typeof section === "object" && section !== null && dep.name in (section as Record<string, unknown>)) {
+			return type;
+		}
+	}
+	return "dependency";
+}
+
+/**
+ * Format dependency release lines as a markdown table.
  *
- * @param changesets - Changesets that caused dependency updates
+ * @param _changesets - Changesets that caused dependency updates (unused in table format)
  * @param dependenciesUpdated - Dependencies that were updated
- * @param options - Validated configuration options
- * @returns Formatted markdown string, or empty string if no deps updated
+ * @param _options - Validated configuration options (unused in table format)
+ * @returns Formatted markdown table string, or empty string if no deps updated
  */
 export function getDependencyReleaseLine(
-	changesets: NewChangesetWithCommit[],
+	_changesets: NewChangesetWithCommit[],
 	dependenciesUpdated: ModCompWithPackage[],
-	options: ChangesetOptions,
+	_options: ChangesetOptions,
 ): Effect.Effect<string, never, GitHubService> {
 	return Effect.gen(function* () {
 		if (dependenciesUpdated.length === 0) return "";
 
-		const github = yield* GitHubService;
-		let apiFailures = 0;
-		const totalWithCommit = changesets.filter((cs) => cs.commit).length;
+		// TODO: GitHubService is no longer used for commit links in table format.
+		// Kept to maintain the existing type signature contract. Consider removing
+		// the GitHubService dependency in a future breaking change.
+		yield* GitHubService;
 
-		// Process changesets to collect commit links
-		const commitLinks = yield* Effect.forEach(
-			changesets,
-			(cs) => {
-				const commit = cs.commit;
-				if (!commit) return Effect.succeed(null);
+		const rows: DependencyTableRow[] = dependenciesUpdated.map((dep) => ({
+			dependency: dep.name,
+			type: inferDependencyType(dep),
+			action: "updated" as const,
+			from: dep.oldVersion,
+			to: dep.newVersion,
+		}));
 
-				return github.getInfo({ commit, repo: options.repo }).pipe(
-					Effect.map((info) => info.links.commit),
-					Effect.catchAll((error) => {
-						apiFailures++;
-						logWarning(`Failed to fetch GitHub info for commit ${commit}:`, String(error));
-						// Fallback: build link manually
-						return Effect.succeed(
-							`[\`${commit.substring(0, 7)}\`](https://github.com/${options.repo}/commit/${commit})`,
-						);
-					}),
-				);
-			},
-			{ concurrency: 10 },
-		);
-
-		// Log metrics on failures
-		if (apiFailures > 0) {
-			const successRate = (((totalWithCommit - apiFailures) / totalWithCommit) * 100).toFixed(1);
-			logWarning(
-				`GitHub API calls completed with ${apiFailures}/${totalWithCommit} failures (${successRate}% success rate)`,
-			);
-		}
-
-		const validLinks = commitLinks.filter(Boolean);
-		const changesetLink =
-			validLinks.length > 0 ? `- Updated dependencies [${validLinks.join(", ")}]:` : "- Updated dependencies:";
-
-		const updatedDependenciesList = dependenciesUpdated.map((dep) => `  - ${dep.name}@${dep.newVersion}`);
-
-		return [changesetLink, ...updatedDependenciesList].join("\n");
+		return serializeDependencyTableToMarkdown(rows);
 	});
 }
