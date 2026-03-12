@@ -5,12 +5,12 @@ export default NodeLibraryBuilder.create({
 	cjsInterop: true,
 	transform({ pkg }) {
 		delete pkg.devDependencies;
-		pkg.scripts = {
-			postinstall: "savvy-changesets init --check",
-		};
+		delete pkg.bundleDependencies;
 		delete pkg.publishConfig;
 		delete pkg.packageManager;
 		delete pkg.devEngines;
+		delete pkg.config;
+		delete pkg.scripts;
 		return pkg;
 	},
 });
