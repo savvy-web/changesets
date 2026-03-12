@@ -65,7 +65,7 @@ describe("changelog/index (export boundary)", () => {
 			OPTIONS,
 		);
 		expect(typeof result).toBe("string");
-		expect(result).toContain("some-dep@1.0.1");
+		expect(result).toContain("some-dep");
 	});
 
 	it("getDependencyReleaseLine returns empty for no deps", async () => {

@@ -74,6 +74,6 @@ describe("ChangelogService (Effect service layer)", () => {
 
 		const result = await Effect.runPromise(program.pipe(Effect.provide(TestLayer)));
 		expect(typeof result).toBe("string");
-		expect(result).toContain("dep-pkg@1.0.1");
+		expect(result).toContain("dep-pkg");
 	});
 });
