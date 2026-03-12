@@ -11,6 +11,7 @@ import { MergeSectionsPlugin } from "./plugins/merge-sections.js";
 import { NormalizeFormatPlugin } from "./plugins/normalize-format.js";
 import { ReorderSectionsPlugin } from "./plugins/reorder-sections.js";
 import { ContentStructureRule } from "./rules/content-structure.js";
+import { DependencyTableFormatRule } from "./rules/dependency-table-format.js";
 import { HeadingHierarchyRule } from "./rules/heading-hierarchy.js";
 import { RequiredSectionsRule } from "./rules/required-sections.js";
 import { UncategorizedContentRule } from "./rules/uncategorized-content.js";
@@ -37,6 +38,7 @@ export const SilkChangesetPreset = [
 	RequiredSectionsRule,
 	ContentStructureRule,
 	UncategorizedContentRule,
+	DependencyTableFormatRule,
 ] as const;
 
 /**

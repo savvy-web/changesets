@@ -68,6 +68,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 		expect(mod.RequiredSectionsRule).toBeDefined();
 		expect(mod.ContentStructureRule).toBeDefined();
 		expect(mod.UncategorizedContentRule).toBeDefined();
+		expect(mod.DependencyTableFormatRule).toBeDefined();
 	});
 
 	it("exports transform plugins", async () => {
@@ -82,7 +83,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 
 	it("exports presets", async () => {
 		const mod = await import("../remark/index.js");
-		expect(mod.SilkChangesetPreset).toHaveLength(4);
+		expect(mod.SilkChangesetPreset).toHaveLength(5);
 		expect(mod.SilkChangesetTransformPreset).toHaveLength(6);
 	});
 });
@@ -90,7 +91,7 @@ describe("remark entry point (src/remark/index.ts)", () => {
 describe("remark presets (src/remark/presets.ts)", () => {
 	it("SilkChangesetPreset contains lint rules", async () => {
 		const { SilkChangesetPreset } = await import("../remark/presets.js");
-		expect(SilkChangesetPreset).toHaveLength(4);
+		expect(SilkChangesetPreset).toHaveLength(5);
 	});
 
 	it("SilkChangesetTransformPreset contains transform plugins in order", async () => {

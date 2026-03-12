@@ -17,6 +17,7 @@ export { ReorderSectionsPlugin } from "./plugins/reorder-sections.js";
 export { SilkChangesetPreset, SilkChangesetTransformPreset } from "./presets.js";
 // Lint rules
 export { ContentStructureRule } from "./rules/content-structure.js";
+export { DependencyTableFormatRule } from "./rules/dependency-table-format.js";
 export { HeadingHierarchyRule } from "./rules/heading-hierarchy.js";
 export { RequiredSectionsRule } from "./rules/required-sections.js";
 export { UncategorizedContentRule } from "./rules/uncategorized-content.js";
