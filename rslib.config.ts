@@ -5,10 +5,12 @@ export default NodeLibraryBuilder.create({
 	cjsInterop: true,
 	transform({ pkg }) {
 		delete pkg.devDependencies;
-		delete pkg.scripts;
+		delete pkg.bundleDependencies;
 		delete pkg.publishConfig;
 		delete pkg.packageManager;
 		delete pkg.devEngines;
+		delete pkg.config;
+		delete pkg.scripts;
 		return pkg;
 	},
 });
