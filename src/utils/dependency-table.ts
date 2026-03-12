@@ -111,7 +111,7 @@ const ACTION_ORDER: Record<string, number> = { removed: 0, updated: 1, added: 2 
  * - added+removed → drop (net zero)
  * - updated+removed → removed (original from)
  * - removed+added → updated (original from, new to)
- * - contradictory/duplicate → warn, keep later entry
+ * - contradictory/duplicate → keep later entry
  *
  * @param rows - Array of DependencyTableRow objects
  * @returns Collapsed array
@@ -159,7 +159,7 @@ function collapseTwo(first: DependencyTableRow, second: DependencyTableRow): Dep
 		return { ...first, action: "removed", to: "\u2014" };
 	}
 	if (a === "removed" && b === "added") {
-		return { ...first, action: "updated", from: first.from, to: second.to };
+		return { ...first, action: "updated", to: second.to };
 	}
 
 	// Contradictory or duplicate: keep later entry
