@@ -5,13 +5,57 @@
  * list items and appends a deduplicated contributors paragraph at the
  * end of each version block.
  *
- * After parsing, `Thanks [@user](url)!` becomes three sibling nodes
- * inside a paragraph:
- * 1. text node ending with "Thanks "
- * 2. link node with child text "\@user"
- * 3. text node "!"
+ * @remarks
+ * The Changesets changelog formatter appends contributor attributions to
+ * individual list items (e.g., `- Fixed bug Thanks [@alice](url)!`). This
+ * plugin strips those inline attributions and collects them into a single
+ * summary paragraph at the end of each version block:
  *
- * Plain `Thanks @user!` remains a single text node.
+ * "Thanks to \@alice, \@bob, and \@carol for their contributions!"
+ *
+ * Two attribution formats are recognized:
+ *
+ * - **Linked**: `Thanks [@user](https://github.com/user)!` -- after markdown
+ *   parsing this appears as three sibling nodes inside a paragraph: a text
+ *   node ending with `"Thanks "`, a link node with child text `"@user"`, and
+ *   a text node `"!"`.
+ * - **Plain**: `Thanks @user!` -- remains a single text node matching the
+ *   pattern `Thanks @user!` at the end of the text.
+ *
+ * Contributors are deduplicated by lowercase username. The summary paragraph
+ * uses Oxford comma formatting and preserves link URLs when available.
+ *
+ * @example
+ * ```typescript
+ * import { ContributorFootnotesPlugin } from "\@savvy-web/changesets/remark";
+ * import remarkParse from "remark-parse";
+ * import remarkStringify from "remark-stringify";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified()
+ *   .use(remarkParse)
+ *   .use(ContributorFootnotesPlugin)
+ *   .use(remarkStringify);
+ *
+ * const md = [
+ *   "# 1.0.0",
+ *   "",
+ *   "### Features",
+ *   "",
+ *   "- Added dark mode Thanks @alice!",
+ *   "- Added search Thanks @bob!",
+ *   "",
+ * ].join("\n");
+ *
+ * const result = processor.processSync(new VFile(md));
+ * // Output includes a "Thanks to @alice and @bob for their contributions!" paragraph
+ * ```
+ *
+ * @see {@link NormalizeFormatPlugin} for cleanup that runs after this plugin
+ * @see {@link SilkChangesetTransformPreset} for the full transform pipeline ordering
+ *
+ * @public
  */
 
 import type { Link, Paragraph, PhrasingContent, Root, Text } from "mdast";
@@ -19,19 +63,31 @@ import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 import { getVersionBlocks } from "../../utils/version-blocks.js";
 
+/**
+ * A contributor extracted from an inline attribution.
+ *
+ * @internal
+ */
 interface Contributor {
 	username: string;
 	url: string | undefined;
 }
 
-/** Pattern matching `Thanks @user!` at end of text. */
+/**
+ * Pattern matching `Thanks @user!` at end of text.
+ *
+ * @internal
+ */
 const ATTRIBUTION_PLAIN_RE = /\s*Thanks @(\w[\w-]*)!$/;
 
 /**
  * Try to extract a linked attribution from the end of a paragraph's children.
  * Pattern: text "...Thanks " + link "\@user" + text "!"
  *
- * @returns The contributor if found, or undefined
+ * @param children - The phrasing content children of a paragraph node
+ * @returns The contributor and the index to start removal from, or `undefined`
+ *
+ * @internal
  */
 function extractLinkedAttribution(
 	children: PhrasingContent[],
@@ -64,10 +120,6 @@ function extractLinkedAttribution(
 	};
 }
 
-/**
- * Extract inline contributor attributions and aggregate them into
- * a summary paragraph at the end of each version block.
- */
 export const ContributorFootnotesPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);

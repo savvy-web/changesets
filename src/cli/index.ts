@@ -1,8 +1,30 @@
 /**
- * CLI entry point using `@effect/cli`.
+ * CLI entry point using `\@effect/cli`.
  *
- * Provides the `savvy-changesets` CLI application with subcommands
- * for linting, transforming, and checking changeset files.
+ * Provides the `savvy-changesets` CLI application with subcommands for
+ * initializing, linting, transforming, checking, and versioning changeset
+ * files. The root command is assembled from the individual subcommand modules
+ * and executed via `\@effect/platform-node`.
+ *
+ * @remarks
+ * The root command registers five subcommands:
+ * - `init` -- bootstrap a repository for \@savvy-web/changesets
+ * - `lint` -- machine-readable changeset validation
+ * - `transform` -- CHANGELOG.md post-processing
+ * - `check` -- human-readable validation summary
+ * - `version` -- run `changeset version` and transform all CHANGELOGs
+ *
+ * The CLI version is injected at build time via the `__PACKAGE_VERSION__`
+ * environment variable.
+ *
+ * @example
+ * ```bash
+ * savvy-changesets lint .changeset
+ * savvy-changesets check .changeset
+ * savvy-changesets transform CHANGELOG.md --dry-run
+ * savvy-changesets version --dry-run
+ * savvy-changesets init --force
+ * ```
  *
  * @internal
  */
@@ -27,6 +49,14 @@ const cli = Command.run(rootCommand, {
 	version: process.env.__PACKAGE_VERSION__ ?? "0.0.0",
 });
 
+/**
+ * Bootstrap and run the `savvy-changesets` CLI application.
+ *
+ * Creates an Effect program from the parsed `process.argv`, provides the
+ * `NodeContext` layer, and hands execution to `NodeRuntime.runMain`.
+ *
+ * @internal
+ */
 export function runCli(): void {
 	const main = Effect.suspend(() => cli(process.argv)).pipe(Effect.provide(NodeContext.layer));
 	NodeRuntime.runMain(main);

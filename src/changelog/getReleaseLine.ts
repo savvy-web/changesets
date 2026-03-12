@@ -1,10 +1,34 @@
 /**
  * Core formatter: getReleaseLine.
  *
- * Formats a single changeset into a changelog entry. Supports both
- * section-aware changesets (with h2 headings) and flat-text changesets
- * (backward-compatible single-line output).
+ * Formats a single changeset into a changelog entry. This is the primary
+ * formatting function in the changelog pipeline, responsible for transforming
+ * a `NewChangesetWithCommit` into structured markdown output.
  *
+ * @remarks
+ * The formatter supports two distinct input modes:
+ *
+ * 1. **Section-aware changesets** — When the changeset summary contains h2
+ *    headings (e.g., `## Features`, `## Bug Fixes`), each section is rendered
+ *    as an h3 heading with commit-linked list items beneath it. This mode
+ *    produces multi-line output suitable for rich changelogs.
+ *
+ * 2. **Flat-text changesets** — When the summary is plain text without section
+ *    headings, the formatter falls back to backward-compatible single-line
+ *    output. The conventional commit type is resolved via `resolveCommitType`
+ *    to determine the changelog category.
+ *
+ * In both modes, the formatter:
+ * - Fetches GitHub metadata (PR number, author) via {@link GitHubService}
+ * - Generates shortened commit hash links (`[abc1234](...)`)
+ * - Extracts and renders issue references (Closes, Fixes, Refs)
+ * - Appends PR and user attribution when available
+ *
+ * @see {@link formatChangelogEntry} for the low-level entry formatting
+ * @see {@link formatPRAndUserAttribution} for attribution suffix generation
+ * @see {@link getDependencyReleaseLine} for the companion dependency formatter
+ *
+ * @internal
  */
 
 import { Effect, Schema } from "effect";
@@ -23,12 +47,35 @@ import type { ChangelogEntry } from "./formatting.js";
 import { formatChangelogEntry, formatPRAndUserAttribution } from "./formatting.js";
 
 /**
- * Format a single changeset as an Effect program.
+ * Format a single changeset into a markdown release line.
  *
- * @param changeset - The changeset to format
- * @param versionType - The semantic version bump type
- * @param options - Validated configuration options
- * @returns Formatted markdown string
+ * This is the core Effect program that implements the `getReleaseLine` contract
+ * from the Changesets API. It requires {@link GitHubService} in its environment
+ * for resolving commit metadata.
+ *
+ * @remarks
+ * The formatting pipeline proceeds in seven steps:
+ *
+ * 1. **Fetch GitHub info** — If the changeset has a commit hash, query
+ *    the {@link GitHubService} for PR number, author, and links. Failures
+ *    are caught and logged as warnings (attribution is simply omitted).
+ * 2. **Parse sections** — Attempt to split the summary into h2-delimited
+ *    sections using `parseChangesetSections`.
+ * 3. **Parse conventional commit** — Extract the commit type, scope, and
+ *    breaking flag from the first line of the summary.
+ * 4. **Extract issue references** — Parse the body for `Closes #N`,
+ *    `Fixes #N`, and `Refs #N` patterns.
+ * 5. **Build attribution** — Format PR link and user credit from GitHub info.
+ * 6. **Section-aware output** — If sections were found, render each as an
+ *    h3 heading with commit-linked list items.
+ * 7. **Flat-text fallback** — Otherwise, produce a single `- entry` line
+ *    with the resolved category heading.
+ *
+ * @param changeset - The changeset to format, including commit hash and summary text
+ * @param versionType - The semantic version bump type (`major`, `minor`, or `patch`),
+ *   used as fallback when no conventional commit type is detected
+ * @param options - Validated configuration options (must include `repo` in `owner/repo` format)
+ * @returns An `Effect` that resolves to a formatted markdown string
  */
 export function getReleaseLine(
 	changeset: NewChangesetWithCommit,

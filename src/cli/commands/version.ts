@@ -1,8 +1,27 @@
 /**
- * Version command — orchestrate changeset version + changelog transforms.
+ * Version command -- orchestrate `changeset version` and changelog transforms.
  *
  * Detects the package manager, runs `changeset version`, discovers all
- * workspace CHANGELOG.md files, and transforms each one.
+ * workspace CHANGELOG.md files, transforms each one with the remark pipeline,
+ * and updates any configured version files.
+ *
+ * @remarks
+ * The command performs five steps:
+ * 1. Detect the package manager (`pnpm`, `npm`, `yarn`, `bun`) via
+ *    {@link Workspace.detectPackageManager}.
+ * 2. Run `changeset version` (skipped with `--dry-run`).
+ * 3. Discover all CHANGELOG.md files across workspace packages via
+ *    {@link Workspace.discoverChangelogs}.
+ * 4. Transform each discovered changelog with
+ *    {@link ChangelogTransformer.transformFile}.
+ * 5. Process version file configs (if present) via
+ *    {@link VersionFiles.processVersionFiles}.
+ *
+ * @example
+ * ```bash
+ * savvy-changesets version
+ * savvy-changesets version --dry-run
+ * ```
  *
  * @internal
  */
@@ -24,7 +43,18 @@ const dryRunOption = Options.boolean("dry-run").pipe(
 );
 /* v8 ignore stop */
 
-/** @internal */
+/**
+ * Run the full version orchestration pipeline.
+ *
+ * Detects the package manager, optionally runs `changeset version`, discovers
+ * and transforms all workspace changelogs, and updates version files.
+ *
+ * @param dryRun - When `true`, skip `changeset version` and only transform
+ *   existing CHANGELOG files
+ * @returns An Effect that performs the versioning pipeline
+ *
+ * @internal
+ */
 export function runVersion(dryRun: boolean) {
 	return Effect.gen(function* () {
 		const cwd = process.cwd();

@@ -1,5 +1,21 @@
 /**
- * Changeset configuration option schemas.
+ * Changeset configuration option schemas and validation.
+ *
+ * @remarks
+ * Defines the schema for the options object passed to the
+ * \@savvy-web/changesets changelog formatter in `.changeset/config.json`.
+ * The options are specified as the second element of the changelog array:
+ *
+ * ```json
+ * {
+ *   "changelog": ["@savvy-web/changesets/changelog", { "repo": "owner/repo" }]
+ * }
+ * ```
+ *
+ * @see {@link https://github.com/changesets/changesets/blob/main/docs/config-file-options.md | Changesets config docs}
+ * @see {@link https://effect.website/docs/schema/introduction | Effect Schema documentation}
+ *
+ * @packageDocumentation
  */
 
 import { Effect, Schema } from "effect";
@@ -13,6 +29,25 @@ const REPO_PATTERN = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
 /**
  * Schema for a GitHub repository in `owner/repo` format.
  *
+ * @remarks
+ * Validates that the string matches the `owner/repository` format used
+ * by GitHub. Both the owner and repository segments accept alphanumeric
+ * characters, dots, underscores, and hyphens.
+ *
+ * @example
+ * ```typescript
+ * import { Schema } from "effect";
+ * import { RepoSchema } from "@savvy-web/changesets";
+ *
+ * // Succeeds
+ * Schema.decodeUnknownSync(RepoSchema)("microsoft/vscode");
+ *
+ * // Throws ParseError — missing slash
+ * Schema.decodeUnknownSync(RepoSchema)("vscode");
+ * ```
+ *
+ * @see {@link ChangesetOptionsSchema} which uses this for the `repo` field
+ *
  * @public
  */
 export const RepoSchema = Schema.String.pipe(
@@ -23,6 +58,34 @@ export const RepoSchema = Schema.String.pipe(
 
 /**
  * Schema for changeset configuration options.
+ *
+ * @remarks
+ * The `repo` field is required; all other fields are optional with sensible
+ * defaults applied by the changelog formatter at runtime. The `versionFiles`
+ * option allows specifying additional JSON files (beyond `package.json`)
+ * whose version fields should be updated during `changeset version`.
+ *
+ * @example
+ * ```typescript
+ * import { Schema } from "effect";
+ * import { ChangesetOptionsSchema } from "@savvy-web/changesets";
+ * import type { ChangesetOptions } from "@savvy-web/changesets";
+ *
+ * const options: ChangesetOptions = Schema.decodeUnknownSync(ChangesetOptionsSchema)({
+ * 	repo: "savvy-web/changesets",
+ * 	commitLinks: true,
+ * 	prLinks: true,
+ * 	issueLinks: true,
+ * 	issuePrefixes: ["#", "GH-"],
+ * 	versionFiles: [
+ * 		{ glob: "manifest.json", paths: ["$.version"] },
+ * 	],
+ * });
+ * ```
+ *
+ * @see {@link ChangesetOptions} for the inferred TypeScript type
+ * @see {@link validateChangesetOptions} for Effect-idiomatic validation with detailed error messages
+ * @see {@link VersionFilesSchema} for the `versionFiles` entry format
  *
  * @public
  */
@@ -44,6 +107,9 @@ export const ChangesetOptionsSchema = Schema.Struct({
 /**
  * Inferred type for {@link ChangesetOptionsSchema}.
  *
+ * @remarks
+ * The `repo` field is always present; all other fields are optional.
+ *
  * @public
  */
 export interface ChangesetOptions extends Schema.Schema.Type<typeof ChangesetOptionsSchema> {}
@@ -55,9 +121,29 @@ export interface ChangesetOptions extends Schema.Schema.Type<typeof ChangesetOpt
  * Provides detailed, user-friendly error messages that match the prior art
  * from \@savvy-web/changelog. Performs manual pre-validation for `null`,
  * non-object, and missing `repo` before delegating to schema decoding.
+ * This layered approach ensures that the most common misconfiguration
+ * (missing `repo`) produces a clear, actionable message rather than a
+ * generic schema parse error.
  *
- * @param input - Raw configuration input
- * @returns Decoded options or a {@link ConfigurationError}
+ * @example
+ * ```typescript
+ * import { Effect } from "effect";
+ * import { validateChangesetOptions, ConfigurationError } from "@savvy-web/changesets";
+ *
+ * const program = validateChangesetOptions({ repo: "savvy-web/changesets" }).pipe(
+ * 	Effect.catchTag("ConfigurationError", (err) =>
+ * 		Effect.logError(`Config invalid: ${err.message}`)
+ * 	),
+ * );
+ *
+ * Effect.runPromise(program);
+ * ```
+ *
+ * @param input - Raw configuration input (typically from `.changeset/config.json`)
+ * @returns An Effect that succeeds with decoded {@link ChangesetOptions} or fails with a {@link ConfigurationError}
+ *
+ * @see {@link ChangesetOptionsSchema} for the expected configuration shape
+ * @see {@link ConfigurationError} for the error type produced on validation failure
  *
  * @public
  */

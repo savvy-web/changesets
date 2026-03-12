@@ -3,10 +3,34 @@ import type { Rule } from "markdownlint";
 import { RULE_DOCS, getHeadingLevel } from "./utils.js";
 
 /**
- * markdownlint rule: changeset-uncategorized-content (CSH004)
+ * markdownlint rule: `changeset-uncategorized-content` (CSH004).
  *
- * Detects content that appears before the first h2 heading in a changeset file.
- * All content must be placed under a categorized section (## heading).
+ * Detects content that appears before the first h2 heading in a changeset
+ * markdown file. All substantive content must be placed under a categorized
+ * section (`## heading`).
+ *
+ * @remarks
+ * The rule iterates over the top-level micromark token stream and stops at the
+ * first `atxHeading` with depth 2. Any token encountered before that heading
+ * that is not a `lineEnding`, `lineEndingBlank`, or `htmlFlow` (HTML comments)
+ * triggers an error. This ensures that changeset content is always grouped
+ * under a recognized category heading.
+ *
+ * This rule mirrors the remark-lint rule `remarkLintUncategorizedContent` but
+ * uses markdownlint's micromark token API so it can run inside
+ * markdownlint-cli2 and the VS Code markdownlint extension.
+ *
+ * @example
+ * ```json
+ * {
+ *   "changeset-uncategorized-content": true
+ * }
+ * ```
+ *
+ * @see {@link https://github.com/savvy-web/changesets/blob/main/docs/rules/CSH004.md | CSH004 rule documentation}
+ * @see `src/remark/rules/uncategorized-content.ts` for the corresponding remark-lint rule
+ *
+ * @public
  */
 export const UncategorizedContentRule: Rule = {
 	names: ["changeset-uncategorized-content", "CSH004"],

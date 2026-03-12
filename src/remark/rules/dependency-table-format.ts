@@ -1,9 +1,59 @@
 /**
  * Remark-lint rule: changeset-dependency-table-format (CSH005)
  *
- * Validates that ## Dependencies sections in changeset files contain
- * a properly structured markdown table with correct columns, types,
- * actions, and version/sentinel values.
+ * Validates that `## Dependencies` sections in changeset files contain a
+ * properly structured markdown table.
+ *
+ * @remarks
+ * This rule performs both structural and semantic validation on dependency tables:
+ *
+ * **Structural validation** (via `parseDependencyTable` and Effect Schema):
+ * - The Dependencies section must contain a table, not a list or paragraph.
+ * - The table must have the correct columns: Name, Type, Action, From, To.
+ * - The `Type` column must be one of the recognized dependency types
+ *   (`dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies`).
+ * - The `Action` column must be one of `added`, `updated`, `removed`.
+ *
+ * **Semantic validation** (em-dash rules):
+ * - When action is `"added"`, the `From` column must be an em-dash (`\u2014`)
+ *   since there is no previous version.
+ * - When action is `"removed"`, the `To` column must be an em-dash (`\u2014`)
+ *   since there is no target version.
+ *
+ * The rule ID registered with unified-lint-rule is
+ * `"remark-lint:changeset-dependency-table-format"`.
+ *
+ * @example
+ * ```typescript
+ * import { DependencyTableFormatRule } from "\@savvy-web/changesets/remark";
+ * import remarkGfm from "remark-gfm";
+ * import remarkParse from "remark-parse";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified()
+ *   .use(remarkParse)
+ *   .use(remarkGfm)
+ *   .use(DependencyTableFormatRule);
+ *
+ * const md = [
+ *   "## Dependencies",
+ *   "",
+ *   "| Name | Type | Action | From | To |",
+ *   "| --- | --- | --- | --- | --- |",
+ *   "| lodash | dependencies | updated | 4.17.0 | 4.17.21 |",
+ *   "",
+ * ].join("\n");
+ *
+ * const result = processor.processSync(new VFile(md));
+ * console.log(result.messages.length); // 0
+ * ```
+ *
+ * @see {@link https://github.com/savvy-web/changesets/blob/main/docs/rules/CSH005.md | CSH005 rule documentation}
+ * @see {@link AggregateDependencyTablesPlugin} for the transform plugin that merges dependency tables
+ * @see {@link ContentStructureRule} for general section content validation
+ *
+ * @public
  */
 
 import type { Heading, Root, RootContent, Table } from "mdast";
@@ -13,6 +63,7 @@ import { visit } from "unist-util-visit";
 import { RULE_DOCS } from "../../constants.js";
 import { parseDependencyTable } from "../../utils/dependency-table.js";
 
+/** @internal */
 const EM_DASH = "\u2014";
 
 export const DependencyTableFormatRule = lintRule(

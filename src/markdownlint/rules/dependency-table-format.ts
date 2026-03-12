@@ -3,17 +3,50 @@ import type { MicromarkToken, Rule } from "markdownlint";
 import { RULE_DOCS, getHeadingLevel, getHeadingText } from "./utils.js";
 
 /**
- * markdownlint rule: changeset-dependency-table-format (CSH005)
+ * markdownlint rule: `changeset-dependency-table-format` (CSH005).
  *
- * Validates that ## Dependencies sections in changeset files contain
- * a properly structured markdown table with correct columns, types,
- * actions, and version/sentinel values.
+ * Validates that `## Dependencies` sections in changeset files contain a
+ * properly structured GFM markdown table with the correct column layout,
+ * dependency types, actions, and version / sentinel values.
  *
- * Note: The GFM table token types (tableHead, tableBody, tableRow,
- * tableHeader, tableData, tableContent) are defined in
+ * @remarks
+ * The rule inspects the micromark token tree for `atxHeading` tokens whose
+ * text is "Dependencies" (case-insensitive). For each match it verifies:
+ *
+ * - The section contains a `table` token (not a list or paragraph).
+ * - The table header row has exactly five columns:
+ *   `Dependency | Type | Action | From | To`.
+ * - Each data row has a non-empty dependency name.
+ * - The `Type` cell is one of: `dependency`, `devDependency`,
+ *   `peerDependency`, `optionalDependency`, `workspace`, `config`.
+ * - The `Action` cell is one of: `added`, `updated`, `removed`.
+ * - `From` and `To` cells match a semver string or the em-dash sentinel
+ *   (`\u2014`).
+ * - Semantic consistency: `added` requires `From` = `\u2014`; `removed`
+ *   requires `To` = `\u2014`.
+ *
+ * The GFM table token types (`tableHead`, `tableBody`, `tableRow`,
+ * `tableHeader`, `tableData`, `tableContent`) are defined in
  * `micromark-extension-gfm-table` as a `TokenTypeMap` augmentation. Since
- * that package is a transitive dependency and not directly imported here, we
- * use a local helper to compare token types as strings to avoid TS2367 errors.
+ * that package is a transitive dependency and not directly imported here, the
+ * module uses a widened `AnyToken` type to compare token types as strings and
+ * avoid TS2367 errors.
+ *
+ * This rule mirrors the remark-lint rule `remarkLintDependencyTableFormat`
+ * but uses markdownlint's micromark token API so it can run inside
+ * markdownlint-cli2 and the VS Code markdownlint extension.
+ *
+ * @example
+ * ```json
+ * {
+ *   "changeset-dependency-table-format": true
+ * }
+ * ```
+ *
+ * @see {@link https://github.com/savvy-web/changesets/blob/main/docs/rules/CSH005.md | CSH005 rule documentation}
+ * @see `src/remark/rules/dependency-table-format.ts` for the corresponding remark-lint rule
+ *
+ * @public
  */
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional widening — GFM table token types extend TokenTypeMap via a transitive package not imported here
@@ -37,10 +70,15 @@ const EXPECTED_HEADERS = ["dependency", "type", "action", "from", "to"];
 const VERSION_RE = /^(\u2014|[~^]?\d+\.\d+\.\d+[\w.+-]*)$/;
 
 /**
- * Extract text from a tableHeader or tableData cell token.
+ * Extract text from a `tableHeader` or `tableData` cell token.
  *
- * The cell contains: tableCellDivider, whitespace, tableContent, whitespace.
- * The tableContent token has a `.text` property with the cell value.
+ * The cell contains: `tableCellDivider`, whitespace, `tableContent`, whitespace.
+ * The `tableContent` token has a `.text` property with the cell value.
+ *
+ * @param cell - A GFM table cell token (header or data)
+ * @returns The trimmed text content of the cell, or an empty string
+ *
+ * @internal
  */
 function getCellText(cell: AnyToken): string {
 	const content = (cell.children as AnyToken[]).find((c) => c.type === "tableContent");
@@ -48,7 +86,12 @@ function getCellText(cell: AnyToken): string {
 }
 
 /**
- * Extract all cell texts from a tableRow token.
+ * Extract all cell texts from a `tableRow` token.
+ *
+ * @param row - A GFM `tableRow` token
+ * @returns An array of trimmed cell text values
+ *
+ * @internal
  */
 function getRowCells(row: AnyToken): string[] {
 	return (row.children as AnyToken[])
@@ -56,6 +99,11 @@ function getRowCells(row: AnyToken): string[] {
 		.map(getCellText);
 }
 
+/**
+ * The markdownlint `Rule` object for CSH005 (`changeset-dependency-table-format`).
+ *
+ * @public
+ */
 export const DependencyTableFormatRule: Rule = {
 	names: ["changeset-dependency-table-format", "CSH005"],
 	description: "Dependencies section must contain a valid dependency table",

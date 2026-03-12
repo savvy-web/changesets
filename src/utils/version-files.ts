@@ -1,9 +1,20 @@
 /**
  * Utilities for updating version fields in additional JSON files.
  *
- * Reads `versionFiles` from `.changeset/config.json`, resolves glob patterns,
- * determines the correct version per file (from the nearest workspace package),
- * and updates JSONPath-specified fields in each matched file.
+ * @remarks
+ * Implements the `versionFiles` feature of `\@savvy-web/changesets`, which
+ * allows version numbers to be synchronized across arbitrary JSON files
+ * (e.g., `tauri.conf.json`, `manifest.json`) during the changeset version
+ * step.
+ *
+ * The flow is:
+ * 1. Read and validate `versionFiles` from `.changeset/config.json`
+ * 2. Resolve glob patterns to absolute file paths
+ * 3. Discover workspace packages to determine the correct version per file
+ *    (using longest-prefix matching)
+ * 4. Update JSONPath-specified fields in each matched file
+ *
+ * @see {@link jsonPathGet} and {@link jsonPathSet} for the JSONPath implementation
  *
  * @internal
  */
@@ -20,7 +31,15 @@ import type { VersionFileConfig } from "../schemas/version-files.js";
 import { VersionFilesSchema } from "../schemas/version-files.js";
 import { jsonPathGet, jsonPathSet } from "./jsonpath.js";
 
-/** Result of a single version file update. */
+/**
+ * Result of a single version file update.
+ *
+ * @remarks
+ * Captures the details of what was changed in a JSON file, including
+ * the previous values for audit/logging purposes.
+ *
+ * @internal
+ */
 export interface VersionFileUpdate {
 	/** Absolute path to the updated file. */
 	filePath: string;
@@ -32,7 +51,15 @@ export interface VersionFileUpdate {
 	previousValues: unknown[];
 }
 
-/** A discovered workspace package with its version. */
+/**
+ * A discovered workspace package with its version.
+ *
+ * @remarks
+ * Used internally to map file paths to the correct version via
+ * longest-prefix matching in {@link VersionFiles.resolveVersion}.
+ *
+ * @internal
+ */
 interface WorkspaceVersion {
 	/** Package name. */
 	name: string;
@@ -45,20 +72,43 @@ interface WorkspaceVersion {
 /**
  * Static utility class for version file operations.
  *
+ * @remarks
+ * Orchestrates the full version file update workflow: reading config,
+ * discovering workspace versions, resolving globs, and updating JSON
+ * files at specified JSONPath locations. Designed to be called from
+ * the CLI `version` command.
+ *
+ * Version resolution uses longest-prefix matching: for a file at
+ * `/repo/packages/ui/tauri.conf.json`, if workspace `packages/ui`
+ * has version `2.0.0`, that version is used rather than the root version.
+ *
  * @example
  * ```typescript
- * import { VersionFiles } from "./version-files.js";
+ * import { VersionFiles } from "../utils/version-files.js";
  *
  * const configs = VersionFiles.readConfig("/path/to/project");
  * if (configs) {
  *   const updates = VersionFiles.processVersionFiles("/path/to/project", configs);
+ *   for (const update of updates) {
+ *     console.log(`Updated ${update.filePath} to ${update.version}`);
+ *   }
  * }
  * ```
+ *
+ * @internal
  */
 // biome-ignore lint/complexity/noStaticOnlyClass: Intentional pattern for TSDoc discoverability
 export class VersionFiles {
 	/**
 	 * Read and validate the `versionFiles` config from `.changeset/config.json`.
+	 *
+	 * @remarks
+	 * Reads the changeset config as JSONC (supporting comments), extracts
+	 * the `changelog` tuple's second element (options object), and validates
+	 * the `versionFiles` key against `VersionFilesSchema`. Returns `undefined`
+	 * if the config file is missing, the `versionFiles` key is absent, or
+	 * the array is empty. Schema validation errors are logged as warnings
+	 * but do not throw.
 	 *
 	 * @param cwd - Project root directory
 	 * @returns Parsed config array, or `undefined` if not configured
@@ -104,6 +154,12 @@ export class VersionFiles {
 
 	/**
 	 * Discover all workspace packages and their current versions.
+	 *
+	 * @remarks
+	 * Uses `workspace-tools` to enumerate workspace packages, reading
+	 * the `version` field from each `package.json`. The root package
+	 * is always included if not already present as a workspace entry.
+	 * Deduplicates by absolute path.
 	 *
 	 * @param cwd - Project root directory
 	 * @returns Array of workspace packages with versions
@@ -153,6 +209,13 @@ export class VersionFiles {
 	 * Determine which workspace version applies to a given file path
 	 * using longest-prefix matching.
 	 *
+	 * @remarks
+	 * For each workspace, checks whether the file is contained within
+	 * it (i.e., the relative path does not start with `..`). Among all
+	 * matching workspaces, the one with the longest absolute path wins
+	 * (most specific match). Falls back to `rootVersion` if no workspace
+	 * contains the file.
+	 *
 	 * @param filePath - Absolute path to the file
 	 * @param workspaces - Discovered workspace versions
 	 * @param rootVersion - Fallback version from project root
@@ -177,6 +240,11 @@ export class VersionFiles {
 
 	/**
 	 * Resolve glob patterns to absolute file paths.
+	 *
+	 * @remarks
+	 * Uses `tinyglobby` to expand each config's glob pattern relative to
+	 * `cwd`. The `node_modules` directory is always ignored. Returns
+	 * tuples pairing each resolved absolute path with its originating config.
 	 *
 	 * @param configs - Version file configurations
 	 * @param cwd - Project root directory
@@ -203,6 +271,11 @@ export class VersionFiles {
 	/**
 	 * Detect indentation from file content.
 	 *
+	 * @remarks
+	 * Looks for the first line starting with whitespace followed by a
+	 * double-quote (typical JSON property). Defaults to 2 spaces if
+	 * no indentation pattern is found.
+	 *
 	 * @param content - Raw file content
 	 * @returns Detected indent string (defaults to 2 spaces)
 	 */
@@ -214,7 +287,11 @@ export class VersionFiles {
 	/**
 	 * Update JSON file at specified JSONPath locations.
 	 *
-	 * Preserves formatting (indent style and trailing newline).
+	 * @remarks
+	 * Reads the file, detects its indentation style and trailing newline
+	 * preference, applies all JSONPath updates via {@link jsonPathSet},
+	 * and writes the result back preserving the original formatting.
+	 * Returns `undefined` if no JSONPath locations matched (no write occurs).
 	 *
 	 * @param filePath - Absolute path to the JSON file
 	 * @param jsonPaths - JSONPath expressions to update
@@ -256,10 +333,17 @@ export class VersionFiles {
 	/**
 	 * Orchestrate the full version file update flow.
 	 *
+	 * @remarks
+	 * Combines {@link VersionFiles.discoverVersions},
+	 * {@link VersionFiles.resolveGlobs}, {@link VersionFiles.resolveVersion},
+	 * and {@link VersionFiles.updateFile} into a single operation. In dry-run
+	 * mode, files are read and JSONPaths are resolved but no writes occur.
+	 *
 	 * @param cwd - Project root directory
 	 * @param configs - Validated version file configurations
-	 * @param dryRun - If true, do not write files
+	 * @param dryRun - If true, do not write files (default: `false`)
 	 * @returns Array of update results
+	 * @throws If any file cannot be read or parsed
 	 */
 	static processVersionFiles(cwd: string, configs: readonly VersionFileConfig[], dryRun = false): VersionFileUpdate[] {
 		const workspaces = VersionFiles.discoverVersions(cwd);
@@ -294,7 +378,14 @@ export class VersionFiles {
 	}
 }
 
-/** Read the `version` field from a package.json in the given directory. */
+/**
+ * Read the `version` field from a `package.json` in the given directory.
+ *
+ * @param dir - Absolute path to the directory containing `package.json`
+ * @returns The version string, or `undefined` if the file is missing or has no `version` field
+ *
+ * @internal
+ */
 function readPackageVersion(dir: string): string | undefined {
 	try {
 		const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8")) as {

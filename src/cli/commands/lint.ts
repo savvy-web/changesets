@@ -1,7 +1,22 @@
 /**
- * Lint command — validate changeset files.
+ * Lint command -- validate changeset files with machine-readable output.
  *
- * Machine-readable output: one line per error in `file:line:col rule message` format.
+ * Emits one line per error in `file:line:col rule message` format, suitable
+ * for consumption by editors, CI tools, and the `--format` flag of
+ * markdownlint-cli2.
+ *
+ * @remarks
+ * The command resolves the directory argument, delegates to
+ * {@link ChangesetLinter.validate}, and logs each {@link LintMessage} as a
+ * single colon-delimited line. When no errors are found and `--quiet` is not
+ * set, a success message is printed. Sets `process.exitCode = 1` when errors
+ * are found.
+ *
+ * @example
+ * ```bash
+ * savvy-changesets lint .changeset
+ * savvy-changesets lint --quiet .changeset
+ * ```
  *
  * @internal
  */
@@ -22,7 +37,18 @@ const quietOption = Options.boolean("quiet").pipe(
 );
 /* v8 ignore stop */
 
-/** @internal */
+/**
+ * Run machine-readable lint validation on all changeset files in `dir`.
+ *
+ * Outputs one line per error in `file:line:col rule message` format. Sets
+ * `process.exitCode = 1` when one or more errors are found.
+ *
+ * @param dir - Path to the changeset directory (resolved relative to cwd)
+ * @param quiet - When `true`, suppress the "No lint errors found" message
+ * @returns An Effect that performs validation and logs results
+ *
+ * @internal
+ */
 export function runLint(dir: string, quiet: boolean) {
 	return Effect.gen(function* () {
 		const resolved = resolve(dir);

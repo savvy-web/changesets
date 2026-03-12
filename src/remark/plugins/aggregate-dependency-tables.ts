@@ -4,7 +4,73 @@
  * Consolidates all `### Dependencies` sections within each version block
  * into a single section with a merged, collapsed, and sorted table.
  *
- * Must run before MergeSectionsPlugin (index 0 in transform preset).
+ * @remarks
+ * When multiple changesets each produce their own `### Dependencies` section,
+ * the generated CHANGELOG ends up with duplicate sections under the same
+ * version heading. This plugin merges them into one.
+ *
+ * The consolidation pipeline for each version block:
+ *
+ * 1. **Collect** -- Find all `### Dependencies` sections and extract rows from
+ *    their tables. Tables that fail to parse (e.g., legacy free-form content)
+ *    are preserved as-is.
+ * 2. **Collapse** -- Combine rows for the same package. For example, if package
+ *    `foo` was `added` in one changeset and `removed` in another, the two rows
+ *    collapse to a net-zero and are dropped. If `foo` was `added 1.0` then
+ *    `updated 1.0 -> 2.0`, it collapses to `added 2.0`.
+ * 3. **Sort** -- Rows are sorted alphabetically by package name within each
+ *    dependency type group (`dependencies`, `devDependencies`,
+ *    `peerDependencies`, `optionalDependencies`).
+ * 4. **Replace** -- All original `### Dependencies` sections (headings and
+ *    content) are removed and a single replacement section is inserted at the
+ *    position of the first original section. If all rows collapsed to nothing
+ *    and there is no legacy content, the section is dropped entirely.
+ *
+ * This plugin must run before {@link MergeSectionsPlugin} (position 0 in
+ * {@link SilkChangesetTransformPreset}) so that the generic section merger
+ * does not naively concatenate dependency tables as list content.
+ *
+ * @example
+ * ```typescript
+ * import { AggregateDependencyTablesPlugin } from "\@savvy-web/changesets/remark";
+ * import remarkGfm from "remark-gfm";
+ * import remarkParse from "remark-parse";
+ * import remarkStringify from "remark-stringify";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified()
+ *   .use(remarkParse)
+ *   .use(remarkGfm)
+ *   .use(AggregateDependencyTablesPlugin)
+ *   .use(remarkStringify);
+ *
+ * const md = [
+ *   "# 1.0.0",
+ *   "",
+ *   "### Dependencies",
+ *   "",
+ *   "| Name | Type | Action | From | To |",
+ *   "| --- | --- | --- | --- | --- |",
+ *   "| foo | dependencies | added | \u2014 | 1.0.0 |",
+ *   "",
+ *   "### Dependencies",
+ *   "",
+ *   "| Name | Type | Action | From | To |",
+ *   "| --- | --- | --- | --- | --- |",
+ *   "| bar | devDependencies | updated | 2.0.0 | 3.0.0 |",
+ *   "",
+ * ].join("\n");
+ *
+ * const result = processor.processSync(new VFile(md));
+ * // Output has a single ### Dependencies section with both rows
+ * ```
+ *
+ * @see {@link DependencyTableFormatRule} for the lint rule that validates dependency table structure
+ * @see {@link MergeSectionsPlugin} for the generic section merger that runs after this plugin
+ * @see {@link SilkChangesetTransformPreset} for the full transform pipeline ordering
+ *
+ * @public
  */
 
 import type { Heading, Root, RootContent, Table } from "mdast";
@@ -19,16 +85,6 @@ import {
 } from "../../utils/dependency-table.js";
 import { getBlockSections, getHeadingText, getVersionBlocks } from "../../utils/version-blocks.js";
 
-/**
- * Aggregate all dependency tables within each version block into one.
- *
- * Collects rows from all `### Dependencies` sections within a version block,
- * collapses duplicate entries, sorts the result, and replaces all duplicate
- * sections with a single merged section. If all rows collapse to nothing
- * (e.g., added + removed = net zero), the section is dropped entirely.
- *
- * @public
- */
 export const AggregateDependencyTablesPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);
