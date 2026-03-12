@@ -18,9 +18,8 @@
  *    `foo` was `added` in one changeset and `removed` in another, the two rows
  *    collapse to a net-zero and are dropped. If `foo` was `added 1.0` then
  *    `updated 1.0 -> 2.0`, it collapses to `added 2.0`.
- * 3. **Sort** -- Rows are sorted alphabetically by package name within each
- *    dependency type group (`dependencies`, `devDependencies`,
- *    `peerDependencies`, `optionalDependencies`).
+ * 3. **Sort** -- Rows are sorted by action (`removed`, `updated`, `added`),
+ *    then alphabetically by type and package name.
  * 4. **Replace** -- All original `### Dependencies` sections (headings and
  *    content) are removed and a single replacement section is inserted at the
  *    position of the first original section. If all rows collapsed to nothing
@@ -50,15 +49,15 @@
  *   "",
  *   "### Dependencies",
  *   "",
- *   "| Name | Type | Action | From | To |",
+ *   "| Dependency | Type | Action | From | To |",
  *   "| --- | --- | --- | --- | --- |",
- *   "| foo | dependencies | added | \u2014 | 1.0.0 |",
+ *   "| foo | dependency | added | \u2014 | 1.0.0 |",
  *   "",
  *   "### Dependencies",
  *   "",
- *   "| Name | Type | Action | From | To |",
+ *   "| Dependency | Type | Action | From | To |",
  *   "| --- | --- | --- | --- | --- |",
- *   "| bar | devDependencies | updated | 2.0.0 | 3.0.0 |",
+ *   "| bar | devDependency | updated | 2.0.0 | 3.0.0 |",
  *   "",
  * ].join("\n");
  *

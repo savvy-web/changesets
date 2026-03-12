@@ -112,9 +112,13 @@ export function getDependencyReleaseLine(
 	return Effect.gen(function* () {
 		if (dependenciesUpdated.length === 0) return "";
 
-		// TODO: GitHubService is no longer used for commit links in table format.
-		// Kept to maintain the existing type signature contract. Consider removing
-		// the GitHubService dependency in a future breaking change.
+		// GitHubService is acquired but unused. The table format does not render
+		// commit links, so no GitHub API calls are needed. However, removing this
+		// line would change the function's Effect environment type from
+		// Effect<string, never, GitHubService> to Effect<string, never, never>,
+		// which is a breaking change for callers that provide GitHubService in
+		// their layer composition (e.g., src/changelog/index.ts MainLayer).
+		// TODO: Remove in next major version.
 		yield* GitHubService;
 
 		const rows: DependencyTableRow[] = dependenciesUpdated.map((dep) => ({

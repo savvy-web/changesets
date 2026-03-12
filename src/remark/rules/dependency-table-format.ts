@@ -9,9 +9,9 @@
  *
  * **Structural validation** (via `parseDependencyTable` and Effect Schema):
  * - The Dependencies section must contain a table, not a list or paragraph.
- * - The table must have the correct columns: Name, Type, Action, From, To.
+ * - The table must have the correct columns: Dependency, Type, Action, From, To.
  * - The `Type` column must be one of the recognized dependency types
- *   (`dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies`).
+ *   (`dependency`, `devDependency`, `peerDependency`, `optionalDependency`, `workspace`, `config`).
  * - The `Action` column must be one of `added`, `updated`, `removed`.
  *
  * **Semantic validation** (em-dash rules):
@@ -39,9 +39,9 @@
  * const md = [
  *   "## Dependencies",
  *   "",
- *   "| Name | Type | Action | From | To |",
+ *   "| Dependency | Type | Action | From | To |",
  *   "| --- | --- | --- | --- | --- |",
- *   "| lodash | dependencies | updated | 4.17.0 | 4.17.21 |",
+ *   "| lodash | dependency | updated | 4.17.0 | 4.17.21 |",
  *   "",
  * ].join("\n");
  *

@@ -150,15 +150,16 @@ export class DependencyTable {
 	}
 
 	/**
-	 * Sort dependency rows by type and then alphabetically by package name.
+	 * Sort dependency rows by action, type, and package name.
 	 *
 	 * @remarks
-	 * The sort order for dependency types is: `dependency`, `devDependency`,
-	 * `peerDependency`, `optionalDependency`, `workspace`, `config`. Within
-	 * each type group, packages are sorted alphabetically by name.
+	 * Applies a three-level stable sort:
+	 * 1. **Action** — `removed` first, then `updated`, then `added`
+	 * 2. **Type** — alphabetically (e.g., `config` before `dependency`)
+	 * 3. **Dependency name** — alphabetically within each action+type group
 	 *
 	 * @param rows - Array of {@link DependencyTableRow} objects to sort
-	 * @returns A new array sorted by type priority, then by package name
+	 * @returns A new array sorted by action, type, then name
 	 */
 	static sort(rows: DependencyTableRow[]): DependencyTableRow[] {
 		return sortDependencyRows(rows);

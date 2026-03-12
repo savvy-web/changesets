@@ -67,6 +67,7 @@ const VALID_ACTIONS = new Set(["added", "updated", "removed"]);
 
 const EXPECTED_HEADERS = ["dependency", "type", "action", "from", "to"];
 
+// Must stay in sync with VersionOrEmptySchema in src/schemas/dependency-table.ts
 const VERSION_RE = /^(\u2014|[~^]?\d+\.\d+\.\d+[\w.+-]*)$/;
 
 /**
