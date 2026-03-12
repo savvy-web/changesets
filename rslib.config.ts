@@ -5,9 +5,7 @@ export default NodeLibraryBuilder.create({
 	cjsInterop: true,
 	transform({ pkg }) {
 		delete pkg.devDependencies;
-		pkg.scripts = {
-			postinstall: "savvy-changesets init --check",
-		};
+		delete pkg.scripts;
 		delete pkg.publishConfig;
 		delete pkg.packageManager;
 		delete pkg.devEngines;
