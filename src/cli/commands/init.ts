@@ -31,6 +31,7 @@ const RULE_NAMES = [
 	"changeset-required-sections",
 	"changeset-content-structure",
 	"changeset-uncategorized-content",
+	"changeset-dependency-table-format",
 ] as const;
 
 const DEFAULT_CONFIG = {
