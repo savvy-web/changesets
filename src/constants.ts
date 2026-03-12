@@ -7,4 +7,5 @@ export const RULE_DOCS = {
 	CSH002: `${DOCS_BASE}/CSH002.md`,
 	CSH003: `${DOCS_BASE}/CSH003.md`,
 	CSH004: `${DOCS_BASE}/CSH004.md`,
+	CSH005: `${DOCS_BASE}/CSH005.md`,
 } as const;
