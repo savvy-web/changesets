@@ -104,7 +104,7 @@ describe("remark presets (src/remark/presets.ts)", () => {
 describe("markdownlint entry point (src/markdownlint/index.ts)", () => {
 	it("exports default rules array", async () => {
 		const mod = await import("../markdownlint/index.js");
-		expect(mod.default).toHaveLength(4);
+		expect(mod.default).toHaveLength(5);
 	});
 
 	it("exports individual rules", async () => {
@@ -113,5 +113,6 @@ describe("markdownlint entry point (src/markdownlint/index.ts)", () => {
 		expect(mod.RequiredSectionsRule).toBeDefined();
 		expect(mod.ContentStructureRule).toBeDefined();
 		expect(mod.UncategorizedContentRule).toBeDefined();
+		expect(mod.DependencyTableFormatRule).toBeDefined();
 	});
 });

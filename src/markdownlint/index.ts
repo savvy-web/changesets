@@ -16,11 +16,18 @@
 import type { Rule } from "markdownlint";
 
 import { ContentStructureRule } from "./rules/content-structure.js";
+import { DependencyTableFormatRule } from "./rules/dependency-table-format.js";
 import { HeadingHierarchyRule } from "./rules/heading-hierarchy.js";
 import { RequiredSectionsRule } from "./rules/required-sections.js";
 import { UncategorizedContentRule } from "./rules/uncategorized-content.js";
 
-export { ContentStructureRule, HeadingHierarchyRule, RequiredSectionsRule, UncategorizedContentRule };
+export {
+	ContentStructureRule,
+	DependencyTableFormatRule,
+	HeadingHierarchyRule,
+	RequiredSectionsRule,
+	UncategorizedContentRule,
+};
 
 /**
  * All changeset rules as an array for markdownlint-cli2 `customRules` config.
@@ -39,6 +46,7 @@ const SilkChangesetsRules: Rule[] = [
 	RequiredSectionsRule,
 	ContentStructureRule,
 	UncategorizedContentRule,
+	DependencyTableFormatRule,
 ];
 
 export default SilkChangesetsRules;
