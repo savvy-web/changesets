@@ -124,7 +124,9 @@ export type DependencyTableType = typeof DependencyTableTypeSchema.Type;
  *
  * @public
  */
-export const VersionOrEmptySchema = Schema.String.pipe(Schema.pattern(/^(\u2014|[~^]?\d+\.\d+\.\d+[\w.+-]*)$/));
+export const VersionOrEmptySchema = Schema.String.pipe(
+	Schema.pattern(/^(\u2014|[~^]?\d+\.\d+\.\d+(?:[-+.][\w.+-]*)?)$/),
+);
 
 /**
  * Schema for a single dependency table row.

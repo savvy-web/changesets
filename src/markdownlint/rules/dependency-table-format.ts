@@ -68,7 +68,10 @@ const VALID_ACTIONS = new Set(["added", "updated", "removed"]);
 const EXPECTED_HEADERS = ["dependency", "type", "action", "from", "to"];
 
 // Must stay in sync with VersionOrEmptySchema in src/schemas/dependency-table.ts
-const VERSION_RE = /^(\u2014|[~^]?\d+\.\d+\.\d+[\w.+-]*)$/;
+// Uses non-overlapping groups to avoid polynomial backtracking (CodeQL warning).
+// The prerelease suffix requires a leading [-+.] delimiter before word chars,
+// preventing overlap between the final \d+ and the suffix character class.
+const VERSION_RE = /^(\u2014|[~^]?\d+\.\d+\.\d+(?:[-+.][\w.+-]*)?)$/;
 
 /**
  * Extract text from a `tableHeader` or `tableData` cell token.

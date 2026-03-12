@@ -70,7 +70,7 @@ const decode = Schema.decodeUnknownSync(DependencyTableRowSchema);
  * import { parseMarkdown } from "../utils/remark-pipeline.js";
  * import type { Table } from "mdast";
  *
- * const tree = parseMarkdown("| Dependency | Type | Action | From | To |\n| --- | --- | --- | --- | --- |\n| foo | prod | added | — | 1.0.0 |");
+ * const tree = parseMarkdown("| Dependency | Type | Action | From | To |\n| --- | --- | --- | --- | --- |\n| foo | dependency | added | — | 1.0.0 |");
  * const table = tree.children.find((n) => n.type === "table") as Table;
  * const rows = parseDependencyTable(table);
  * // rows[0].dependency === "foo"
@@ -154,7 +154,7 @@ function makeRow(texts: string[]): TableRow {
  * import type { DependencyTableRow } from "../schemas/dependency-table.js";
  *
  * const rows: DependencyTableRow[] = [
- *   { dependency: "effect", type: "prod", action: "updated", from: "3.18.0", to: "3.19.0" },
+ *   { dependency: "effect", type: "dependency", action: "updated", from: "3.18.0", to: "3.19.0" },
  * ];
  * const table = serializeDependencyTable(rows);
  * // table.type === "table"
@@ -190,7 +190,7 @@ export function serializeDependencyTable(rows: DependencyTableRow[]): Table {
  * import type { DependencyTableRow } from "../schemas/dependency-table.js";
  *
  * const rows: DependencyTableRow[] = [
- *   { dependency: "effect", type: "prod", action: "updated", from: "3.18.0", to: "3.19.0" },
+ *   { dependency: "effect", type: "dependency", action: "updated", from: "3.18.0", to: "3.19.0" },
  * ];
  * const md = serializeDependencyTableToMarkdown(rows);
  * // "| Dependency | Type | Action | From | To |\n| --- | --- | ..."
@@ -243,8 +243,8 @@ const ACTION_ORDER: Record<string, number> = { removed: 0, updated: 1, added: 2 
  * import type { DependencyTableRow } from "../schemas/dependency-table.js";
  *
  * const rows: DependencyTableRow[] = [
- *   { dependency: "effect", type: "prod", action: "updated", from: "3.17.0", to: "3.18.0" },
- *   { dependency: "effect", type: "prod", action: "updated", from: "3.18.0", to: "3.19.0" },
+ *   { dependency: "effect", type: "dependency", action: "updated", from: "3.17.0", to: "3.18.0" },
+ *   { dependency: "effect", type: "dependency", action: "updated", from: "3.18.0", to: "3.19.0" },
  * ];
  * const collapsed = collapseDependencyRows(rows);
  * // collapsed[0].from === "3.17.0", collapsed[0].to === "3.19.0"
@@ -323,7 +323,7 @@ function collapseTwo(first: DependencyTableRow, second: DependencyTableRow): Dep
  * Applies a three-level stable sort:
  * 1. **Action** — `removed` first, then `updated`, then `added`
  *    (per {@link ACTION_ORDER})
- * 2. **Type** — alphabetically (e.g., `dev` before `prod`)
+ * 2. **Type** — alphabetically (e.g., `config` before `dependency`)
  * 3. **Dependency name** — alphabetically within each action+type group
  *
  * Returns a new array; the input is not mutated.
@@ -337,8 +337,8 @@ function collapseTwo(first: DependencyTableRow, second: DependencyTableRow): Dep
  * import type { DependencyTableRow } from "../schemas/dependency-table.js";
  *
  * const rows: DependencyTableRow[] = [
- *   { dependency: "zod", type: "prod", action: "added", from: "\u2014", to: "3.0.0" },
- *   { dependency: "effect", type: "prod", action: "removed", from: "3.19.0", to: "\u2014" },
+ *   { dependency: "zod", type: "dependency", action: "added", from: "\u2014", to: "3.0.0" },
+ *   { dependency: "effect", type: "dependency", action: "removed", from: "3.19.0", to: "\u2014" },
  * ];
  * const sorted = sortDependencyRows(rows);
  * // sorted[0].dependency === "effect" (removed comes first)
