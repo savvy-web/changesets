@@ -1,9 +1,59 @@
 /**
  * Remark transform: normalize markdown formatting.
  *
- * Final cleanup pass that removes:
- * - Empty sections (h3 heading with no content before next heading or end)
- * - Empty list nodes (lists with zero items, e.g. after dedup)
+ * Final cleanup pass that removes empty sections and empty lists from the
+ * document.
+ *
+ * @remarks
+ * This plugin runs last in the {@link SilkChangesetTransformPreset} pipeline
+ * and handles cleanup left behind by earlier plugins:
+ *
+ * - **Empty sections** -- An h3 heading followed immediately by another h2/h3
+ *   heading or the end of the version block has no content. This can happen
+ *   after {@link DeduplicateItemsPlugin} removes all items from a list or after
+ *   {@link AggregateDependencyTablesPlugin} consolidates dependency sections.
+ * - **Empty lists** -- Lists with zero items (e.g., after deduplication removed
+ *   all children) are removed from the tree.
+ * - **Whitespace-only paragraphs** -- Paragraphs containing only whitespace are
+ *   removed as part of empty-section detection.
+ *
+ * @example
+ * ```typescript
+ * import { NormalizeFormatPlugin } from "\@savvy-web/changesets/remark";
+ * import remarkParse from "remark-parse";
+ * import remarkStringify from "remark-stringify";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified()
+ *   .use(remarkParse)
+ *   .use(NormalizeFormatPlugin)
+ *   .use(remarkStringify);
+ *
+ * const md = [
+ *   "# 1.0.0",
+ *   "",
+ *   "### Features",
+ *   "",
+ *   "- Added dark mode",
+ *   "",
+ *   "### Bug Fixes",
+ *   "",
+ *   "### Other",
+ *   "",
+ *   "- Misc update",
+ *   "",
+ * ].join("\n");
+ *
+ * const result = processor.processSync(new VFile(md));
+ * // Output omits the empty "### Bug Fixes" section
+ * ```
+ *
+ * @see {@link DeduplicateItemsPlugin} for the plugin that may leave empty lists
+ * @see {@link AggregateDependencyTablesPlugin} for the plugin that may leave empty sections
+ * @see {@link SilkChangesetTransformPreset} for the full transform pipeline ordering
+ *
+ * @public
  */
 
 import type { Heading, List, Root, RootContent } from "mdast";
@@ -14,14 +64,17 @@ import { getVersionBlocks } from "../../utils/version-blocks.js";
 
 /**
  * Check if a node is a heading at one of the given depths.
+ *
+ * @param node - The AST node to check
+ * @param depths - Allowed heading depths
+ * @returns `true` if the node is a heading at one of the specified depths
+ *
+ * @internal
  */
 function isHeadingAtDepth(node: RootContent, depths: number[]): node is Heading {
 	return node.type === "heading" && depths.includes((node as Heading).depth);
 }
 
-/**
- * Remove empty sections and empty lists from the document.
- */
 export const NormalizeFormatPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);

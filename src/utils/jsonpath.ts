@@ -1,15 +1,39 @@
 /**
  * Minimal JSONPath get/set for version file updates.
  *
+ * @remarks
+ * Implements a subset of the JSONPath specification sufficient for
+ * reading and writing version fields in JSON configuration files.
+ * The parser tokenizes a JSONPath string into {@link Segment} objects,
+ * then the get/set functions traverse or mutate an object graph
+ * using a breadth-first expansion strategy (each segment fans out
+ * the current set of matched nodes).
+ *
  * Supported syntax:
  * - `$.foo.bar` — nested property access
  * - `$.foo[*].bar` — array wildcard (iterate all elements)
  * - `$.foo[0].bar` — array index access
  *
+ * Not supported: recursive descent (`..`), filter expressions, or
+ * script expressions.
+ *
+ * @see {@link VersionFiles} for the public utility that uses JSONPath
+ *   to update version fields in workspace files
+ *
  * @internal
  */
 
-/** A single segment in a parsed JSONPath expression. */
+/**
+ * A single segment in a parsed JSONPath expression.
+ *
+ * @remarks
+ * Represents one step in the path traversal:
+ * - `property` — access an object key by name
+ * - `index` — access an array element by numeric index
+ * - `wildcard` — iterate over all elements of an array
+ *
+ * @internal
+ */
 export type Segment =
 	| { readonly type: "property"; readonly key: string }
 	| { readonly type: "index"; readonly index: number }
@@ -18,9 +42,29 @@ export type Segment =
 /**
  * Tokenize a JSONPath string into segments.
  *
+ * @remarks
+ * Strips the leading `$.` prefix, then splits on `.` boundaries while
+ * preserving bracket expressions (`[*]`, `[0]`). Each token is converted
+ * to the corresponding {@link Segment} discriminated union variant.
+ *
  * @param path - JSONPath string (e.g., `"$.foo[*].bar"`)
  * @returns Array of path segments
- * @throws If the path doesn't start with `$.`
+ * @throws If the path does not start with `$.`
+ * @throws If the path cannot be tokenized after the `$.` prefix
+ *
+ * @example
+ * ```typescript
+ * import { parseJsonPath } from "../utils/jsonpath.js";
+ *
+ * const segments = parseJsonPath("$.packages[*].version");
+ * // [
+ * //   { type: "property", key: "packages" },
+ * //   { type: "wildcard" },
+ * //   { type: "property", key: "version" },
+ * // ]
+ * ```
+ *
+ * @internal
  */
 export function parseJsonPath(path: string): Segment[] {
 	if (!path.startsWith("$.")) {
@@ -57,9 +101,26 @@ export function parseJsonPath(path: string): Segment[] {
 /**
  * Collect all values matching a JSONPath expression.
  *
+ * @remarks
+ * Uses a breadth-first expansion: starting with the root object,
+ * each segment fans out the current set of matched nodes. Wildcards
+ * expand arrays into their individual elements. Non-object/non-array
+ * nodes at any intermediate step are silently skipped.
+ *
  * @param obj - The object to query
- * @param path - JSONPath string
- * @returns Array of matched values
+ * @param path - JSONPath string (e.g., `"$.version"`)
+ * @returns Array of all matched values (empty if no matches)
+ *
+ * @example
+ * ```typescript
+ * import { jsonPathGet } from "../utils/jsonpath.js";
+ *
+ * const obj = { packages: [{ version: "1.0.0" }, { version: "2.0.0" }] };
+ * const versions = jsonPathGet(obj, "$.packages[*].version");
+ * // ["1.0.0", "2.0.0"]
+ * ```
+ *
+ * @internal
  */
 export function jsonPathGet(obj: unknown, path: string): unknown[] {
 	const segments = parseJsonPath(path);
@@ -103,12 +164,29 @@ export function jsonPathGet(obj: unknown, path: string): unknown[] {
 }
 
 /**
- * Mutate all matching locations in an object.
+ * Mutate all matching locations in an object in-place.
+ *
+ * @remarks
+ * Walks to the parent(s) of the final segment, then sets the value
+ * at each matching location. Only updates existing keys/indices;
+ * does not create new properties or extend arrays. Returns the count
+ * of locations actually updated.
  *
  * @param obj - The object to modify in-place
- * @param path - JSONPath string
+ * @param path - JSONPath string (e.g., `"$.packages[*].version"`)
  * @param value - The value to set at each matching location
- * @returns The number of locations updated
+ * @returns The number of locations updated (0 if no matches or empty path)
+ *
+ * @example
+ * ```typescript
+ * import { jsonPathSet } from "../utils/jsonpath.js";
+ *
+ * const obj = { version: "1.0.0" };
+ * const count = jsonPathSet(obj, "$.version", "2.0.0");
+ * // count === 1, obj.version === "2.0.0"
+ * ```
+ *
+ * @internal
  */
 export function jsonPathSet(obj: unknown, path: string, value: unknown): number {
 	const segments = parseJsonPath(path);

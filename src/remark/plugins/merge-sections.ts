@@ -4,6 +4,57 @@
  * When multiple changesets produce the same section heading (e.g., two
  * `### Features` blocks), this plugin merges their content under a
  * single heading within each version block.
+ *
+ * @remarks
+ * The Changesets changelog formatter generates one section per changeset per
+ * category. If three changesets all have Features entries, the raw CHANGELOG
+ * will contain three `### Features` headings under the same version. This
+ * plugin groups sections by heading text (case-insensitive, normalized via the
+ * category system's `fromHeading`) and moves content from duplicate sections
+ * into the first occurrence.
+ *
+ * The merge preserves the original order of content within each section. After
+ * merging, duplicate headings and their content nodes are removed from the tree.
+ *
+ * This plugin must run after {@link AggregateDependencyTablesPlugin} (which
+ * handles the special case of dependency tables) and before
+ * {@link ReorderSectionsPlugin} (which sorts sections by category priority).
+ *
+ * @example
+ * ```typescript
+ * import { MergeSectionsPlugin } from "\@savvy-web/changesets/remark";
+ * import remarkParse from "remark-parse";
+ * import remarkStringify from "remark-stringify";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified()
+ *   .use(remarkParse)
+ *   .use(MergeSectionsPlugin)
+ *   .use(remarkStringify);
+ *
+ * const md = [
+ *   "# 1.0.0",
+ *   "",
+ *   "### Features",
+ *   "",
+ *   "- Added dark mode",
+ *   "",
+ *   "### Features",
+ *   "",
+ *   "- Added search",
+ *   "",
+ * ].join("\n");
+ *
+ * const result = processor.processSync(new VFile(md));
+ * // Output has a single ### Features with both items
+ * ```
+ *
+ * @see {@link AggregateDependencyTablesPlugin} for dependency-specific merging (runs before)
+ * @see {@link ReorderSectionsPlugin} for sorting merged sections by priority (runs after)
+ * @see {@link SilkChangesetTransformPreset} for the full transform pipeline ordering
+ *
+ * @public
  */
 
 import type { Root } from "mdast";
@@ -12,12 +63,6 @@ import type { Plugin } from "unified";
 import { fromHeading } from "../../categories/index.js";
 import { getBlockSections, getHeadingText, getVersionBlocks } from "../../utils/version-blocks.js";
 
-/**
- * Merge duplicate h3 sections within each version block.
- *
- * Groups sections by heading text (case-insensitive via `fromHeading`),
- * keeps the first occurrence, and splices content from duplicates into it.
- */
 export const MergeSectionsPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);

@@ -1,7 +1,24 @@
 /**
- * Transform command — post-process CHANGELOG.md.
+ * Transform command -- post-process CHANGELOG.md.
  *
- * Runs all remark transform plugins against a changelog file.
+ * Runs all remark transform plugins (section reordering, deduplication,
+ * contributor footnotes, issue link references, and format normalization)
+ * against a changelog file.
+ *
+ * @remarks
+ * The command supports three modes:
+ * - **Default** -- read the file, transform, and write back in place.
+ * - **`--dry-run` / `-n`** -- print the transformed output to stdout
+ *   without writing.
+ * - **`--check` / `-c`** -- compare the transformed output against the
+ *   original and exit with code 1 if they differ (useful in CI).
+ *
+ * @example
+ * ```bash
+ * savvy-changesets transform CHANGELOG.md
+ * savvy-changesets transform --dry-run CHANGELOG.md
+ * savvy-changesets transform --check CHANGELOG.md
+ * ```
  *
  * @internal
  */
@@ -29,7 +46,20 @@ const checkOption = Options.boolean("check").pipe(
 );
 /* v8 ignore stop */
 
-/** @internal */
+/**
+ * Run the remark transform pipeline on a single changelog file.
+ *
+ * Reads the file at `file`, applies all remark transform plugins via
+ * {@link ChangelogTransformer.transformContent}, and either writes the result
+ * back, prints it to stdout (`dryRun`), or checks for differences (`check`).
+ *
+ * @param file - Path to the CHANGELOG.md file (resolved relative to cwd)
+ * @param dryRun - When `true`, print transformed output instead of writing
+ * @param check - When `true`, exit with code 1 if the file would change
+ * @returns An Effect that performs the transformation
+ *
+ * @internal
+ */
 export function runTransform(file: string, dryRun: boolean, check: boolean) {
 	return Effect.gen(function* () {
 		const resolved = resolve(file);

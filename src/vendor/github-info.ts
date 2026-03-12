@@ -1,5 +1,17 @@
 /**
- * Effect wrapper around \@changesets/get-github-info.
+ * Effect wrapper around `\@changesets/get-github-info`.
+ *
+ * @remarks
+ * Bridges the `\@changesets/get-github-info` package (which returns
+ * promises) into the Effect ecosystem. The {@link getGitHubInfo}
+ * function wraps the upstream `getInfo()` call in `Effect.tryPromise`,
+ * mapping failures to {@link GitHubApiError}.
+ *
+ * The {@link GitHubCommitInfo} type is the only item from this module
+ * that is part of the public API (re-exported from the package root).
+ *
+ * @see {@link GitHubService} for the Effect service layer that uses
+ *   this function
  *
  * @internal
  */
@@ -11,6 +23,27 @@ import { GitHubApiError } from "../errors.js";
 
 /**
  * Structured result from the GitHub commit info API.
+ *
+ * @remarks
+ * Represents the data returned by `\@changesets/get-github-info` for a
+ * single commit. Includes the commit author's GitHub username, the
+ * associated pull request number (if any), and pre-formatted markdown
+ * links for use in changelog entries.
+ *
+ * @example
+ * ```typescript
+ * import type { GitHubCommitInfo } from "\@savvy-web/changesets";
+ *
+ * const info: GitHubCommitInfo = {
+ *   user: "octocat",
+ *   pull: 42,
+ *   links: {
+ *     commit: "[`abc1234`](https://github.com/owner/repo/commit/abc1234)",
+ *     pull: "[#42](https://github.com/owner/repo/pull/42)",
+ *     user: "[\@octocat](https://github.com/octocat)",
+ *   },
+ * };
+ * ```
  *
  * @public
  */
@@ -33,8 +66,17 @@ export interface GitHubCommitInfo {
 /**
  * Fetch GitHub info for a commit, wrapped in Effect.
  *
+ * @remarks
+ * Calls the upstream `getInfo()` from `\@changesets/get-github-info`
+ * within `Effect.tryPromise`. Any thrown error is caught and mapped
+ * to a {@link GitHubApiError} with the operation set to `"getInfo"`.
+ *
+ * Requires a `GITHUB_TOKEN` environment variable to be set for
+ * authenticated API access (the upstream library reads it directly).
+ *
  * @param params - The commit hash and repo in `owner/repo` format
- * @returns An Effect that resolves to commit info or fails with {@link GitHubApiError}
+ * @returns An Effect that resolves to {@link GitHubCommitInfo} or fails
+ *   with {@link GitHubApiError}
  *
  * @internal
  */

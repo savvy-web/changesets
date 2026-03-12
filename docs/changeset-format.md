@@ -71,6 +71,40 @@ Added a fluent builder API for configuration.
 Added support for custom plugins.
 ```
 
+## Dependencies Section
+
+The `## Dependencies` section uses a structured GFM table instead of prose to describe dependency changes. This enables automated processing, aggregation, and sorting of dependency updates across multiple changesets.
+
+The table must have exactly five columns:
+
+| Column | Description |
+| :--- | :--- |
+| Dependency | Package name |
+| Type | One of: `dependency`, `devDependency`, `peerDependency`, `optionalDependency`, `workspace`, `config` |
+| Action | One of: `added`, `updated`, `removed` |
+| From | Previous version (semver with optional `~`/`^` prefix, or em dash for `added`) |
+| To | New version (semver with optional `~`/`^` prefix, or em dash for `removed`) |
+
+An em dash (U+2014: `—`) is used in the From column for newly added dependencies (no previous version) and in the To column for removed dependencies (no target version).
+
+Here is a complete example changeset with a Dependencies table:
+
+```markdown
+---
+"@my/package": patch
+---
+
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| :--- | :--- | :--- | :--- | :--- |
+| lodash | dependency | updated | ^4.17.20 | ^4.17.21 |
+| prettier | devDependency | added | — | ^3.0.0 |
+| react | peerDependency | removed | ^18.0.0 | — |
+```
+
+The dependency table format is validated by the [`CSH005`](rules/CSH005.md) rule.
+
 ## Section Categories
 
 The following 13 categories are recognized. Headings are matched case-insensitively.
@@ -112,6 +146,7 @@ The remark-lint rules (Layer 1) enforce these structural requirements:
 - **required-sections** -- All h2 headings must match a known category name
 - **content-structure** -- Every section must contain non-empty content
 - **uncategorized-content** -- All content must appear under a category heading (no loose text before the first h2)
+- **dependency-table-format** -- Dependencies section must use a structured GFM table with valid columns, types, and actions
 
 Run validation with the CLI:
 

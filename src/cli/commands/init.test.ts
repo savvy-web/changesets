@@ -761,6 +761,7 @@ describe("checkBaseMarkdownlint", () => {
 					"changeset-required-sections": false,
 					"changeset-content-structure": false,
 					"changeset-uncategorized-content": false,
+					"changeset-dependency-table-format": false,
 				},
 			}),
 		);
@@ -777,6 +778,7 @@ describe("checkBaseMarkdownlint", () => {
 					"changeset-required-sections": false,
 					"changeset-content-structure": false,
 					"changeset-uncategorized-content": false,
+					"changeset-dependency-table-format": false,
 				},
 			}),
 		);
@@ -809,6 +811,7 @@ describe("checkBaseMarkdownlint", () => {
 		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-required-sections"))).toBe(true);
 		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-content-structure"))).toBe(true);
 		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-uncategorized-content"))).toBe(true);
+		expect(issues.some((i: CheckIssue) => i.message.includes("changeset-dependency-table-format"))).toBe(true);
 	});
 
 	it("returns issue when file cannot be parsed", () => {
@@ -835,6 +838,7 @@ describe("checkChangesetMarkdownlint", () => {
 				"changeset-required-sections": true,
 				"changeset-content-structure": true,
 				"changeset-uncategorized-content": true,
+				"changeset-dependency-table-format": true,
 			}),
 		);
 		expect(checkChangesetMarkdownlint(changesetDir)).toEqual([]);
@@ -855,6 +859,7 @@ describe("checkChangesetMarkdownlint", () => {
 				"changeset-required-sections": true,
 				"changeset-content-structure": true,
 				"changeset-uncategorized-content": true,
+				"changeset-dependency-table-format": true,
 			}),
 		);
 		const issues = checkChangesetMarkdownlint(changesetDir);
@@ -866,7 +871,7 @@ describe("checkChangesetMarkdownlint", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ default: false }));
 		const issues = checkChangesetMarkdownlint(changesetDir);
-		expect(issues).toHaveLength(4);
+		expect(issues).toHaveLength(5);
 	});
 
 	it("returns issue when file cannot be parsed", () => {

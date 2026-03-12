@@ -2,6 +2,16 @@ import type { MicromarkToken, Rule } from "markdownlint";
 
 import { RULE_DOCS, getHeadingLevel } from "./utils.js";
 
+/**
+ * Check whether any non-blank tokens exist between two indices in the token stream.
+ *
+ * @param tokens - The full micromark token array
+ * @param currentIdx - Start index (exclusive)
+ * @param nextIdx - End index (exclusive)
+ * @returns `true` when at least one non-lineEnding token exists in the range
+ *
+ * @internal
+ */
 function hasContentBetween(tokens: MicromarkToken[], currentIdx: number, nextIdx: number): boolean {
 	for (let i = currentIdx + 1; i < nextIdx; i++) {
 		const token = tokens[i];
@@ -13,12 +23,34 @@ function hasContentBetween(tokens: MicromarkToken[], currentIdx: number, nextIdx
 }
 
 /**
- * markdownlint rule: changeset-content-structure (CSH003)
+ * markdownlint rule: `changeset-content-structure` (CSH003).
  *
- * Validates content quality in changeset files:
- * - Sections must not be empty (h2 followed immediately by another h2 or EOF)
- * - Code blocks must have a language identifier
- * - List items should have meaningful content (not empty)
+ * Validates content quality inside changeset markdown files by inspecting
+ * micromark tokens for three categories of structural problems:
+ *
+ * 1. **Empty sections** -- an `atxHeading` (h2) followed immediately by another
+ *    h2 or the end of the token stream with no intervening content tokens.
+ * 2. **Code blocks without a language identifier** -- a `codeFenced` token whose
+ *    opening fence child lacks a `codeFencedFenceInfo` token.
+ * 3. **Empty list items** -- a `listItemPrefix` token with no subsequent
+ *    `content` token before the next prefix or end of list.
+ *
+ * @remarks
+ * This rule mirrors the remark-lint rule `remarkLintContentStructure` but uses
+ * markdownlint's micromark token API so it can run inside markdownlint-cli2 and
+ * the VS Code markdownlint extension.
+ *
+ * @example
+ * ```json
+ * {
+ *   "changeset-content-structure": true
+ * }
+ * ```
+ *
+ * @see {@link https://github.com/savvy-web/changesets/blob/main/docs/rules/CSH003.md | CSH003 rule documentation}
+ * @see `src/remark/rules/content-structure.ts` for the corresponding remark-lint rule
+ *
+ * @public
  */
 export const ContentStructureRule: Rule = {
 	names: ["changeset-content-structure", "CSH003"],

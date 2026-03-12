@@ -3,9 +3,9 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-02-26
-last-synced: 2026-02-26
-completeness: 95
+updated: 2026-03-11
+last-synced: 2026-03-11
+completeness: 98
 related: []
 dependencies: []
 implementation-status: implemented
@@ -32,14 +32,15 @@ generated CHANGELOG.md files, and markdownlint custom rules for editor/CI integr
 10. [Contributor Tracking](#contributor-tracking)
 11. [Issue and Ticket Linking](#issue-and-ticket-linking)
 12. [Version Files](#version-files)
-13. [Changeset File Format](#changeset-file-format)
-14. [Export Map and CLI](#export-map-and-cli)
-15. [Dependencies](#dependencies)
-16. [Integration Points](#integration-points)
-17. [Compatibility Requirements](#compatibility-requirements)
-18. [Testing Strategy](#testing-strategy)
-19. [Future Enhancements](#future-enhancements)
-20. [Related Documentation](#related-documentation)
+13. [Dependency Table Format](#dependency-table-format)
+14. [Changeset File Format](#changeset-file-format)
+15. [Export Map and CLI](#export-map-and-cli)
+16. [Dependencies](#dependencies)
+17. [Integration Points](#integration-points)
+18. [Compatibility Requirements](#compatibility-requirements)
+19. [Testing Strategy](#testing-strategy)
+20. [Future Enhancements](#future-enhancements)
+21. [Related Documentation](#related-documentation)
 
 ---
 
@@ -81,16 +82,10 @@ all Silk Suite repositories with a structured, section-aware changelog generatio
 
 Phases 1-8 of 9 are complete. All three processing
 layers are fully implemented and tested, along with
-the Effect CLI, integration test suite, and
-markdownlint custom rules. The package is functional
-with 424 tests passing across 42 test files.
-
-**Coverage:**
-
-- 87.4% lines
-- 85.2% branches
-- 80.9% functions
-- 88.1% statements
+the Effect CLI, integration test suite,
+markdownlint custom rules, and the dependency table
+format feature. The package is functional with
+tests passing across 55 test files.
 
 **What is implemented:**
 
@@ -105,24 +100,31 @@ with 424 tests passing across 42 test files.
 - Effect schemas for all system boundary types +
   5 tagged errors
 - Layer 2 (Changelog Formatter): `getReleaseLine`,
-  `getDependencyReleaseLine`, GitHub API integration
-- Layer 1 (Remark Lint): 4 rules --
+  `getDependencyReleaseLine` (table format),
+  GitHub API integration
+- Layer 1 (Remark Lint): 5 rules --
   heading-hierarchy, required-sections,
-  content-structure, uncategorized-content
-- Markdownlint Integration: 4 custom rules
-  (CSH001, CSH002, CSH003, CSH004) reimplementing
-  remark-lint validation for markdownlint-cli2
-  and VS Code
-- Layer 3 (Remark Transform): 6 plugins --
-  merge-sections, reorder-sections,
-  deduplicate-items, contributor-footnotes,
-  issue-link-refs, normalize-format
+  content-structure, uncategorized-content,
+  dependency-table-format
+- Markdownlint Integration: 5 custom rules
+  (CSH001, CSH002, CSH003, CSH004, CSH005)
+  reimplementing remark-lint validation for
+  markdownlint-cli2 and VS Code
+- Layer 3 (Remark Transform): 7 plugins --
+  aggregate-dependency-tables, merge-sections,
+  reorder-sections, deduplicate-items,
+  contributor-footnotes, issue-link-refs,
+  normalize-format
 - Effect CLI using `@effect/cli` with
   `NodeContext.layer`
 - Class-based API wrappers: `ChangesetLinter`,
-  `ChangelogTransformer`, `Changelog`, `Categories`
+  `ChangelogTransformer`, `Changelog`, `Categories`,
+  `DependencyTable`
 - Effect services: `ChangelogService`,
   `GitHubService`, `MarkdownService`
+- Dependency table format: structured GFM tables
+  for dependency updates with schemas, utilities,
+  lint rule (CSH005), and aggregation transform
 - Build produces both `dist/dev/` and `dist/npm/`
   with all entry points including CLI binary
 - Integration tests verify full pipeline,
@@ -132,6 +134,8 @@ with 424 tests passing across 42 test files.
 - Version files feature: bump version fields in
   additional JSON files (plugin.json, manifest.json,
   etc.) via configurable glob + JSONPath
+- Comprehensive TSDoc documentation across all
+  65 source files
 
 **What remains:**
 
@@ -144,36 +148,40 @@ with 424 tests passing across 42 test files.
 src/
 ├── index.ts                    # Main export: Effect primitives + class-based API
 ├── errors.ts                   # Tagged errors (ChangesetValidationError, etc.)
+├── constants.ts                # RULE_DOCS URLs for CSH001-CSH005
 │
 ├── services/                   # Effect services (core composable units)
 │   ├── changelog.ts            # ChangelogService + ChangelogLive layer
 │   ├── github.ts               # GitHubService + GitHubLive / GitHubTest layers
-│   ├── markdown.ts             # MarkdownService + MarkdownLive layer
-│   └── validation.ts           # ValidationService + ValidationLive layer
+│   └── markdown.ts             # MarkdownService + MarkdownLive layer
 │
 ├── schemas/                    # Effect Schemas (shared across all layers)
+│   ├── primitives.ts           # NonEmptyString, PositiveInteger
 │   ├── options.ts              # ChangesetOptionsSchema, changelog config
 │   ├── git.ts                  # CommitHashSchema, conventional commit patterns
 │   ├── github.ts               # GitHubInfoSchema, PR/user response schemas
-│   ├── categories.ts           # SectionCategorySchema, category definitions
-│   ├── changeset.ts            # Changeset file schema, frontmatter
+│   ├── changeset.ts            # Changeset file schema, DependencyUpdateSchema
+│   ├── dependency-table.ts     # DependencyTableRowSchema, DependencyActionSchema, etc.
 │   └── version-files.ts        # JsonPathSchema, VersionFileConfigSchema, VersionFilesSchema
 │
 ├── api/                        # Class-based API (bridges Effect to plain async)
 │   ├── changelog.ts            # Changelog.formatReleaseLine(), etc.
 │   ├── linter.ts               # ChangesetLinter.validate(), etc.
 │   ├── transformer.ts          # ChangelogTransformer.transform(), etc.
-│   └── categories.ts           # Categories.resolve(), Categories.ordered(), etc.
+│   ├── categories.ts           # Categories.resolve(), Categories.ordered(), etc.
+│   └── dependency-table.ts     # DependencyTable.parse(), .serialize(), .aggregate(), etc.
 │
 ├── changelog/                  # Layer 2: Changesets API formatter
 │   ├── index.ts                # Entry point (exports ChangelogFunctions default)
+│   ├── formatting.ts           # Entry formatting, PR/user attribution
 │   ├── getReleaseLine.ts       # Per-changeset line formatter
-│   └── getDependencyReleaseLine.ts  # Dependency update formatter
+│   └── getDependencyReleaseLine.ts  # Dependency update table formatter
 │
 ├── remark/                     # Remark lint rules + transform plugins
 │   ├── index.ts                # Public entry point for ./remark export
-│   ├── presets.ts              # SilkChangesetPreset + SilkChangesetTransformPreset
+│   ├── presets.ts              # SilkChangesetPreset (5 rules) + SilkChangesetTransformPreset (7 plugins)
 │   ├── plugins/                # Layer 3: Post-processing transform plugins
+│   │   ├── aggregate-dependency-tables.ts  # Merge duplicate dependency sections into one table
 │   │   ├── contributor-footnotes.ts  # Aggregate + deduplicate contributor footnotes
 │   │   ├── deduplicate-items.ts      # Remove duplicate list items
 │   │   ├── issue-link-refs.ts        # Collect + deduplicate reference-style links
@@ -182,14 +190,16 @@ src/
 │   │   └── reorder-sections.ts       # Reorder by priority (Breaking first)
 │   └── rules/                  # Layer 1: Pre-validation remark-lint rules
 │       ├── content-structure.ts      # Content validation rules
+│       ├── dependency-table-format.ts # CSH005: dependency table schema compliance
 │       ├── heading-hierarchy.ts      # Must start with h2, no h1, no skips
 │       ├── required-sections.ts      # Validate required section structure
 │       └── uncategorized-content.ts  # Reject content before first h2
 │
 ├── markdownlint/               # markdownlint custom rules (micromark)
-│   ├── index.ts                # Exports all rules + SilkChangesetsRules default array
+│   ├── index.ts                # Exports all 5 rules + SilkChangesetsRules default array
 │   └── rules/
 │       ├── content-structure.ts      # CSH003: empty sections, code langs
+│       ├── dependency-table-format.ts # CSH005: dependency table validation
 │       ├── heading-hierarchy.ts      # CSH001: h2 start, no h1, no skips
 │       ├── required-sections.ts      # CSH002: validate h2 vs categories
 │       ├── uncategorized-content.ts  # CSH004: content before first h2
@@ -198,7 +208,7 @@ src/
 ├── cli/                        # Effect CLI (savvy-changesets)
 │   ├── index.ts                # Root command
 │   └── commands/
-│       ├── init.ts             # Bootstrap repo config (--force, --quiet, --markdownlint, --check)
+│       ├── init.ts             # Bootstrap repo config (--force, --quiet, --skip-markdownlint, --check)
 │       ├── lint.ts             # Validate changeset files
 │       ├── transform.ts        # Post-process CHANGELOG.md
 │       ├── check.ts            # Full validation pipeline
@@ -206,9 +216,11 @@ src/
 │
 ├── vendor/                     # Vendored upstream code (see Decision 7)
 │   ├── types.ts                # From @changesets/types, redefined as Effect Schemas
-│   ├── github-info.ts          # From @changesets/get-github-info, wrapped in Effect
-│   ├── parse.ts                # From @changesets/parse, YAML frontmatter parsing
-│   └── ci-logger.ts            # From @actions/core, Effect Logger CI layer
+│   └── github-info.ts          # From @changesets/get-github-info, wrapped in Effect
+│
+├── categories/                 # Category system
+│   ├── index.ts                # Definitions + mapping
+│   └── types.ts                # SectionCategorySchema, category types
 │
 └── utils/
     ├── remark-pipeline.ts      # Shared unified processor (parse + gfm + stringify)
@@ -217,7 +229,12 @@ src/
     ├── issue-refs.ts           # closes/fixes/refs/resolves pattern extraction
     ├── workspace.ts            # Package manager detection + changelog discovery
     ├── jsonpath.ts             # Minimal JSONPath get/set (property, wildcard, index)
-    └── version-files.ts        # VersionFiles static utility class
+    ├── version-files.ts        # VersionFiles static utility class
+    ├── version-blocks.ts       # Version block / section extraction from CHANGELOG AST
+    ├── dependency-table.ts     # Parse, serialize, collapse, sort dependency tables
+    ├── strip-frontmatter.ts    # YAML frontmatter stripping
+    ├── markdown-link.ts        # Markdown link extraction
+    └── logger.ts               # Environment-aware logging (CI vs local)
 ```
 
 ---
@@ -465,6 +482,7 @@ These capabilities do NOT exist in the prior art and are entirely new:
 | **Category system as shared data model** | Single category definition used by all three layers |
 | **Breaking Changes category** | Prior art lacks a dedicated breaking changes section |
 | **Dependencies category** | Prior art handles deps via `getDependencyReleaseLine` but has no section heading for it |
+| **Dependency table format** | Structured GFM tables for dependency updates with schemas, validation (CSH005), and aggregation transform |
 
 ### Migration Considerations
 
@@ -750,18 +768,19 @@ The main export (`.`) exposes both surfaces:
 export { ChangelogService } from './services/changelog.js'
 export { GitHubService } from './services/github.js'
 export { MarkdownService } from './services/markdown.js'
-export { ValidationService } from './services/validation.js'
 
 // Layers
-export { ChangelogLive } from './services/changelog.js'
-export { GitHubLive, GitHubTest } from './services/github.js'
+export { GitHubLive, makeGitHubTest } from './services/github.js'
 export { MarkdownLive } from './services/markdown.js'
 
 // Schemas
 export { ChangesetOptionsSchema } from './schemas/options.js'
 export { CommitHashSchema } from './schemas/git.js'
 export { GitHubInfoSchema } from './schemas/github.js'
-export { SectionCategorySchema } from './schemas/categories.js'
+export { SectionCategorySchema } from './categories/types.js'
+export { DependencyTableRowSchema, DependencyTableSchema,
+  DependencyActionSchema, DependencyTableTypeSchema,
+  VersionOrEmptySchema } from './schemas/dependency-table.js'
 
 // Tagged Errors
 export { ChangesetValidationError } from './errors.js'
@@ -774,6 +793,7 @@ export { Changelog } from './api/changelog.js'
 export { ChangesetLinter } from './api/linter.js'
 export { ChangelogTransformer } from './api/transformer.js'
 export { Categories } from './api/categories.js'
+export { DependencyTable } from './api/dependency-table.js'
 ```
 
 **Usage examples:**
@@ -860,28 +880,58 @@ API requires.
 ```text
 @savvy-web/changesets/
 ├── src/
-│   ├── index.ts                    # Public API (types, utilities, remark plugins)
-│   ├── types.ts                    # TypeScript type definitions
+│   ├── index.ts                    # Public API (Effect primitives + class-based API)
+│   ├── errors.ts                   # Tagged errors
+│   ├── constants.ts                # RULE_DOCS URLs
+│   ├── schemas/                    # Effect Schemas
+│   │   ├── primitives.ts           # NonEmptyString, PositiveInteger
+│   │   ├── options.ts              # ChangesetOptionsSchema
+│   │   ├── git.ts                  # CommitHashSchema
+│   │   ├── github.ts               # GitHubInfoSchema
+│   │   ├── changeset.ts            # ChangesetSchema, DependencyUpdateSchema
+│   │   ├── dependency-table.ts     # DependencyTableRowSchema, etc.
+│   │   └── version-files.ts        # VersionFileConfigSchema
+│   ├── api/                        # Class-based API
+│   │   ├── changelog.ts            # Changelog
+│   │   ├── linter.ts               # ChangesetLinter
+│   │   ├── transformer.ts          # ChangelogTransformer
+│   │   ├── categories.ts           # Categories
+│   │   └── dependency-table.ts     # DependencyTable
+│   ├── services/                   # Effect services
+│   │   ├── changelog.ts            # ChangelogService
+│   │   ├── github.ts               # GitHubService
+│   │   └── markdown.ts             # MarkdownService
 │   ├── changelog/                  # Layer 2: Changesets API formatter
 │   │   ├── index.ts                # Entry point (exports ChangelogFunctions)
+│   │   ├── formatting.ts           # Entry formatting, PR/user attribution
 │   │   ├── getReleaseLine.ts       # Per-changeset formatting
-│   │   ├── getDependencyReleaseLine.ts  # Dependency update formatting
-│   │   ├── github.ts               # GitHub API integration (ported from prior art)
-│   │   └── formatting.ts           # Entry formatting, PR/user attribution (ported)
+│   │   └── getDependencyReleaseLine.ts  # Dependency table formatter
 │   ├── remark/                     # Lint + transform
 │   │   ├── index.ts                # Public entry point
-│   │   ├── presets.ts              # Preset arrays
-│   │   ├── rules/                  # Layer 1: Lint
+│   │   ├── presets.ts              # Preset arrays (5 rules, 7 plugins)
+│   │   ├── rules/                  # Layer 1: Lint (5 rules)
 │   │   │   ├── heading-hierarchy.ts
 │   │   │   ├── required-sections.ts
-│   │   │   └── content-structure.ts
-│   │   └── plugins/                # Layer 3: Transform
+│   │   │   ├── content-structure.ts
+│   │   │   ├── uncategorized-content.ts
+│   │   │   └── dependency-table-format.ts
+│   │   └── plugins/                # Layer 3: Transform (7 plugins)
+│   │       ├── aggregate-dependency-tables.ts
 │   │       ├── merge-sections.ts
 │   │       ├── reorder-sections.ts
 │   │       ├── deduplicate-items.ts
 │   │       ├── contributor-footnotes.ts
 │   │       ├── issue-link-refs.ts
 │   │       └── normalize-format.ts
+│   ├── markdownlint/               # markdownlint custom rules (5 rules)
+│   │   ├── index.ts                # All rules + default array
+│   │   └── rules/
+│   │       ├── heading-hierarchy.ts
+│   │       ├── required-sections.ts
+│   │       ├── content-structure.ts
+│   │       ├── uncategorized-content.ts
+│   │       ├── dependency-table-format.ts
+│   │       └── utils.ts
 │   ├── categories/                 # Category system
 │   │   ├── index.ts                # Definitions + mapping
 │   │   └── types.ts                # Category types
@@ -893,15 +943,22 @@ API requires.
 │   │       ├── transform.ts        # Post-process CHANGELOG.md
 │   │       ├── check.ts            # Full validation pipeline
 │   │       └── version.ts          # Orchestrate version + transform
+│   ├── vendor/                     # Vendored upstream code
+│   │   ├── types.ts                # From @changesets/types
+│   │   └── github-info.ts          # From @changesets/get-github-info
 │   └── utils/
 │       ├── remark-pipeline.ts      # Shared unified pipeline config
 │       ├── section-parser.ts       # Section extraction from content
-│       ├── schemas.ts              # Effect Schema definitions (ported from valibot)
-│       ├── commit-parser.ts        # Conventional commit parsing (ported from prior art)
-│       ├── issue-refs.ts           # Issue reference extraction (ported from prior art)
-│       ├── logger.ts               # Environment-aware logging (CI vs local)
-│       ├── jsonpath.ts             # Minimal JSONPath get/set (~80 lines)
-│       └── version-files.ts        # VersionFiles utility: glob + JSONPath version updates
+│       ├── commit-parser.ts        # Conventional commit parsing
+│       ├── issue-refs.ts           # Issue reference extraction
+│       ├── logger.ts               # Environment-aware logging
+│       ├── jsonpath.ts             # Minimal JSONPath get/set
+│       ├── version-files.ts        # VersionFiles utility
+│       ├── version-blocks.ts       # CHANGELOG version block extraction
+│       ├── dependency-table.ts     # Dependency table parse/serialize/collapse/sort
+│       ├── workspace.ts            # Package manager detection
+│       ├── strip-frontmatter.ts    # YAML frontmatter stripping
+│       └── markdown-link.ts        # Markdown link extraction
 ├── lib/configs/
 │   └── lint-staged.config.ts       # Dogfooding config
 ├── dist/
@@ -923,6 +980,7 @@ API requires.
 │  │  required-sections      Validate section headings match categories │  │
 │  │  content-structure      Content quality rules (non-empty, etc.)    │  │
 │  │  uncategorized-content  Reject content before first h2 heading    │  │
+│  │  dep-table-format       Dependency table schema compliance        │  │
 │  │                                                                    │  │
 │  │  Entry: @savvy-web/changesets/remark                               │  │
 │  │  Alt:   @savvy-web/changesets/markdownlint (editor/CI)            │  │
@@ -942,9 +1000,12 @@ API requires.
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │           Layer 3: Post-Transformation (remark transformer)       │  │
 │  │                                                                    │  │
+│  │  aggregate-dep-tables Merge duplicate dependency table sections   │  │
 │  │  merge-sections       Combine duplicate section headings          │  │
 │  │  reorder-sections     Sort by priority (Breaking first)           │  │
 │  │  deduplicate-items    Remove duplicate list items                 │  │
+│  │  contributor-footnotes Aggregate contributor attributions         │  │
+│  │  issue-link-refs      Convert inline issue links to ref-style     │  │
 │  │  normalize-format     Clean up markdown formatting                │  │
 │  │                                                                    │  │
 │  │  Entry: @savvy-web/changesets/remark                               │  │
@@ -958,6 +1019,7 @@ API requires.
 │  │  CSH002  changeset-required-sections    (h2 vs category system)   │  │
 │  │  CSH003  changeset-content-structure    (empty, code lang, lists) │  │
 │  │  CSH004  changeset-uncategorized-content (content before first h2)│  │
+│  │  CSH005  changeset-dependency-table-format (dep table validation) │  │
 │  │                                                                    │  │
 │  │  Entry: @savvy-web/changesets/markdownlint                         │  │
 │  │  Runs: VS Code extension, markdownlint-cli2, CI                   │  │
@@ -1070,9 +1132,11 @@ API requires.
 │         │       │                                                       │
 │         │       ▼                                                       │
 │         │   Layer 2: getDependencyReleaseLine(changesets, deps, opts)   │
-│         │       │  - Format dependency version updates                  │
+│         │       │  - Infer dep type from package.json fields            │
+│         │       │  - Build DependencyTableRow[] with action/versions    │
+│         │       │  - Serialize to GFM table via remark-gfm             │
 │         │       ▼                                                       │
-│         │   Formatted dependency lines                                  │
+│         │   Formatted dependency table (Dependency|Type|Action|From|To) │
 │         │                                                               │
 │         ▼                                                               │
 │     Raw CHANGELOG.md (version heading + bump sections + lines)          │
@@ -1084,9 +1148,12 @@ API requires.
 │         ▼                                                               │
 │     Layer 3: remark transform pipeline                                  │
 │         │  - Parse CHANGELOG.md to MDAST                               │
+│         │  - aggregate-dependency-tables: merge dup dep sections        │
 │         │  - merge-sections: combine duplicate headings                 │
 │         │  - reorder-sections: sort by priority within each version     │
 │         │  - deduplicate-items: remove duplicate list items             │
+│         │  - contributor-footnotes: aggregate contributor attributions  │
+│         │  - issue-link-refs: convert inline links to ref-style         │
 │         │  - normalize-format: clean up whitespace/formatting           │
 │         │  - Stringify MDAST back to markdown                           │
 │         ▼                                                               │
@@ -1298,6 +1365,45 @@ This is fine.
 This paragraph is properly categorized.
 ```
 
+#### Rule: dependency-table-format (CSH005)
+
+Validates that `## Dependencies` sections contain a properly structured GFM markdown table. This rule performs both structural and semantic validation:
+
+**Structural validation** (via `parseDependencyTable` and Effect Schema):
+
+- The Dependencies section must contain a table, not a list or paragraph
+- The table must have the correct columns: `Dependency | Type | Action | From | To`
+- The `Type` column must be one of the recognized dependency types: `dependency`, `devDependency`, `peerDependency`, `optionalDependency`, `workspace`, `config`
+- The `Action` column must be one of `added`, `updated`, `removed`
+- Version values must be semver strings or the em-dash sentinel (`\u2014`)
+
+**Semantic validation** (em-dash rules):
+
+- When action is `"added"`, the `From` column must be an em-dash (no previous version)
+- When action is `"removed"`, the `To` column must be an em-dash (no target version)
+
+```markdown
+<!-- Valid -->
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| effect | dependency | updated | 3.18.0 | 3.19.1 |
+| @effect/cli | dependency | added | — | 0.50.0 |
+
+<!-- Invalid: list instead of table -->
+## Dependencies
+
+- Updated effect from 3.18.0 to 3.19.1
+
+<!-- Invalid: wrong action/version combination -->
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| effect | dependency | added | 3.18.0 | 3.19.1 |
+```
+
 ### Layer 2: Changelog Formatter (Changesets API)
 
 The custom `getReleaseLine` and `getDependencyReleaseLine` functions that Changesets calls
@@ -1334,14 +1440,29 @@ reports failures to `@actions/core.warning()` in CI or `console.warn` locally.
 
 #### getDependencyReleaseLine
 
-1. Validates options using Effect Schema
-2. Receives all changesets and the list of updated dependencies
-3. Fetches GitHub commit info in batches of 10 (ported batching strategy from prior art)
-4. For >1000 changesets, uses streaming mode with 50-item chunks (ported from prior art)
-5. Formats a clean dependency update list showing package name, old version, and new version
-6. Includes commit links with graceful fallback formatting
-7. Logs API failure metrics (success rate percentage)
-8. Groups under a `## Dependencies` heading if not already categorized
+Formats dependency updates as a structured GFM table rather than a bullet list:
+
+1. Receives all changesets and the list of updated dependencies (`ModCompWithPackage[]`)
+2. Returns empty string if no dependencies were updated
+3. For each dependency, infers the dependency type from the consuming package's `package.json`:
+   - Checks `dependencies` -> `"dependency"`
+   - Checks `devDependencies` -> `"devDependency"`
+   - Checks `peerDependencies` -> `"peerDependency"`
+   - Checks `optionalDependencies` -> `"optionalDependency"`
+   - Falls back to `"dependency"` if not found in any field
+4. Builds `DependencyTableRow[]` with `action: "updated"`, `from: oldVersion`, `to: newVersion`
+5. Serializes to a GFM markdown table via `serializeDependencyTableToMarkdown`
+
+**Output format:**
+
+```markdown
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| effect | dependency | updated | 3.18.0 | 3.19.1 |
+| typescript | devDependency | updated | 5.6.0 | 5.7.2 |
+```
+
+The table format integrates with the three-layer pipeline: CSH005 validates table structure in Layer 1, and `AggregateDependencyTablesPlugin` merges duplicate dependency sections in Layer 3.
 
 ### Layer 3: Post-Transformation (remark transformer)
 
@@ -1349,6 +1470,28 @@ A remark transform pipeline that runs after `changeset version` generates the ra
 This layer compensates for the line-level API limitation by operating on the full document.
 
 **Entry point:** `@savvy-web/changesets/remark`
+
+#### Plugin: aggregate-dependency-tables (position 1 of 7)
+
+Consolidates all `### Dependencies` sections within each version block into a single section with a merged, collapsed, and sorted table. This plugin must run first in the transform pipeline so that downstream plugins (merge-sections, reorder-sections) see a single Dependencies section.
+
+The consolidation pipeline for each version block:
+
+1. **Collect** -- Find all `### Dependencies` sections and extract rows from their tables via `parseDependencyTable`. Tables that fail to parse (e.g., legacy free-form content) are preserved as-is.
+2. **Collapse** -- Combine rows for the same package using `collapseDependencyRows`. For example, if package `foo` was `added` in one changeset and `removed` in another, the two rows collapse to a net-zero and are dropped. If `foo` was `added 1.0` then `updated 1.0 -> 2.0`, it collapses to `added 2.0`.
+3. **Sort** -- Rows are sorted by action (`removed`, `updated`, `added`), then alphabetically by type and package name via `sortDependencyRows`.
+4. **Replace** -- All original `### Dependencies` sections are removed and a single replacement section with the merged table is inserted at the position of the first original section. If all rows collapsed to nothing and there is no legacy content, the section is dropped entirely.
+
+**Collapse rules:**
+
+| First action | Second action | Result |
+| :--- | :--- | :--- |
+| `updated` | `updated` | `updated` (earliest `from`, latest `to`) |
+| `added` | `updated` | `added` (final `to`) |
+| `added` | `removed` | dropped (net zero change) |
+| `updated` | `removed` | `removed` (original `from`) |
+| `removed` | `added` | `updated` (original `from`, new `to`) |
+| other | other | keep later entry |
 
 #### Plugin: merge-sections
 
@@ -1381,14 +1524,17 @@ Dependencies always come last.
 Removes duplicate list items within merged sections. Uses text content comparison
 (after normalizing whitespace) to detect duplicates.
 
+#### Plugin: contributor-footnotes
+
+Aggregates inline `Thanks @user!` attributions from multiple changesets and generates a summary paragraph per version block. Extracts contributor mentions from list items, deduplicates usernames, and produces a consolidated "Thanks @alice, @bob!" line.
+
+#### Plugin: issue-link-refs
+
+Converts inline `[#N](url)` issue links to GFM reference-style `[#N]` with link definitions at the end of each version block. Deduplicates reference definitions when multiple changesets reference the same issue.
+
 #### Plugin: normalize-format
 
-Cleans up markdown formatting:
-
-- Ensures consistent blank lines between sections
-- Normalizes heading levels
-- Trims trailing whitespace
-- Ensures file ends with a newline
+Final cleanup pass that removes empty sections (headings with no content) and empty lists. Runs last in the pipeline to clean up any artifacts left by earlier transforms.
 
 ---
 
@@ -1421,7 +1567,7 @@ Both also share the `RULE_DOCS` constant from
 
 ### Rules
 
-All four rules use `parser: "micromark"` and
+All five rules use `parser: "micromark"` and
 `tags: ["changeset"]`.
 
 #### CSH001: changeset-heading-hierarchy
@@ -1461,6 +1607,21 @@ ensure proper changelog generation and section ordering.
 
 Names: `changeset-uncategorized-content`, `CSH004`
 
+#### CSH005: changeset-dependency-table-format
+
+Validates that `## Dependencies` sections contain a properly
+structured GFM markdown table. Checks column layout
+(`Dependency | Type | Action | From | To`), valid dependency
+types, valid actions, semver/em-dash version values, and
+semantic consistency (added requires from = em-dash, removed
+requires to = em-dash). Uses the GFM table micromark token
+types (`tableHead`, `tableBody`, `tableRow`, `tableHeader`,
+`tableData`, `tableContent`) with a widened `AnyToken` type
+to avoid TS2367 errors from the transitive
+`micromark-extension-gfm-table` package.
+
+Names: `changeset-dependency-table-format`, `CSH005`
+
 ### Consumer Configuration
 
 ```jsonc
@@ -1470,7 +1631,7 @@ Names: `changeset-uncategorized-content`, `CSH004`
 }
 ```
 
-The default export is an array of all four rules, suitable
+The default export is an array of all five rules, suitable
 for the `customRules` config field. Named exports are also
 available for individual rule use.
 
@@ -1506,10 +1667,12 @@ follow these guidelines to support AI-agent workflows:
    the rule's documentation file on GitHub, sourced from
    the `RULE_DOCS` map.
 
-The `RULE_DOCS` constant maps rule codes (`CSH001`-`CSH004`)
-to their GitHub documentation URLs. It is imported by
-both the markdownlint rules and the remark-lint rules
-to keep URLs consistent across implementations.
+The `RULE_DOCS` constant maps rule codes (`CSH001`-`CSH005`)
+to their GitHub documentation URLs. It is defined in
+`src/constants.ts` and imported by both the markdownlint
+rules (via `src/markdownlint/rules/utils.ts`) and the
+remark-lint rules to keep URLs consistent across
+implementations.
 
 ### Runtime Dependencies
 
@@ -1525,15 +1688,17 @@ devDependency used only for types and test infrastructure.
 src/categories/index.ts  (shared category system)
         |
         +--- src/remark/rules/      (MDAST, unified)
-        |      Layer 1 rules
+        |      Layer 1 rules (CSH001-CSH005)
         |
         +--- src/markdownlint/      (micromark tokens)
-               |  CSH001, CSH002, CSH003, CSH004
+               |  CSH001, CSH002, CSH003, CSH004, CSH005
                |
                +--- rules/utils.ts  (re-exports RULE_DOCS from src/constants.ts)
 
+src/constants.ts     (RULE_DOCS URLs for CSH001-CSH005)
+
 docs/rules/          (rule documentation files)
-  CSH001.md, CSH002.md, CSH003.md, CSH004.md
+  CSH001.md, CSH002.md, CSH003.md, CSH004.md, CSH005.md
 ```
 
 The remark-lint rules and markdownlint rules validate the
@@ -1877,6 +2042,79 @@ The `version` command's `--dry-run` flag is respected by `processVersionFiles`. 
 
 ---
 
+## Dependency Table Format
+
+The dependency table format is a cross-cutting feature that integrates across all three pipeline layers plus the schemas, utilities, and class-based API.
+
+### Motivation
+
+The prior art formatted dependency updates as bullet lists (e.g., `- Updated effect from 3.18.0 to 3.19.1`). This format is human-readable but loses structure: it is harder to parse programmatically, cannot distinguish between dependency types (prod vs dev vs peer), and does not support add/remove actions. The table format provides a richer, machine-parseable representation while remaining human-readable in GFM-rendered markdown.
+
+### Table Structure
+
+Dependency tables use a five-column GFM table:
+
+```markdown
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| effect | dependency | updated | 3.18.0 | 3.19.1 |
+| @effect/cli | dependency | added | — | 0.50.0 |
+| lodash | devDependency | removed | 4.17.21 | — |
+```
+
+The em-dash character (`\u2014`) serves as a sentinel: the `From` column uses it for newly added dependencies (no previous version), and the `To` column uses it for removed dependencies (no target version).
+
+### Schemas (`src/schemas/dependency-table.ts`)
+
+Five Effect schemas define the canonical representation:
+
+| Schema | Purpose |
+| :--- | :--- |
+| `DependencyActionSchema` | `Schema.Literal("added", "updated", "removed")` |
+| `DependencyTableTypeSchema` | `Schema.Literal("dependency", "devDependency", "peerDependency", "optionalDependency", "workspace", "config")` -- extends `DependencyTypeSchema` with singular forms plus `workspace` and `config` types |
+| `VersionOrEmptySchema` | Semver string or em-dash sentinel (`\u2014`), validated via regex |
+| `DependencyTableRowSchema` | `Schema.Struct({ dependency, type, action, from, to })` -- one row of the table |
+| `DependencyTableSchema` | `Schema.Array(DependencyTableRowSchema).pipe(Schema.minItems(1))` -- non-empty array |
+
+All schemas and their inferred types (`DependencyAction`, `DependencyTableType`, `DependencyTableRow`) are exported from the main package entry point (`.`).
+
+### Utilities (`src/utils/dependency-table.ts`)
+
+Low-level functional primitives for table operations:
+
+| Function | Purpose |
+| :--- | :--- |
+| `parseDependencyTable(table)` | Parse an MDAST `Table` node into validated `DependencyTableRow[]` via Schema decoding |
+| `serializeDependencyTable(rows)` | Serialize `DependencyTableRow[]` into an MDAST `Table` node |
+| `serializeDependencyTableToMarkdown(rows)` | Serialize rows directly to a GFM markdown table string via remark-gfm |
+| `collapseDependencyRows(rows)` | Merge rows with the same `dependency + type` key using semantic collapse rules |
+| `sortDependencyRows(rows)` | Sort by action (removed, updated, added), then type, then dependency name |
+
+### Class-Based API (`src/api/dependency-table.ts`)
+
+The `DependencyTable` class wraps the utility functions with a static class API:
+
+| Method | Description |
+| :--- | :--- |
+| `DependencyTable.parse(tableNode)` | Parse an MDAST table to typed rows |
+| `DependencyTable.serialize(rows)` | Serialize rows to an MDAST table node |
+| `DependencyTable.toMarkdown(rows)` | Serialize rows to a markdown string |
+| `DependencyTable.collapse(rows)` | Collapse duplicate rows |
+| `DependencyTable.sort(rows)` | Sort rows by action, type, name |
+| `DependencyTable.aggregate(rows)` | Collapse + sort (recommended for final output) |
+
+### Integration Across Layers
+
+**Layer 1 (Lint):** Rule CSH005 (`changeset-dependency-table-format`) validates dependency table structure in both remark-lint and markdownlint implementations. See [Rule: dependency-table-format](#rule-dependency-table-format-csh005) above.
+
+**Layer 2 (Format):** `getDependencyReleaseLine` emits GFM tables instead of bullet lists, using `inferDependencyType` to determine the type from the consuming package's `package.json` fields.
+
+**Layer 3 (Transform):** `AggregateDependencyTablesPlugin` (position 1 of 7 in `SilkChangesetTransformPreset`) merges duplicate `### Dependencies` sections within each version block. It runs before `MergeSectionsPlugin` so that the generic section merger does not naively concatenate dependency tables as list content.
+
+**CLI (init):** The init command registers the `changeset-dependency-table-format` rule name in both the base markdownlint config (set to `false`) and `.changeset/.markdownlint.json` (set to `true`).
+
+---
+
 ## Changeset File Format
 
 Individual `.changeset/*.md` files use this structure:
@@ -1989,7 +2227,9 @@ import { ChangelogService, GitHubService, MarkdownService } from '@savvy-web/cha
 import { ChangelogLive, GitHubLive, GitHubTest } from '@savvy-web/changesets'
 
 // Schemas (validate external data, define branded types)
-import { ChangesetOptionsSchema, CommitHashSchema, VersionFilesSchema } from '@savvy-web/changesets'
+import { ChangesetOptionsSchema, CommitHashSchema, VersionFilesSchema,
+  DependencyTableRowSchema, DependencyTableSchema, DependencyActionSchema,
+  DependencyTableTypeSchema, VersionOrEmptySchema } from '@savvy-web/changesets'
 
 // Tagged Errors (pattern match in error channels)
 import { ChangesetValidationError, GitHubApiError, VersionFileError } from '@savvy-web/changesets'
@@ -1998,7 +2238,7 @@ import { ChangesetValidationError, GitHubApiError, VersionFileError } from '@sav
 **Class-Based API** -- for higher-level consumers who don't use Effect:
 
 ```typescript
-import { Changelog, ChangesetLinter, ChangelogTransformer, Categories } from '@savvy-web/changesets'
+import { Changelog, ChangesetLinter, ChangelogTransformer, Categories, DependencyTable } from '@savvy-web/changesets'
 
 // Format a release line (runs Effect internally, returns Promise)
 const line = await Changelog.formatReleaseLine(changeset, type, { repo: 'savvy-web/foo' })
@@ -2012,6 +2252,11 @@ const transformed = await ChangelogTransformer.transform('CHANGELOG.md')
 // Look up categories
 const ordered = Categories.ordered()  // Returns categories sorted by priority
 const cat = Categories.fromCommitType('feat')  // Returns SectionCategory
+
+// Dependency table operations
+const rows = DependencyTable.parse(tableNode)  // Parse mdast Table to typed rows
+const aggregated = DependencyTable.aggregate(rows)  // Collapse duplicates + sort
+const md = DependencyTable.toMarkdown(aggregated)  // Serialize to GFM table string
 ```
 
 The class-based API internally runs Effect programs via `Effect.runPromise()`, providing
@@ -2046,7 +2291,7 @@ and configuring markdownlint rules scoped to changeset files.
 | :--- | :--- | :--- | :--- |
 | `--force` | `-f` | `false` | Overwrite existing config files |
 | `--quiet` | `-q` | `false` | Silence warnings, always exit 0 |
-| `--markdownlint` | | `true` | Register rules in base markdownlint config |
+| `--skip-markdownlint` | | `false` | Skip registering rules in base markdownlint config |
 | `--check` | | `false` | Check configuration without writing (for postinstall scripts) |
 
 **`--check` mode:** Inspects the current configuration state without writing any files.
@@ -2056,7 +2301,7 @@ any issues found:
 
 1. `.changeset/` directory exists
 2. `.changeset/config.json` exists and has the correct changelog formatter entry
-3. Base markdownlint config has `customRules` and rule entries (if `--markdownlint`)
+3. Base markdownlint config has `customRules` and rule entries (unless `--skip-markdownlint`)
 4. `.changeset/.markdownlint.json` exists and has rules enabled
 
 When issues are found, advises the user to run `savvy-changesets init --force` to fix.
@@ -2077,7 +2322,6 @@ silently skipping.
 | Function | Purpose |
 | :--- | :--- |
 | `detectGitHubRepo(cwd)` | Detect `owner/repo` from git remote origin URL |
-| `stripJsoncComments(text)` | Strip JSONC comments for parsing |
 | `resolveWorkspaceRoot(cwd)` | Resolve workspace root via `workspace-tools` |
 | `findMarkdownlintConfig(root)` | Find first existing markdownlint config from candidate paths |
 | `ensureChangesetDir(root)` | Create `.changeset/` directory (Effect) |
@@ -2152,8 +2396,6 @@ only upstream runtime dependency.
 | :--- | :--- | :--- | :--- |
 | `@changesets/types` | `src/vendor/types.ts` | `ChangelogFunctions`, `NewChangesetWithCommit`, `ModCompWithPackage`, `VersionType` | Redefine as Effect Schemas with proper branding; replace loose `any` types with strict alternatives |
 | `@changesets/get-github-info` | `src/vendor/github-info.ts` | `getInfo()` function, GitHub API fetching logic | Wrap in Effect `GitHubService`; add proper error channel; integrate with Effect retry/caching |
-| `@changesets/parse` | `src/vendor/parse.ts` | YAML frontmatter parsing | Minimal; we use remark for the markdown body |
-| `@actions/core` | `src/vendor/ci-logger.ts` | `warning()`, `info()` logging functions | Replace with Effect Logger + custom CI log layer (detects `GITHUB_ACTIONS` env) |
 
 Each vendored file includes:
 
@@ -2316,15 +2558,8 @@ The output must survive Biome formatting without structural changes:
 
 The test suite uses a combination of inline
 fixture tests and unit tests across all layers.
-398 tests pass across 40 test files with coverage
+Tests are spread across 55 test files with coverage
 thresholds enforced at 85% lines/80% functions.
-
-**Actual Coverage (as of Phase 8 completion):**
-
-- 87.4% lines
-- 85.2% branches
-- 80.9% functions
-- 88.1% statements
 
 ### Integration Testing Approach
 
@@ -2695,7 +2930,7 @@ not future enhancements:
 
 ---
 
-**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining.
+**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers.
 
 **Architecture Notes:**
 
@@ -2708,6 +2943,8 @@ not future enhancements:
 - Valibot schemas from prior art have been migrated to Effect Schema
 - Prior art's `getFormattedReleaseLines()` has been decomposed: per-changeset logic in Layer 2,
   cross-changeset merging in Layer 3
+- Dependency table format replaces bullet-list dependency updates with structured GFM tables,
+  validated by CSH005 (lint) and aggregated by AggregateDependencyTablesPlugin (transform)
 
 **Maintenance:**
 

@@ -1,8 +1,17 @@
 /**
  * Workspace utilities for multi-package changelog processing.
  *
+ * @remarks
  * Provides package manager detection, changeset version command
- * generation, and workspace changelog discovery.
+ * generation, and workspace changelog discovery. Used by the CLI
+ * `version` command to orchestrate CHANGELOG post-processing across
+ * all packages in a monorepo.
+ *
+ * Package manager detection reads the `packageManager` field from
+ * the root `package.json` (as specified by
+ * {@link https://nodejs.org/api/corepack.html | Corepack}).
+ * Workspace discovery uses the `workspace-tools` library to enumerate
+ * packages from the workspace configuration.
  *
  * @internal
  */
@@ -14,11 +23,24 @@ import { getWorkspaceInfos } from "workspace-tools";
 
 /**
  * Supported package managers.
+ *
+ * @remarks
+ * Detected from the `packageManager` field in root `package.json`
+ * (e.g., `pnpm@9.0.0`). Falls back to `"npm"` if unrecognized.
+ *
+ * @internal
  */
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
 
 /**
  * A discovered workspace changelog entry.
+ *
+ * @remarks
+ * Represents a package within a workspace that has a `CHANGELOG.md` file.
+ * Used by the CLI `version` command to iterate over all changelogs for
+ * post-processing.
+ *
+ * @internal
  */
 export interface WorkspaceChangelog {
 	/** Package name */
@@ -32,22 +54,36 @@ export interface WorkspaceChangelog {
 /**
  * Static utility class for workspace operations.
  *
+ * @remarks
+ * Provides three capabilities needed by the CLI `version` command:
+ * 1. Detect the active package manager from `package.json`
+ * 2. Generate the correct `changeset version` shell command
+ * 3. Discover all `CHANGELOG.md` files across workspace packages
+ *
  * @example
  * ```typescript
- * import { Workspace } from "\@savvy-web/changesets";
+ * import { Workspace } from "../utils/workspace.js";
  *
  * const pm = Workspace.detectPackageManager("/path/to/project");
  * const cmd = Workspace.getChangesetVersionCommand(pm);
  * const changelogs = Workspace.discoverChangelogs("/path/to/project");
+ * for (const entry of changelogs) {
+ *   console.log(`${entry.name}: ${entry.changelogPath}`);
+ * }
  * ```
+ *
+ * @internal
  */
 // biome-ignore lint/complexity/noStaticOnlyClass: Intentional pattern for TSDoc discoverability
 export class Workspace {
 	/**
-	 * Detect the package manager from the root package.json `packageManager` field.
+	 * Detect the package manager from the root `package.json` `packageManager` field.
 	 *
+	 * @remarks
 	 * Parses the `packageManager` field (e.g., `pnpm@9.0.0`) and extracts the
-	 * manager name. Falls back to `"npm"` if the field is missing or unrecognized.
+	 * manager name using a regex match against the known set: `npm`, `pnpm`,
+	 * `yarn`, `bun`. Falls back to `"npm"` if the field is missing, the file
+	 * cannot be read, or the manager is unrecognized.
 	 *
 	 * @param cwd - Project root directory (defaults to `process.cwd()`)
 	 * @returns The detected package manager
@@ -79,8 +115,15 @@ export class Workspace {
 	/**
 	 * Get the full exec command string for running `changeset version`.
 	 *
+	 * @remarks
+	 * Maps each package manager to its appropriate exec/run syntax:
+	 * - `pnpm` → `pnpm exec changeset version`
+	 * - `yarn` → `yarn exec changeset version`
+	 * - `bun` → `bun x changeset version`
+	 * - `npm` (default) → `npx changeset version`
+	 *
 	 * @param pm - The package manager to use
-	 * @returns The shell command string (e.g., `"pnpm exec changeset version"`)
+	 * @returns The shell command string
 	 */
 	static getChangesetVersionCommand(pm: PackageManager): string {
 		switch (pm) {
@@ -96,11 +139,14 @@ export class Workspace {
 	}
 
 	/**
-	 * Discover all CHANGELOG.md files across workspace packages.
+	 * Discover all `CHANGELOG.md` files across workspace packages.
 	 *
+	 * @remarks
 	 * Uses `workspace-tools` to enumerate all workspace packages, checks each
 	 * for a `CHANGELOG.md`, and always includes the root if it has one.
-	 * Deduplicates the root if it also appears as a workspace entry.
+	 * Deduplicates by absolute path so the root is not counted twice if it
+	 * also appears as a workspace entry. If `workspace-tools` fails (e.g.,
+	 * in a non-workspace project), falls through to the root-only check.
 	 *
 	 * @param cwd - Project root directory (defaults to `process.cwd()`)
 	 * @returns Array of discovered changelog entries

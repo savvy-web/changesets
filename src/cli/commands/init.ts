@@ -1,8 +1,33 @@
 /**
- * Init command — bootstrap a repo for \@savvy-web/changesets.
+ * Init command -- bootstrap a repository for \@savvy-web/changesets.
  *
  * Creates the `.changeset/` directory, writes (or patches) `config.json`,
- * and configures markdownlint rules scoped to changeset files.
+ * and configures markdownlint rules scoped to changeset files. Also provides
+ * a `--check` mode for verifying existing configuration without writing.
+ *
+ * @remarks
+ * The init command performs the following steps:
+ * 1. Detect the GitHub `owner/repo` slug from the git remote origin URL via
+ *    {@link detectGitHubRepo}.
+ * 2. Ensure the `.changeset/` directory exists via {@link ensureChangesetDir}.
+ * 3. Write or patch `.changeset/config.json` via {@link handleConfig}.
+ * 4. Register custom rules in the base markdownlint config via
+ *    {@link handleBaseMarkdownlint} (skipped with `--skip-markdownlint`).
+ * 5. Write or patch `.changeset/.markdownlint.json` via
+ *    {@link handleChangesetMarkdownlint}.
+ *
+ * In `--check` mode, no files are written. Instead the command inspects
+ * existing configuration via {@link checkChangesetDir},
+ * {@link checkConfig}, {@link checkBaseMarkdownlint}, and
+ * {@link checkChangesetMarkdownlint}, reporting any issues as warnings.
+ *
+ * @example
+ * ```bash
+ * savvy-changesets init
+ * savvy-changesets init --force
+ * savvy-changesets init --check
+ * savvy-changesets init --skip-markdownlint
+ * ```
  *
  * @internal
  */
@@ -31,6 +56,7 @@ const RULE_NAMES = [
 	"changeset-required-sections",
 	"changeset-content-structure",
 	"changeset-uncategorized-content",
+	"changeset-dependency-table-format",
 ] as const;
 
 const DEFAULT_CONFIG = {
@@ -44,10 +70,22 @@ const DEFAULT_CONFIG = {
 	privatePackages: { tag: true, version: true },
 } as const;
 
-/** @internal */
+/**
+ * Base class for {@link InitError}, created via `Data.TaggedError`.
+ *
+ * @internal
+ */
 export const InitErrorBase = Data.TaggedError("InitError");
 
-/** Error during init command execution. */
+/**
+ * Tagged error raised when an init step fails.
+ *
+ * @remarks
+ * Carries the `step` name (e.g., `".changeset directory"`) and a human-readable
+ * `reason` string. The `message` getter combines both for logging.
+ *
+ * @internal
+ */
 export class InitError extends InitErrorBase<{
 	readonly step: string;
 	readonly reason: string;
@@ -78,8 +116,17 @@ const checkOption = Options.boolean("check").pipe(
 /* v8 ignore stop */
 
 /**
- * Detect `owner/repo` from the git remote origin URL.
- * Returns `null` when detection fails.
+ * Detect the `owner/repo` slug from the git remote origin URL.
+ *
+ * Attempts to parse both HTTPS (`github.com/owner/repo`) and SSH
+ * (`github.com:owner/repo`) URL formats. Returns `null` when git is
+ * unavailable, no remote is configured, or the URL does not match a
+ * GitHub repository pattern.
+ *
+ * @param cwd - Working directory in which to run `git remote get-url origin`
+ * @returns The `owner/repo` string, or `null` on failure
+ *
+ * @internal
  */
 export function detectGitHubRepo(cwd: string): string | null {
 	try {
@@ -94,18 +141,45 @@ export function detectGitHubRepo(cwd: string): string | null {
 	return null;
 }
 
-/** Formatting options for jsonc-parser modify operations (tabs per Biome/Silk Suite convention). */
+/**
+ * Formatting options for `jsonc-parser` modify operations.
+ *
+ * Uses tabs (not spaces) per the Biome / Silk Suite convention.
+ *
+ * @internal
+ */
 const JSONC_FORMAT: FormattingOptions = {
 	tabSize: 1,
 	insertSpaces: false,
 };
 
-/** Resolve workspace root from cwd, falling back to cwd itself. */
+/**
+ * Resolve the monorepo workspace root from `cwd`.
+ *
+ * Uses `workspace-tools`' `findProjectRoot` and falls back to `cwd` itself
+ * when no workspace root can be determined.
+ *
+ * @param cwd - The current working directory to search from
+ * @returns The resolved workspace root path
+ *
+ * @internal
+ */
 export function resolveWorkspaceRoot(cwd: string): string {
 	return findProjectRoot(cwd) ?? cwd;
 }
 
-/** Find the first existing markdownlint config file from candidate paths. */
+/**
+ * Find the first existing markdownlint config file from candidate paths.
+ *
+ * Searches for `lib/configs/.markdownlint-cli2.jsonc`,
+ * `lib/configs/.markdownlint-cli2.json`, `.markdownlint-cli2.jsonc`, and
+ * `.markdownlint-cli2.json` (in that order) relative to `root`.
+ *
+ * @param root - The workspace root directory to search in
+ * @returns The relative config path if found, or `null`
+ *
+ * @internal
+ */
 export function findMarkdownlintConfig(root: string): string | null {
 	for (const configPath of MARKDOWNLINT_CONFIG_PATHS) {
 		if (existsSync(join(root, configPath))) return configPath;
@@ -113,7 +187,17 @@ export function findMarkdownlintConfig(root: string): string | null {
 	return null;
 }
 
-/** @internal */
+/**
+ * Ensure the `.changeset/` directory exists under `root`.
+ *
+ * Creates the directory recursively if it does not already exist.
+ *
+ * @param root - The workspace root directory
+ * @returns An Effect yielding the absolute path to `.changeset/`, or an
+ *   {@link InitError} on failure
+ *
+ * @internal
+ */
 export function ensureChangesetDir(root: string): Effect.Effect<string, InitError> {
 	return Effect.try({
 		try: () => {
@@ -129,7 +213,21 @@ export function ensureChangesetDir(root: string): Effect.Effect<string, InitErro
 	});
 }
 
-/** @internal */
+/**
+ * Write or patch `.changeset/config.json`.
+ *
+ * When `force` is `true` or the file does not exist, writes a fresh config
+ * with the default schema. Otherwise, patches only the `changelog` field to
+ * point at `\@savvy-web/changesets/changelog` with the detected `repoSlug`.
+ *
+ * @param changesetDir - Absolute path to the `.changeset/` directory
+ * @param repoSlug - The `owner/repo` GitHub slug to embed in the config
+ * @param force - When `true`, overwrite existing config entirely
+ * @returns An Effect yielding a human-readable status message, or an
+ *   {@link InitError} on failure
+ *
+ * @internal
+ */
 export function handleConfig(changesetDir: string, repoSlug: string, force: boolean): Effect.Effect<string, InitError> {
 	return Effect.try({
 		try: () => {
@@ -155,7 +253,21 @@ export function handleConfig(changesetDir: string, repoSlug: string, force: bool
 	});
 }
 
-/** @internal */
+/**
+ * Register custom rules in the base markdownlint config.
+ *
+ * Locates the project's markdownlint-cli2 config file via
+ * {@link findMarkdownlintConfig}, then uses `jsonc-parser` to:
+ * 1. Append `\@savvy-web/changesets/markdownlint` to the `customRules` array.
+ * 2. Add each CSH rule name to the `config` object (set to `false` so they
+ *    are recognized but disabled at the project root -- they are enabled in
+ *    `.changeset/.markdownlint.json`).
+ *
+ * @param root - The workspace root directory
+ * @returns An Effect yielding a status message, or an {@link InitError}
+ *
+ * @internal
+ */
 export function handleBaseMarkdownlint(root: string): Effect.Effect<string, InitError> {
 	return Effect.try({
 		try: () => {
@@ -206,7 +318,21 @@ export function handleBaseMarkdownlint(root: string): Effect.Effect<string, Init
 	});
 }
 
-/** @internal */
+/**
+ * Write or patch `.changeset/.markdownlint.json`.
+ *
+ * Creates a scoped markdownlint config that extends the base config (if found),
+ * disables all default rules (`"default": false`), disables MD041 (first-line
+ * heading), and enables all five CSH rules. When the file already exists and
+ * `force` is `false`, only the CSH rule entries are patched.
+ *
+ * @param changesetDir - Absolute path to the `.changeset/` directory
+ * @param root - The workspace root directory (for resolving the base config)
+ * @param force - When `true`, overwrite the existing config entirely
+ * @returns An Effect yielding a status message, or an {@link InitError}
+ *
+ * @internal
+ */
 export function handleChangesetMarkdownlint(
 	changesetDir: string,
 	root: string,
@@ -250,13 +376,27 @@ export function handleChangesetMarkdownlint(
 // Check functions (--check mode)
 // ---------------------------------------------------------------------------
 
-/** Diagnostic from a --check run. */
+/**
+ * Diagnostic from a `--check` run.
+ *
+ * Each issue identifies the `file` that has a problem and a human-readable
+ * `message` describing what is wrong or missing.
+ *
+ * @internal
+ */
 export interface CheckIssue {
 	readonly file: string;
 	readonly message: string;
 }
 
-/** Check that .changeset/ directory exists. */
+/**
+ * Check that the `.changeset/` directory exists under `root`.
+ *
+ * @param root - The workspace root directory
+ * @returns An array of {@link CheckIssue} items (empty when the directory exists)
+ *
+ * @internal
+ */
 export function checkChangesetDir(root: string): CheckIssue[] {
 	const dir = join(root, ".changeset");
 	if (!existsSync(dir)) {
@@ -265,7 +405,18 @@ export function checkChangesetDir(root: string): CheckIssue[] {
 	return [];
 }
 
-/** Check that .changeset/config.json exists and has the correct changelog entry. */
+/**
+ * Check that `.changeset/config.json` exists and has the correct changelog entry.
+ *
+ * Verifies that the `changelog` field points to `\@savvy-web/changesets/changelog`
+ * and that the embedded `repo` value matches `repoSlug`.
+ *
+ * @param changesetDir - Absolute path to the `.changeset/` directory
+ * @param repoSlug - The expected `owner/repo` GitHub slug
+ * @returns An array of {@link CheckIssue} items (empty when config is correct)
+ *
+ * @internal
+ */
 export function checkConfig(changesetDir: string, repoSlug: string): CheckIssue[] {
 	const configPath = join(changesetDir, "config.json");
 	if (!existsSync(configPath)) {
@@ -296,7 +447,15 @@ export function checkConfig(changesetDir: string, repoSlug: string): CheckIssue[
 	}
 }
 
-/** Check that base markdownlint config has our customRules and rule entries. */
+/**
+ * Check that the base markdownlint config has the `customRules` entry and
+ * all CSH rule names registered in its `config` section.
+ *
+ * @param root - The workspace root directory
+ * @returns An array of {@link CheckIssue} items (empty when config is correct)
+ *
+ * @internal
+ */
 export function checkBaseMarkdownlint(root: string): CheckIssue[] {
 	const foundPath = findMarkdownlintConfig(root);
 	if (!foundPath) {
@@ -338,7 +497,15 @@ export function checkBaseMarkdownlint(root: string): CheckIssue[] {
 	}
 }
 
-/** Check that .changeset/.markdownlint.json exists and has our rules enabled. */
+/**
+ * Check that `.changeset/.markdownlint.json` exists and has all five CSH
+ * rules enabled (`true`).
+ *
+ * @param changesetDir - Absolute path to the `.changeset/` directory
+ * @returns An array of {@link CheckIssue} items (empty when config is correct)
+ *
+ * @internal
+ */
 export function checkChangesetMarkdownlint(changesetDir: string): CheckIssue[] {
 	const mdlintPath = join(changesetDir, ".markdownlint.json");
 	if (!existsSync(mdlintPath)) {

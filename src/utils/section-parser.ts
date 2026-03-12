@@ -1,9 +1,23 @@
 /**
  * Section-aware changeset summary parser.
  *
+ * @remarks
  * Parses changeset summaries that contain h2 headings into structured
- * sections mapped to categories.
+ * sections mapped to {@link SectionCategory} values. This is the bridge
+ * between raw changeset markdown and the category system: it walks the
+ * MDAST tree to find h2 headings, resolves each heading to a category
+ * via `fromHeading()`, and collects the content between headings.
  *
+ * Supports two modes:
+ * - **Sectioned mode**: when h2 headings are present, each heading becomes
+ *   a section with its category and content
+ * - **Flat-text mode**: when no h2 headings are found, the entire content
+ *   is returned as the preamble (backward-compatible with plain changesets)
+ *
+ * @see {@link Changelog} for the public API that consumes parsed sections
+ * @see {@link Categories} for the category resolution system
+ *
+ * @internal
  */
 
 import type { Heading, Root, RootContent } from "mdast";
@@ -15,6 +29,10 @@ import { parseMarkdown, stringifyMarkdown } from "./remark-pipeline.js";
 
 /**
  * A parsed section from a changeset summary.
+ *
+ * @remarks
+ * Represents a single h2-delimited section within a changeset summary,
+ * with the heading text resolved to a {@link SectionCategory}.
  *
  * @internal
  */
@@ -30,6 +48,24 @@ export interface ParsedSection {
 /**
  * A fully parsed changeset with optional preamble and sections.
  *
+ * @remarks
+ * The preamble captures any content before the first h2 heading.
+ * If no h2 headings are present, the entire summary is stored as
+ * the preamble with an empty `sections` array.
+ *
+ * @example
+ * ```typescript
+ * import type { ParsedChangeset } from "../utils/section-parser.js";
+ *
+ * const result: ParsedChangeset = {
+ *   preamble: "General notes about this release.",
+ *   sections: [
+ *     { category: "Features", heading: "Features", content: "- Added new API" },
+ *     { category: "Bug Fixes", heading: "Bug Fixes", content: "- Fixed crash" },
+ *   ],
+ * };
+ * ```
+ *
  * @internal
  */
 export interface ParsedChangeset {
@@ -42,15 +78,39 @@ export interface ParsedChangeset {
 /**
  * Parse a changeset summary into structured sections.
  *
+ * @remarks
+ * The algorithm works in three steps:
+ * 1. Parse the summary markdown into an MDAST tree via {@link parseMarkdown}
+ * 2. Scan `tree.children` for h2 (`depth === 2`) headings, recording their
+ *    indices
+ * 3. For each h2, extract the heading text, resolve it to a
+ *    {@link SectionCategory} via `fromHeading()`, and collect all nodes
+ *    between this h2 and the next h2 (or end of document) as the section
+ *    content
+ *
  * If the summary contains h2 (`##`) headings, they are mapped to categories
- * via {@link fromHeading}. Content between headings becomes the section content.
+ * via `fromHeading()`. Content between headings becomes the section content.
  * Content before the first h2 becomes the preamble.
  *
  * If no h2 headings are present, the entire content is returned as the preamble
  * with an empty sections array (backward-compatible flat-text mode).
  *
+ * Unknown headings (those not recognized by `fromHeading()`) are silently
+ * skipped; validation of heading names is the responsibility of Layer 1
+ * (remark-lint).
+ *
  * @param summary - The changeset summary markdown
  * @returns Parsed sections and optional preamble
+ *
+ * @example
+ * ```typescript
+ * import { parseChangesetSections } from "../utils/section-parser.js";
+ *
+ * const result = parseChangesetSections("## Features\n\n- New API\n\n## Bug Fixes\n\n- Fixed crash");
+ * // result.sections.length === 2
+ * // result.sections[0].category === "Features"
+ * // result.preamble === undefined
+ * ```
  *
  * @internal
  */
@@ -103,7 +163,16 @@ export function parseChangesetSections(summary: string): ParsedChangeset {
 }
 
 /**
- * Stringify a slice of AST nodes back to markdown.
+ * Stringify a slice of MDAST nodes back to markdown.
+ *
+ * @remarks
+ * Wraps the nodes in a synthetic root node and delegates to
+ * {@link stringifyMarkdown}. Returns an empty string for empty slices.
+ *
+ * @param nodes - Array of MDAST content nodes
+ * @returns Trimmed markdown string, or empty string if no nodes
+ *
+ * @internal
  */
 function stringifyAstSlice(nodes: RootContent[]): string {
 	if (nodes.length === 0) return "";

@@ -1,8 +1,21 @@
 /**
- * Check command — full validation pipeline with human-readable output.
+ * Check command -- full validation pipeline with human-readable output.
  *
- * Runs lint on all changeset files and reports a grouped summary
- * with pass/fail counts.
+ * Runs lint on all changeset files in a directory and reports a grouped
+ * summary with pass/fail counts. Unlike the `lint` command, output is
+ * formatted for human consumption rather than machine parsing.
+ *
+ * @remarks
+ * The command resolves the directory argument, delegates to
+ * {@link ChangesetLinter.validate}, groups the resulting
+ * {@link LintMessage} objects by file path, and logs each file's errors
+ * indented under the file name. Sets `process.exitCode = 1` when errors
+ * are found.
+ *
+ * @example
+ * ```bash
+ * savvy-changesets check .changeset
+ * ```
  *
  * @internal
  */
@@ -17,7 +30,17 @@ import { ChangesetLinter } from "../../api/linter.js";
 /* v8 ignore next */
 const dirArg = Args.directory({ name: "dir" }).pipe(Args.withDefault(".changeset"));
 
-/** @internal */
+/**
+ * Run the check validation pipeline on all changeset files in `dir`.
+ *
+ * Groups lint messages by file and logs a human-readable summary. Sets
+ * `process.exitCode = 1` when one or more errors are found.
+ *
+ * @param dir - Path to the changeset directory (resolved relative to cwd)
+ * @returns An Effect that performs validation and logs results
+ *
+ * @internal
+ */
 export function runCheck(dir: string) {
 	return Effect.gen(function* () {
 		const resolved = resolve(dir);

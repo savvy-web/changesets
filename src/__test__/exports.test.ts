@@ -49,6 +49,16 @@ describe("main entry point (src/index.ts)", () => {
 		expect(mod.NonEmptyString).toBeDefined();
 		expect(mod.PositiveInteger).toBeDefined();
 	});
+
+	it("exports dependency table utilities", async () => {
+		const mod = await import("../index.js");
+		expect(mod.DependencyTable).toBeDefined();
+		expect(mod.DependencyTableRowSchema).toBeDefined();
+		expect(mod.DependencyTableTypeSchema).toBeDefined();
+		expect(mod.DependencyActionSchema).toBeDefined();
+		expect(mod.DependencyTableSchema).toBeDefined();
+		expect(mod.VersionOrEmptySchema).toBeDefined();
+	});
 });
 
 describe("remark entry point (src/remark/index.ts)", () => {
@@ -58,10 +68,12 @@ describe("remark entry point (src/remark/index.ts)", () => {
 		expect(mod.RequiredSectionsRule).toBeDefined();
 		expect(mod.ContentStructureRule).toBeDefined();
 		expect(mod.UncategorizedContentRule).toBeDefined();
+		expect(mod.DependencyTableFormatRule).toBeDefined();
 	});
 
 	it("exports transform plugins", async () => {
 		const mod = await import("../remark/index.js");
+		expect(mod.AggregateDependencyTablesPlugin).toBeDefined();
 		expect(mod.MergeSectionsPlugin).toBeDefined();
 		expect(mod.ReorderSectionsPlugin).toBeDefined();
 		expect(mod.DeduplicateItemsPlugin).toBeDefined();
@@ -72,27 +84,27 @@ describe("remark entry point (src/remark/index.ts)", () => {
 
 	it("exports presets", async () => {
 		const mod = await import("../remark/index.js");
-		expect(mod.SilkChangesetPreset).toHaveLength(4);
-		expect(mod.SilkChangesetTransformPreset).toHaveLength(6);
+		expect(mod.SilkChangesetPreset).toHaveLength(5);
+		expect(mod.SilkChangesetTransformPreset).toHaveLength(7);
 	});
 });
 
 describe("remark presets (src/remark/presets.ts)", () => {
 	it("SilkChangesetPreset contains lint rules", async () => {
 		const { SilkChangesetPreset } = await import("../remark/presets.js");
-		expect(SilkChangesetPreset).toHaveLength(4);
+		expect(SilkChangesetPreset).toHaveLength(5);
 	});
 
 	it("SilkChangesetTransformPreset contains transform plugins in order", async () => {
 		const { SilkChangesetTransformPreset } = await import("../remark/presets.js");
-		expect(SilkChangesetTransformPreset).toHaveLength(6);
+		expect(SilkChangesetTransformPreset).toHaveLength(7);
 	});
 });
 
 describe("markdownlint entry point (src/markdownlint/index.ts)", () => {
 	it("exports default rules array", async () => {
 		const mod = await import("../markdownlint/index.js");
-		expect(mod.default).toHaveLength(4);
+		expect(mod.default).toHaveLength(5);
 	});
 
 	it("exports individual rules", async () => {
@@ -101,5 +113,6 @@ describe("markdownlint entry point (src/markdownlint/index.ts)", () => {
 		expect(mod.RequiredSectionsRule).toBeDefined();
 		expect(mod.ContentStructureRule).toBeDefined();
 		expect(mod.UncategorizedContentRule).toBeDefined();
+		expect(mod.DependencyTableFormatRule).toBeDefined();
 	});
 });

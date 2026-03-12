@@ -1,9 +1,15 @@
 import { Effect } from "effect";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import remarkStringify from "remark-stringify";
+import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
 import { ChangelogTransformer } from "../api/transformer.js";
 import { getDependencyReleaseLine } from "../changelog/getDependencyReleaseLine.js";
 import { getReleaseLine } from "../changelog/getReleaseLine.js";
+import { AggregateDependencyTablesPlugin } from "../remark/plugins/aggregate-dependency-tables.js";
+import { DependencyTableFormatRule } from "../remark/rules/dependency-table-format.js";
 import type { ChangesetOptions } from "../schemas/options.js";
 import { makeGitHubTest } from "../services/github.js";
 import type { GitHubCommitInfo } from "../vendor/github-info.js";
@@ -234,5 +240,41 @@ describe("Full pipeline integration", () => {
 		expect(result).toContain("### Bug Fixes");
 		expect(result).toContain("New architecture");
 		expect(result).toContain("Legacy compat");
+	});
+
+	it("round-trips dependency table through lint → format → transform", () => {
+		const changeset = `## Dependencies
+
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| typescript | devDependency | updated | ^5.4.0 | ^5.6.0 |
+| new-pkg | dependency | added | — | ^1.0.0 |
+`;
+
+		// Layer 1: lint validation
+		const lintFile = unified()
+			.use(remarkParse)
+			.use(remarkGfm)
+			.use(DependencyTableFormatRule)
+			.use(remarkStringify)
+			.processSync(changeset);
+		expect(lintFile.messages).toHaveLength(0);
+
+		// Layer 3: transform (simulate changelog with version heading)
+		const changelog = `## 1.0.0\n\n### Dependencies\n\n${changeset.split("\n\n").slice(1).join("\n\n")}`;
+		const transformed = unified()
+			.use(remarkParse)
+			.use(remarkGfm)
+			.use(AggregateDependencyTablesPlugin)
+			.use(remarkStringify)
+			.processSync(changelog)
+			.toString();
+
+		expect(transformed).toContain("typescript");
+		expect(transformed).toContain("new-pkg");
+		// Should be sorted: added comes after updated
+		const tsIdx = transformed.indexOf("typescript");
+		const newIdx = transformed.indexOf("new-pkg");
+		expect(tsIdx).toBeLessThan(newIdx);
 	});
 });

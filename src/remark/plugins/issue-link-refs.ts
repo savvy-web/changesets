@@ -2,8 +2,51 @@
  * Remark transform: convert inline issue links to reference-style links.
  *
  * Converts `[#N](url)` inline links to `[#N]` reference-style links with
- * link definitions at the end of each version block. This improves
- * source markdown readability.
+ * link definitions at the end of each version block.
+ *
+ * @remarks
+ * Inline issue links like `[#42](https://github.com/org/repo/issues/42)` add
+ * visual noise to the markdown source. This plugin rewrites them to
+ * reference-style links (`[#42]`) and appends the corresponding link
+ * definitions (`[#42]: https://...`) at the end of each version block.
+ *
+ * Only links whose text content matches the pattern `#N` (a hash followed by
+ * one or more digits) are converted. Other links are left untouched.
+ *
+ * Within each version block, definitions are deduplicated by label and sorted
+ * numerically (e.g., `#1`, `#12`, `#123`).
+ *
+ * @example
+ * ```typescript
+ * import { IssueLinkRefsPlugin } from "\@savvy-web/changesets/remark";
+ * import remarkParse from "remark-parse";
+ * import remarkStringify from "remark-stringify";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified()
+ *   .use(remarkParse)
+ *   .use(IssueLinkRefsPlugin)
+ *   .use(remarkStringify);
+ *
+ * const md = [
+ *   "# 1.0.0",
+ *   "",
+ *   "### Bug Fixes",
+ *   "",
+ *   "- Fixed crash [#42](https://github.com/org/repo/issues/42)",
+ *   "",
+ * ].join("\n");
+ *
+ * const result = processor.processSync(new VFile(md));
+ * // Output: "- Fixed crash [#42]" with "[#42]: https://..." definition at block end
+ * ```
+ *
+ * @see {@link ContributorFootnotesPlugin} for another plugin that appends content at block end
+ * @see {@link NormalizeFormatPlugin} for cleanup that runs after this plugin
+ * @see {@link SilkChangesetTransformPreset} for the full transform pipeline ordering
+ *
+ * @public
  */
 
 import type { Definition, Link, LinkReference, Root } from "mdast";
@@ -11,13 +54,13 @@ import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 import { getVersionBlocks } from "../../utils/version-blocks.js";
 
-/** Pattern matching issue numbers like `#123`. */
+/**
+ * Pattern matching issue numbers like `#123`.
+ *
+ * @internal
+ */
 const ISSUE_RE = /^#\d+$/;
 
-/**
- * Convert inline issue links to reference-style links with definitions
- * at the end of each version block.
- */
 export const IssueLinkRefsPlugin: Plugin<[], Root> = () => {
 	return (tree: Root) => {
 		const blocks = getVersionBlocks(tree);

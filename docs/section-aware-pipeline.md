@@ -141,10 +141,11 @@ Notice the problems:
 
 ### Step 4: Transform (Layer 3)
 
-The `savvy-changesets version` command (or `savvy-changesets transform` standalone) runs six remark plugins that clean up the assembled output:
+The `savvy-changesets version` command (or `savvy-changesets transform` standalone) runs seven remark plugins that clean up the assembled output:
 
 | Plugin | What It Does |
 | :--- | :--- |
+| aggregate-dependency-tables | Consolidate dependency table rows |
 | merge-sections | Combines duplicate section headings |
 | reorder-sections | Sorts sections by category priority |
 | deduplicate-items | Removes any duplicate list items |

@@ -22,7 +22,7 @@ import {
 
 ### ChangelogTransformer
 
-Runs all six remark transform plugins against CHANGELOG markdown content.
+Runs all seven remark transform plugins against CHANGELOG markdown content.
 
 #### `ChangelogTransformer.transformContent(content)`
 
@@ -51,7 +51,7 @@ ChangelogTransformer.transformFile("CHANGELOG.md");
 
 ### ChangesetLinter
 
-Runs the four remark-lint rules against changeset markdown and returns structured diagnostic messages.
+Runs the five remark-lint rules against changeset markdown and returns structured diagnostic messages.
 
 #### `ChangesetLinter.validate(dir)`
 
@@ -177,6 +177,64 @@ All 13 categories ordered by priority (ascending).
 
 - **Type:** `readonly SectionCategory[]`
 
+### DependencyTable
+
+Static class for parsing, serializing, and manipulating dependency tables in changeset files.
+
+Import from the main entry point:
+
+```typescript
+import { DependencyTable } from "@savvy-web/changesets";
+```
+
+#### `DependencyTable.parse(tableNode)`
+
+Parse a GFM table AST node into structured dependency rows.
+
+- **Parameters:**
+  - `tableNode` -- A mdast `Table` node
+- **Returns:** `DependencyTableRow[]`
+
+#### `DependencyTable.serialize(rows)`
+
+Serialize structured dependency rows back into a mdast `Table` node.
+
+- **Parameters:**
+  - `rows` (`DependencyTableRow[]`) -- The rows to serialize
+- **Returns:** mdast `Table` node
+
+#### `DependencyTable.toMarkdown(rows)`
+
+Convert structured dependency rows to a markdown string.
+
+- **Parameters:**
+  - `rows` (`DependencyTableRow[]`) -- The rows to convert
+- **Returns:** `string`
+
+#### `DependencyTable.collapse(rows)`
+
+Collapse multiple rows for the same dependency into a single row (e.g., when a dependency is added and then updated across changesets).
+
+- **Parameters:**
+  - `rows` (`DependencyTableRow[]`) -- The rows to collapse
+- **Returns:** `DependencyTableRow[]`
+
+#### `DependencyTable.sort(rows)`
+
+Sort dependency rows alphabetically by dependency name.
+
+- **Parameters:**
+  - `rows` (`DependencyTableRow[]`) -- The rows to sort
+- **Returns:** `DependencyTableRow[]`
+
+#### `DependencyTable.aggregate(rows)`
+
+Aggregate dependency rows by collapsing duplicates and sorting the result.
+
+- **Parameters:**
+  - `rows` (`DependencyTableRow[]`) -- The rows to aggregate
+- **Returns:** `DependencyTableRow[]`
+
 ### Changelog
 
 Static class wrapper for changelog formatting. Delegates to the Changesets-compatible functions with Effect-based internals.
@@ -254,6 +312,33 @@ interface VersionFileConfig {
 }
 ```
 
+### DependencyTableRow
+
+A single row in a dependency table.
+
+```typescript
+interface DependencyTableRow {
+  /** Package name. */
+  dependency: string;
+  /** Dependency type. */
+  type: "dependency" | "devDependency" | "peerDependency" | "optionalDependency" | "workspace" | "config";
+  /** What happened to the dependency. */
+  action: DependencyAction;
+  /** Previous version (em dash for added). */
+  from: string;
+  /** New version (em dash for removed). */
+  to: string;
+}
+```
+
+### DependencyAction
+
+The action performed on a dependency.
+
+```typescript
+type DependencyAction = "added" | "updated" | "removed";
+```
+
 ## Effect Services (Advanced)
 
 For Effect-native consumers, the package exports services, layers, and tagged errors.
@@ -287,6 +372,11 @@ For Effect-native consumers, the package exports services, layers, and tagged er
 - `JsonPathSchema` -- JSONPath expression validation (must start with `$.`)
 - `VersionFileConfigSchema` -- Single version file entry validation
 - `VersionFilesSchema` -- Array of version file configs validation
+- `DependencyActionSchema` -- Dependency action validation (`added`, `updated`, `removed`)
+- `DependencyTableRowSchema` -- Single dependency table row validation
+- `DependencyTableSchema` -- Array of dependency table rows validation
+- `DependencyTableTypeSchema` -- Dependency type validation (`dependency`, `devDependency`, etc.)
+- `VersionOrEmptySchema` -- Semver version or em dash validation
 
 ## Remark Plugins (`./remark`)
 
@@ -300,6 +390,7 @@ import {
   RequiredSectionsRule,
   ContentStructureRule,
   UncategorizedContentRule,
+  DependencyTableFormatRule,
   // Transform plugins
   SilkChangesetTransformPreset,
   MergeSectionsPlugin,
@@ -308,20 +399,23 @@ import {
   ContributorFootnotesPlugin,
   IssueLinkRefsPlugin,
   NormalizeFormatPlugin,
+  AggregateDependencyTablesPlugin,
 } from "@savvy-web/changesets/remark";
 ```
 
 ### Lint Rules
 
-- `SilkChangesetPreset` -- Array of all four rules
+- `SilkChangesetPreset` -- Array of all five rules
 - `HeadingHierarchyRule` -- h2 start, no h1, no skips
 - `RequiredSectionsRule` -- Known category headings
 - `ContentStructureRule` -- Non-empty content
 - `UncategorizedContentRule` -- Content must be under a category heading
+- `DependencyTableFormatRule` -- Dependency table structure validation
 
 ### Transform Plugins
 
-- `SilkChangesetTransformPreset` -- All six in order
+- `SilkChangesetTransformPreset` -- All seven in order
+- `AggregateDependencyTablesPlugin` -- Consolidate dependency tables
 - `MergeSectionsPlugin` -- Combine duplicate headings
 - `ReorderSectionsPlugin` -- Sort by category priority
 - `DeduplicateItemsPlugin` -- Remove duplicate list items

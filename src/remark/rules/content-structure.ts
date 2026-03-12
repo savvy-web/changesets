@@ -1,11 +1,50 @@
 /**
- * Remark-lint rule: changeset-content-structure
+ * Remark-lint rule: changeset-content-structure (CSH003)
  *
- * Validates content quality in changeset files:
- * - Sections must not be empty (h2 followed immediately by another h2 or EOF)
- * - Code blocks must have a language identifier
- * - List items should have meaningful content (not empty)
+ * Validates content quality in changeset files.
  *
+ * @remarks
+ * This rule checks three aspects of content structure:
+ *
+ * - **Empty sections** -- An h2 heading followed immediately by another h2 or
+ *   the end of the file has no content. Every section must contain at least one
+ *   list item describing a change.
+ * - **Code fence language** -- Fenced code blocks must specify a language
+ *   identifier (e.g., `ts`, `json`, `bash`). This ensures syntax highlighting
+ *   in rendered changelogs.
+ * - **Empty list items** -- List items must contain meaningful descriptive text.
+ *   A bare `-` with no content is flagged.
+ *
+ * The rule ID registered with unified-lint-rule is
+ * `"remark-lint:changeset-content-structure"`.
+ *
+ * @example
+ * ```typescript
+ * import { ContentStructureRule } from "\@savvy-web/changesets/remark";
+ * import remarkParse from "remark-parse";
+ * import { unified } from "unified";
+ * import { VFile } from "vfile";
+ *
+ * const processor = unified().use(remarkParse).use(ContentStructureRule);
+ *
+ * // Valid: section with content
+ * const valid = processor.processSync(
+ *   new VFile("## Features\n\n- Added dark mode support\n"),
+ * );
+ * console.log(valid.messages.length); // 0
+ *
+ * // Invalid: empty section
+ * const invalid = processor.processSync(
+ *   new VFile("## Features\n\n## Bug Fixes\n\n- Fixed crash\n"),
+ * );
+ * console.log(invalid.messages[0].reason); // "Empty section..."
+ * ```
+ *
+ * @see {@link https://github.com/savvy-web/changesets/blob/main/docs/rules/CSH003.md | CSH003 rule documentation}
+ * @see {@link HeadingHierarchyRule} for validating heading depth structure
+ * @see {@link RequiredSectionsRule} for validating recognized section headings
+ *
+ * @public
  */
 
 import type { Code, Heading, ListItem, Root } from "mdast";

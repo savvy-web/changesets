@@ -1,11 +1,27 @@
 /**
  * Shared helpers for markdownlint custom rules.
  *
+ * Provides utility functions for extracting heading metadata from micromark
+ * tokens and re-exports the {@link RULE_DOCS} map used by each rule to link
+ * error details to online documentation.
+ *
+ * @remarks
+ * These helpers are consumed by all five CSH markdownlint rules. They operate
+ * on the `MicromarkToken` type from the `markdownlint` package, reading child
+ * tokens of `atxHeading` nodes to determine heading depth and text content.
+ *
  * @internal
  */
 
 import type { MicromarkToken } from "markdownlint";
 
+/**
+ * Documentation URL map for changeset lint rules (CSH001--CSH005).
+ *
+ * Re-exported from `src/constants.ts` for use in rule error detail strings.
+ *
+ * @internal
+ */
 export { RULE_DOCS } from "../../constants.js";
 
 /**
