@@ -3,4 +3,6 @@
 
 ## Dependencies
 
-- @savvy-web/pnpm-plugin-silk: 0.7.0 → 0.8.0
+| Dependency | Type | Action | From | To |
+| --- | --- | --- | --- | --- |
+| @savvy-web/pnpm-plugin-silk | config | updated | 0.7.0 | 0.8.0 |
