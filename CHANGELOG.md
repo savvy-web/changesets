@@ -1,5 +1,11 @@
 # @savvy-web/changesets
 
+## 0.5.1
+
+### Bug Fixes
+
+* [`218b61b`](https://github.com/savvy-web/changesets/commit/218b61b4edd67bcbd169e89581ca886967bfc281) Remove injected `postinstall` script from published package.json. Security scanners flag `postinstall` scripts in dependencies as a potential supply chain risk. Fixes #31.
+
 ## 0.5.0
 
 ### Features
