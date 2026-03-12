@@ -14,6 +14,7 @@ Custom changelog formatter and markdown processing pipeline for the Silk Suite. 
 - **GitHub integration** -- Automatic PR links, commit references, and contributor attribution
 - **Version file syncing** -- Bump version fields in additional JSON files using glob patterns and JSONPath expressions
 - **Editor support** -- markdownlint rules for real-time validation in VS Code and CI
+- **Dependency table format** -- Structured GFM tables for tracking dependency changes with automatic collapse, sort, and aggregation
 - **AI-agent-friendly errors** -- All lint and validation errors include inline fix instructions and documentation links, so AI agents can resolve issues without examining source code
 
 ## Installation
@@ -56,6 +57,21 @@ Added a new authentication system with OAuth2 support.
 
 - Added unit tests for OAuth2 flow
 - Updated integration test fixtures
+```
+
+Dependency updates use a structured table format:
+
+```markdown
+---
+"@my/package": patch
+---
+
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| :--- | :--- | :--- | :--- | :--- |
+| lodash | dependency | updated | ^4.17.20 | ^4.17.21 |
+| prettier | devDependency | added | — | ^3.0.0 |
 ```
 
 ## Documentation

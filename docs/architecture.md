@@ -72,7 +72,7 @@ The three-layer architecture solves each of these limitations with a dedicated p
 
 **When it runs:** CI, pre-commit hooks, CLI (`savvy-changesets lint`)
 
-Validates changeset `.md` files before they enter the formatting pipeline. Four remark-lint rules enforce structural correctness:
+Validates changeset `.md` files before they enter the formatting pipeline. Five remark-lint rules enforce structural correctness:
 
 | Rule | Purpose |
 | :--- | :--- |
@@ -80,6 +80,7 @@ Validates changeset `.md` files before they enter the formatting pipeline. Four 
 | `required-sections` | Headings match known categories |
 | `content-structure` | Non-empty sections, valid content |
 | `uncategorized-content` | Content must appear under a category heading |
+| `dependency-table-format` | Dependency table structure |
 
 By catching malformed changesets early, Layer 1 ensures Layer 2 always receives well-structured input.
 
@@ -92,7 +93,7 @@ By catching malformed changesets early, Layer 1 ensures Layer 2 always receives 
 Implements the Changesets `ChangelogFunctions` interface:
 
 - `getReleaseLine` -- Parses section headings from the changeset summary, fetches GitHub PR/commit info, and returns formatted markdown with `### Category` headings
-- `getDependencyReleaseLine` -- Formats dependency version updates into a collapsible details block
+- `getDependencyReleaseLine` -- Formats dependency version updates into a structured markdown table with columns for dependency name, type, action, and version range
 
 Each changeset produces its own formatted output. Because Changesets assembles these outputs sequentially, duplicate section headings may appear when multiple changesets contribute to the same category.
 
@@ -102,10 +103,11 @@ Each changeset produces its own formatted output. Because Changesets assembles t
 
 **When it runs:** After `changeset version`, via `savvy-changesets transform` or CI scripts
 
-Six remark plugins run in order to clean up the assembled CHANGELOG:
+Seven remark plugins run in order to clean up the assembled CHANGELOG:
 
 | Plugin | Purpose |
 | :--- | :--- |
+| `aggregate-dependency-tables` | Consolidate dependency tables |
 | `merge-sections` | Combine duplicate h3 headings |
 | `reorder-sections` | Sort by category priority |
 | `deduplicate-items` | Remove duplicate list items |

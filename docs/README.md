@@ -21,5 +21,6 @@ Each custom rule has detailed documentation with valid/invalid examples, fix ins
 | [`CSH002`](rules/CSH002.md) | `changeset-required-sections` | All h2 headings must match one of 13 known categories |
 | [`CSH003`](rules/CSH003.md) | `changeset-content-structure` | Non-empty sections, code block languages, list item structure |
 | [`CSH004`](rules/CSH004.md) | `changeset-uncategorized-content` | All content must appear under a category heading |
+| [`CSH005`](rules/CSH005.md) | `changeset-dependency-table-format` | Dependencies section must use structured GFM table |
 
 Error messages from both markdownlint and remark-lint rules include actionable fix instructions and a documentation URL linking to the rule docs on GitHub. This makes errors self-contained for AI-agent workflows -- agents can resolve issues without examining source code.

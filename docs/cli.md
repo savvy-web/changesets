@@ -26,14 +26,14 @@ savvy-changesets init
 | :--- | :--- | :--- | :--- |
 | `--force` | `-f` | `false` | Overwrite existing config files |
 | `--quiet` | `-q` | `false` | Silence warnings, always exit 0 |
-| `--markdownlint` | | `true` | Register rules in base config |
+| `--skip-markdownlint` | | `false` | Skip registering rules in base markdownlint config |
 | `--check` | | `false` | Check config without writing (for postinstall) |
 
 **Behavior:**
 
 - Creates `.changeset/` directory if missing
 - Writes `.changeset/config.json` with detected GitHub repo (or patches the `changelog` key if file exists)
-- Searches for an existing markdownlint config in order: `lib/configs/.markdownlint-cli2.jsonc`, `lib/configs/.markdownlint-cli2.json`, `.markdownlint-cli2.jsonc`, `.markdownlint-cli2.json`. If found, registers custom rules and disables them globally. If not found, logs a warning. (Skip with `--markdownlint=false`)
+- Searches for an existing markdownlint config in order: `lib/configs/.markdownlint-cli2.jsonc`, `lib/configs/.markdownlint-cli2.json`, `.markdownlint-cli2.jsonc`, `.markdownlint-cli2.json`. If found, registers custom rules and disables them globally. If not found, logs a warning. (Skip with `--skip-markdownlint`)
 - Writes `.changeset/.markdownlint.json` to enable rules for changeset files only (auto-detects `extends` path from the discovered base config)
 
 **Check mode** (`--check`):
@@ -55,7 +55,7 @@ savvy-changesets init
 savvy-changesets init --force
 
 # Skip base markdownlint registration
-savvy-changesets init --markdownlint=false
+savvy-changesets init --skip-markdownlint
 
 # Check config in postinstall (always exits 0)
 savvy-changesets init --check
@@ -146,7 +146,7 @@ $ savvy-changesets check .changeset
 
 ### `savvy-changesets transform`
 
-Post-process a CHANGELOG.md file by running all six remark transform plugins. This merges duplicate sections, reorders by priority, deduplicates items, aggregates footnotes, consolidates link references, and normalizes formatting.
+Post-process a CHANGELOG.md file by running all seven remark transform plugins. This merges duplicate sections, reorders by priority, deduplicates items, aggregates footnotes, consolidates link references, and normalizes formatting.
 
 ```bash
 savvy-changesets transform [file]
