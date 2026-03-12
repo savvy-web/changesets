@@ -1,5 +1,30 @@
 # @savvy-web/changesets
 
+## 0.5.0
+
+### Features
+
+* [`ae9fb5b`](https://github.com/savvy-web/changesets/commit/ae9fb5bd11d7856fc9cf97698b0f1f10a25b894e) Add structured dependency table format for changeset files and CHANGELOG output, replacing bullet-list entries with GFM tables (columns: Dependency, Type, Action, From, To)
+* Add remark-lint rule CSH005 (`changeset-dependency-table-format`) to validate dependency table structure and semantics
+* Add markdownlint rule CSH005 for editor and CI integration of dependency table validation
+* Add `AggregateDependencyTablesPlugin` remark transform to collapse and sort dependency entries across multiple changesets into a single consolidated table per version block
+* Add `DependencyTable` class-based API with parse, serialize, collapse, sort, and aggregate operations
+* Add Effect schemas for dependency table validation: `DependencyActionSchema`, `DependencyTableTypeSchema`, `VersionOrEmptySchema`, `DependencyTableRowSchema`, `DependencyTableSchema`
+* Rewrite `getDependencyReleaseLine` changelog formatter to emit markdown table format with automatic dependency type inference
+
+### Documentation
+
+* [`ae9fb5b`](https://github.com/savvy-web/changesets/commit/ae9fb5bd11d7856fc9cf97698b0f1f10a25b894e) Add comprehensive TSDoc documentation across all source files with `@public`/`@internal` modifiers, `@remarks` blocks, cross-references, and complete `@example` programs
+
+### Dependencies
+
+* | [`ae9fb5b`](https://github.com/savvy-web/changesets/commit/ae9fb5bd11d7856fc9cf97698b0f1f10a25b894e) | Dependency    | Type    | Action  | From    | To |
+  | ---------------------------------------------------------------------------------------------------- | ------------- | ------- | ------- | ------- | -- |
+  | @savvy-web/commitlint                                                                                | devDependency | updated | ^0.3.4  | ^0.4.0  |    |
+  | @savvy-web/lint-staged                                                                               | devDependency | updated | ^0.4.6  | ^0.5.0  |    |
+  | @savvy-web/rslib-builder                                                                             | devDependency | updated | ^0.15.0 | ^0.16.0 |    |
+  | @savvy-web/vitest                                                                                    | devDependency | updated | ^0.1.0  | ^0.2.0  |    |
+
 ## 0.4.2
 
 ### Dependencies
