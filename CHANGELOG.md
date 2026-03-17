@@ -1,5 +1,11 @@
 # @savvy-web/changesets
 
+## 0.5.3
+
+### Other
+
+* [`742f822`](https://github.com/savvy-web/changesets/commit/742f8228942cdf28ee5086bdf4001c6b8453c75c) Switch to pnpm-plugin-silk to manage Effect dependencies
+
 ## 0.5.2
 
 ### Dependencies
