@@ -54,9 +54,9 @@
 	},
 	"dependencies": {
 		"@changesets/get-github-info": "^0.8.0",
-		"@effect/cli": "^0.73.2",
-		"@effect/platform": "^0.94.5",
-		"@effect/platform-node": "^0.104.1",
+		"@effect/cli": "^0.74.0",
+		"@effect/platform": "^0.95.0",
+		"@effect/platform-node": "^0.105.0",
 		"effect": "^3.19.19",
 		"jsonc-parser": "^3.3.1",
 		"mdast-util-heading-range": "^4.0.0",
