@@ -73,10 +73,10 @@
 	"devDependencies": {
 		"@changesets/cli": "^2.30.0",
 		"@changesets/types": "^6.1.0",
-		"@savvy-web/commitlint": "^0.4.2",
-		"@savvy-web/lint-staged": "^0.6.1",
-		"@savvy-web/rslib-builder": "^0.18.2",
-		"@savvy-web/vitest": "^0.2.1",
+		"@savvy-web/commitlint": "^0.4.3",
+		"@savvy-web/lint-staged": "^0.6.2",
+		"@savvy-web/rslib-builder": "^0.19.0",
+		"@savvy-web/vitest": "^0.3.0",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
 		"markdownlint": "^0.40.0"
