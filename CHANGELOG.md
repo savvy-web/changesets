@@ -1,5 +1,16 @@
 # @savvy-web/changesets
 
+## 0.5.4
+
+### Dependencies
+
+* | [`2edd92a`](https://github.com/savvy-web/changesets/commit/2edd92a4f5912288195a48f0689bf6bf8ec40e5b) | Dependency | Type    | Action  | From    | To |
+  | :--------------------------------------------------------------------------------------------------- | :--------- | :------ | :------ | :------ | -- |
+  | @savvy-web/commitlint                                                                                | dependency | updated | ^0.4.2  | ^0.4.3  |    |
+  | @savvy-web/lint-staged                                                                               | dependency | updated | ^0.6.1  | ^0.6.2  |    |
+  | @savvy-web/rslib-builder                                                                             | dependency | updated | ^0.18.2 | ^0.19.0 |    |
+  | @savvy-web/vitest                                                                                    | dependency | updated | ^0.2.1  | ^0.3.0  |    |
+
 ## 0.5.3
 
 ### Other
