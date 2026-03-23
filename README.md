@@ -42,50 +42,90 @@ This creates `.changeset/config.json` with auto-detected GitHub repo settings an
 }
 ```
 
-Write section-aware changeset files:
+Write [section-aware changeset](./docs/section-aware-pipeline.md) files using `## Section` headings to categorize changes:
 
-```markdown
+````markdown
 ---
 "@my/package": minor
 ---
 
 ## Features
 
-Added a new authentication system with OAuth2 support.
+### OAuth2 Authentication
 
-## Tests
+Added a new authentication system with OAuth2 support for third-party providers.
 
-- Added unit tests for OAuth2 flow
-- Updated integration test fixtures
+### CLI `login` Command
+
+New interactive login command that opens the browser for OAuth2 consent:
+
+```bash
+my-package login --provider github
 ```
 
-Dependency updates use a structured table format:
+Returns a session token that can be passed to subsequent commands:
 
-```markdown
----
-"@my/package": patch
----
+```typescript
+import { createSession } from "@my/package";
 
-## Dependencies
-
-| Dependency | Type | Action | From | To |
-| :--- | :--- | :--- | :--- | :--- |
-| lodash | dependency | updated | ^4.17.20 | ^4.17.21 |
-| prettier | devDependency | added | — | ^3.0.0 |
+const session = await createSession({ provider: "github" });
 ```
+
+## Bug Fixes
+
+* Fixed token refresh race condition during concurrent requests
+* Corrected redirect URI validation for localhost callbacks
+````
+
+## Claude Code Plugin
+
+A companion [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin is available that helps AI agents write well-structured changeset files. Install it at the project scope alongside the `@savvy-web/changesets` package:
+
+```bash
+# Add the Savvy Web plugin marketplace (one-time setup)
+/plugin marketplace add savvy-web/systems
+
+# Install the changesets plugin for this project
+/plugin install changesets@savvy-web-systems --scope project
+```
+
+This adds the plugin to your `.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "changesets@savvy-web-systems": true
+  }
+}
+```
+
+The plugin provides:
+
+- **`/changesets:create`** -- interactive changeset creation with diff analysis and package detection
+- **`/changesets:check`** -- validate changeset files against structural rules
+- **`/changesets:list`**, **`:update`**, **`:merge`**, **`:delete`**, **`:preview`** -- manage pending changesets
+- **`changesets:format`** / **`changesets:status`** -- auto-activating skills that guide agents on format rules and existing changeset awareness
+- **`changeset-writer`** agent -- autonomous subagent for writing changesets after implementation work
+- **Hooks** -- pre-commit nudge, write validation, and post-task reminder
+
+To have Claude automatically manage changesets as part of a multi-step workflow, include it in your prompt:
+
+> Implement the feature described in issue #42. When you're done, create a changeset documenting the user-facing changes for the GitHub release.
+
+The agent will use the `changeset-writer` subagent to analyze the diff, detect affected packages, choose the appropriate content depth, and write a properly structured changeset file. The pre-commit hook will also nudge the agent if it tries to commit without creating a changeset for user-facing changes.
 
 ## Documentation
 
-- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the pipeline
 - [Configuration](./docs/configuration.md) -- Options, version files, markdownlint integration, CI scripts
+- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the pipeline
+- [Markdownlint Rule Docs](./docs/rules/) -- Per-rule documentation with examples, fix instructions, and rationale
 - [CLI Reference](./docs/cli.md) -- All commands and options
 - [API Reference](./docs/api.md) -- Classes, types, Effect services, remark plugins
 - [Architecture](./docs/architecture.md) -- Three-layer pipeline design and export map
-- [Markdownlint Rule Docs](./docs/rules/) -- Per-rule documentation with examples, fix instructions, and rationale
 
 ## License
 
-MIT
+[MIT](./LICENSE)
 
 [npm-badge]: https://img.shields.io/npm/v/@savvy-web/changesets
 [npm-url]: https://www.npmjs.com/package/@savvy-web/changesets
