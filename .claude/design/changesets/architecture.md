@@ -3,8 +3,8 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-03-11
-last-synced: 2026-03-11
+updated: 2026-03-22
+last-synced: 2026-03-22
 completeness: 98
 related: []
 dependencies: []
@@ -35,12 +35,13 @@ generated CHANGELOG.md files, and markdownlint custom rules for editor/CI integr
 13. [Dependency Table Format](#dependency-table-format)
 14. [Changeset File Format](#changeset-file-format)
 15. [Export Map and CLI](#export-map-and-cli)
-16. [Dependencies](#dependencies)
-17. [Integration Points](#integration-points)
-18. [Compatibility Requirements](#compatibility-requirements)
-19. [Testing Strategy](#testing-strategy)
-20. [Future Enhancements](#future-enhancements)
-21. [Related Documentation](#related-documentation)
+16. [Claude Code Plugin](#claude-code-plugin)
+17. [Dependencies](#dependencies)
+18. [Integration Points](#integration-points)
+19. [Compatibility Requirements](#compatibility-requirements)
+20. [Testing Strategy](#testing-strategy)
+21. [Future Enhancements](#future-enhancements)
+22. [Related Documentation](#related-documentation)
 
 ---
 
@@ -136,6 +137,10 @@ tests passing across 55 test files.
   etc.) via configurable glob + JSONPath
 - Comprehensive TSDoc documentation across all
   65 source files
+- Claude Code plugin (`plugin/`) with 9 skills,
+  1 subagent, and 3 hooks for changeset authoring
+  assistance. Distributed via `savvy-web/bots`
+  marketplace.
 
 **What remains:**
 
@@ -2365,6 +2370,95 @@ This runs:
 
 ---
 
+## Claude Code Plugin
+
+The `savvy-changesets` Claude Code plugin is a self-contained companion that lives in the `plugin/` directory. It helps agents and users write well-structured changeset files for GitHub release documentation. The plugin teaches Claude about the `@savvy-web/changesets` format rules, provides interactive skills for changeset lifecycle management, and nudges agents to create changesets when committing user-facing changes.
+
+### Key Design Principle
+
+Changesets are release documentation for GitHub releases, not engineering logs. The plugin enforces this philosophy throughout: every skill, hook, and agent prompt focuses on what someone upgrading the package needs to know, not on internal implementation details.
+
+### Plugin Structure
+
+```text
+plugin/
+├── .claude-plugin/plugin.json    # Manifest (name, version, description, metadata)
+├── skills/
+│   ├── create/SKILL.md           # Interactive changeset creation (user-invoked)
+│   ├── check/SKILL.md            # Validate changesets against CSH001-005 (user+agent)
+│   ├── list/SKILL.md             # Overview of pending changesets (user-invoked)
+│   ├── update/SKILL.md           # Edit existing changesets (user-invoked)
+│   ├── merge/SKILL.md            # Combine changesets with matching bumps (user-invoked)
+│   ├── delete/SKILL.md           # Remove unneeded changesets (user-invoked)
+│   ├── preview/SKILL.md          # Preview combined CHANGELOG output (user-invoked)
+│   ├── format/SKILL.md           # Auto-activating format reference (agent-only)
+│   └── status/SKILL.md           # Auto-activating changeset awareness (agent-only)
+├── agents/
+│   └── changeset-writer.md       # Autonomous changeset writing subagent
+└── hooks/hooks.json              # Pre-commit nudge, write validation, post-task reminder
+```
+
+### Distribution
+
+The plugin is distributed through the `savvy-web/bots` marketplace using `git-subdir` source. Users install via the marketplace; the plugin system sparse-clones only the `plugin/` directory from this repository. For local development, use `claude --plugin-dir ./plugin`.
+
+The plugin is intentionally separate from the npm package. The npm package (`@savvy-web/changesets`) provides the runtime formatter, linter, and CLI. The plugin provides the Claude Code integration layer that teaches agents how to use those tools and write valid changeset files.
+
+### Skills
+
+All user-invoked skills are namespaced as `savvy-changesets:` to avoid collisions with other plugins.
+
+| Skill | Invocation | Type | Purpose |
+| :--- | :--- | :--- | :--- |
+| create | `/savvy-changesets:create` | User-invoked | Interactive changeset creation with diff analysis, package detection, bump type proposal, and content depth tier selection |
+| check | `/savvy-changesets:check` | User + Agent | Validates `.changeset/*.md` files against CSH001-CSH005 structural rules |
+| list | `/savvy-changesets:list` | User-invoked | Shows pending changesets with packages, bump types, and content preview |
+| update | `/savvy-changesets:update` | User-invoked | Edit an existing changeset (content, bump type, packages) |
+| merge | `/savvy-changesets:merge` | User-invoked | Combines changesets with identical frontmatter (same packages + same bump types) |
+| delete | `/savvy-changesets:delete` | User-invoked | Removes changesets with confirmation |
+| preview | `/savvy-changesets:preview` | User-invoked | Renders what the combined CHANGELOG would look like |
+| format | (auto-activating) | Agent-only | Injects the full format specification when Claude works with changeset files |
+| status | (auto-activating) | Agent-only | Provides awareness of existing changesets in the working directory |
+
+### Content Depth Tiers
+
+The plugin teaches agents to choose content depth based on change significance. This prevents over-documenting trivial patches and under-documenting breaking changes.
+
+| Tier | When to Use | Structure |
+| :--- | :--- | :--- |
+| Simple | Patch bump + small diff | `## Category` heading with bullet points |
+| Structured | Minor bump + multi-faceted changes | Multiple `## Category` sections with `### Sub-headings` |
+| Rich | Major bump or significant features | Narrative prose, code examples, migration guides |
+
+### Changeset Writer Agent
+
+The `changeset-writer` agent is a Sonnet-powered subagent dispatched autonomously after implementation work. It reads the current diff, detects affected packages, selects appropriate bump types, chooses a content depth tier, and writes a changeset file focused on user-facing release documentation quality.
+
+The agent is invoked by the main Claude agent (not by the user directly) when it determines that a changeset should be created after completing implementation work.
+
+### Hooks
+
+Three prompt-type hooks in `hooks/hooks.json` provide passive guidance without blocking normal workflow:
+
+| Hook | Trigger | Behavior |
+| :--- | :--- | :--- |
+| Commit nudge | `PreToolUse/Bash` when `git commit` is detected | Suggests creating a changeset before committing if user-facing changes were made. Non-blocking. |
+| Write validation | `PreToolUse/Write\|Edit` when target is `.changeset/*.md` | Validates changeset structure against format rules (CSH001-CSH005). Blocks on violation. |
+| Post-task reminder | `Stop` after Claude finishes | Reminds if source files were modified but no changeset was created. Non-blocking. |
+
+The write validation hook enforces the same structural rules as the remark-lint Layer 1 and the markdownlint custom rules, ensuring that changesets written by agents conform to the format specification before they hit disk.
+
+### Relationship to Package Layers
+
+The plugin complements the three-layer processing architecture:
+
+- **Layer 1 (Remark Lint)** validates changeset structure at CI time. The plugin's `format` skill and write validation hook enforce the same rules at authoring time, preventing invalid changesets from ever being written.
+- **Layer 2 (Changelog Formatter)** consumes well-formed changesets to produce CHANGELOG entries. The plugin's `create` skill and `changeset-writer` agent produce changesets that the formatter can process without issues.
+- **Layer 3 (Remark Transform)** post-processes the generated CHANGELOG. The plugin's `preview` skill shows users what the final output will look like after all three layers run.
+- **Markdownlint rules** (CSH001-CSH005) provide editor feedback. The plugin's `check` skill runs equivalent validation from the Claude Code context.
+
+---
+
 ## Dependencies
 
 ### Production Dependencies
@@ -2930,7 +3024,7 @@ not future enhancements:
 
 ---
 
-**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers.
+**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers. Claude Code plugin fully implemented with 9 skills, 1 subagent, and 3 hooks.
 
 **Architecture Notes:**
 
@@ -2945,6 +3039,8 @@ not future enhancements:
   cross-changeset merging in Layer 3
 - Dependency table format replaces bullet-list dependency updates with structured GFM tables,
   validated by CSH005 (lint) and aggregated by AggregateDependencyTablesPlugin (transform)
+- The Claude Code plugin extends the three-layer architecture into the authoring phase, enforcing
+  format rules at write time rather than only at lint/CI time
 
 **Maintenance:**
 

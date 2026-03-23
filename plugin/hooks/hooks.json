@@ -1,0 +1,34 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "prompt",
+						"prompt": "The agent is about to run a Bash command. If the command is `git commit` (or similar), consider: does this change introduce user-facing behavior that should be documented in a changeset for GitHub releases? Changesets are release documentation — they describe what users upgrading the package need to know. They are not an exhaustive log of every internal change. If a changeset is appropriate and one hasn't been created yet in this session, consider creating one before committing. This is a suggestion, not a requirement — use your judgment. If the command is not a git commit, ignore this message.\n\nCommand: $ARGUMENTS"
+					}
+				]
+			},
+			{
+				"matcher": "Write|Edit",
+				"hooks": [
+					{
+						"type": "prompt",
+						"prompt": "The agent is about to write or edit a file. If the target path matches `.changeset/*.md`, validate the content against @savvy-web/changesets format rules:\n\n1. YAML frontmatter must be present with package-name-to-bump-type mapping\n2. All h2 headings must match one of these categories: Breaking Changes, Features, Bug Fixes, Performance, Documentation, Refactoring, Tests, Build System, CI, Dependencies, Maintenance, Reverts, Other\n3. No content is allowed before the first h2 heading\n4. No empty sections — every heading must have content below it\n5. No h1 headings\n6. No heading depth skips (e.g., h2 to h4)\n7. Code fences must have a language identifier\n8. If a ## Dependencies section contains a Markdown table, it must use exactly 5 columns: Dependency | Type | Action | From | To, with valid Type values (dependency, devDependency, peerDependency, optionalDependency, workspace, config) and valid Action values (added, updated, removed)\n\nIf the file violates any of these rules, block the write and explain what needs to be fixed. If the target path does not match `.changeset/*.md`, ignore this message.\n\nFile path: $ARGUMENTS"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "prompt",
+						"prompt": "The agent has finished responding. Check whether source files (e.g., in src/, lib/, packages/) were modified during this session but no `.changeset/*.md` file was created or modified. If so, provide a gentle reminder:\n\n\"Source files were modified in this session but no changeset was created. If these changes are user-facing, consider creating one with `/changesets:create`.\"\n\nThis is a nudge, not a blocker. Do not mention this if a changeset was already created, or if only non-source files (config, docs, tests) were modified."
+					}
+				]
+			}
+		]
+	}
+}
