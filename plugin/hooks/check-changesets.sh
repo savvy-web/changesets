@@ -47,6 +47,11 @@ case "$PM" in
   *)    cmd="npx --no -- savvy-changesets" ;;
 esac
 
+# Skip if CLI is not available (e.g., after failed install/build)
+if ! command -v savvy-changesets &>/dev/null && ! $cmd --version &>/dev/null; then
+  exit 0
+fi
+
 if ! result=$($cmd check "$CLAUDE_PROJECT_DIR/.changeset" 2>&1); then
   echo "$result" >&2
   exit 2
