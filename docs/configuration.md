@@ -64,7 +64,7 @@ Custom issue reference prefixes to recognize.
 
 Additional JSON files to update with version numbers during `changeset version`. Each entry specifies a glob pattern to match files and optional JSONPath expressions pointing to the version fields within those files.
 
-- Type: `Array<{ glob: string; paths?: string[] }>`
+- Type: `Array<{ glob: string; paths?: string[]; package?: string }>`
 - Default: not set (step is skipped entirely)
 
 ```json
@@ -83,6 +83,25 @@ Additional JSON files to update with version numbers during `changeset version`.
 
 **`paths`** (optional) -- An array of JSONPath expressions identifying which fields to update. Defaults to `["$.version"]` when omitted.
 
+**`package`** (optional) -- Workspace package name to source the version from (e.g., `"@savvy-web/changesets"`). When set, the version is taken directly from the named package instead of using path-based resolution. This is useful in monorepo layouts where a version file lives outside the workspace package directory it belongs to. Without `package`, such files fall back to the root `package.json` version, which is often `0.0.0` or otherwise incorrect.
+
+```json
+{
+  "changelog": ["@savvy-web/changesets/changelog", {
+    "repo": "owner/repo",
+    "versionFiles": [
+      {
+        "glob": "plugin/.claude-plugin/plugin.json",
+        "paths": ["$.version"],
+        "package": "@savvy-web/changesets"
+      }
+    ]
+  }]
+}
+```
+
+In this example, `plugin/.claude-plugin/plugin.json` sits outside the `package/` workspace directory. Without the `package` field, path-based resolution would match the root `package.json` (version `0.0.0`). Setting `"package": "@savvy-web/changesets"` tells the updater to use the version from that workspace package instead.
+
 #### Supported JSONPath Syntax
 
 | Pattern | Description | Example |
@@ -96,6 +115,8 @@ All expressions must start with `$.`.
 #### Monorepo Version Resolution
 
 In monorepos, each matched file is assigned the version from its nearest workspace package using longest-prefix path matching. A file at `packages/core/plugin.json` gets the version from `packages/core/package.json`, while a file at the project root gets the root `package.json` version.
+
+When a version file lives outside the workspace package it belongs to, path-based resolution picks the wrong version. Use the `package` field to explicitly name the source package and bypass path matching entirely. See the `package` field description above for a concrete example.
 
 #### Formatting Preservation
 

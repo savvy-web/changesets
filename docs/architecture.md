@@ -140,7 +140,7 @@ The version files subsystem consists of three internal components:
 
 | Component | Source | Purpose |
 | :--- | :--- | :--- |
-| `VersionFilesSchema` | `src/schemas/version-files.ts` | Effect Schema for config validation (`glob` + `paths`) |
+| `VersionFilesSchema` | `src/schemas/version-files.ts` | Effect Schema for config validation (`glob` + `paths` + optional `package`) |
 | `jsonpath` utilities | `src/utils/jsonpath.ts` | Minimal JSONPath parser supporting `$.foo.bar`, `[*]`, and `[n]` |
 | `VersionFiles` class | `src/utils/version-files.ts` | Orchestrates glob resolution, workspace version matching, and file updates |
 
@@ -148,7 +148,7 @@ The flow is:
 
 1. **Read config** -- Parse `versionFiles` from the changelog options in `.changeset/config.json`
 2. **Resolve globs** -- Expand each glob pattern against the project root (excluding `node_modules`)
-3. **Match versions** -- For each matched file, determine the correct version using longest-prefix workspace path matching
+3. **Match versions** -- For each matched file, determine the correct version. If the entry specifies a `package` name, the version is taken directly from that workspace package. Otherwise, longest-prefix workspace path matching is used to find the nearest `package.json`
 4. **Update fields** -- Parse each JSON file, set values at the specified JSONPath locations, and write back with preserved formatting
 
 This step adds zero new runtime dependencies. The JSONPath implementation is a custom minimal parser (~200 lines) that supports only the subset of JSONPath syntax needed for version field access. The `VersionFileError` tagged error is raised if a file cannot be read, parsed, or updated.

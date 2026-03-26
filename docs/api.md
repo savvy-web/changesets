@@ -309,6 +309,8 @@ interface VersionFileConfig {
   glob: string;
   /** JSONPath expressions to locate version fields. Defaults to ["$.version"]. */
   paths?: string[];
+  /** Workspace package name to source the version from, bypassing path-based resolution. */
+  package?: string;
 }
 ```
 
