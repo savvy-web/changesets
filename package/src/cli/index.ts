@@ -37,11 +37,19 @@ import { checkCommand } from "./commands/check.js";
 import { initCommand } from "./commands/init.js";
 import { lintCommand } from "./commands/lint.js";
 import { transformCommand } from "./commands/transform.js";
+import { validateFileCommand } from "./commands/validate-file.js";
 import { versionCommand } from "./commands/version.js";
 
 /* v8 ignore start -- CLI registration; each command tested via exported handler */
 const rootCommand = Command.make("savvy-changesets").pipe(
-	Command.withSubcommands([initCommand, lintCommand, transformCommand, checkCommand, versionCommand]),
+	Command.withSubcommands([
+		initCommand,
+		lintCommand,
+		transformCommand,
+		checkCommand,
+		validateFileCommand,
+		versionCommand,
+	]),
 );
 
 const cli = Command.run(rootCommand, {

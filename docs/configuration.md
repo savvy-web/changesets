@@ -140,6 +140,16 @@ Or integrate with lint-staged:
 }
 ```
 
+### Single-File Validation
+
+Use `savvy-changesets validate-file` to validate individual changeset files. This is designed for editor integrations and automation hooks:
+
+```bash
+savvy-changesets validate-file .changeset/cool-lions-sing.md
+```
+
+The companion Claude Code plugin uses this command in its PostToolUse hook to validate changeset files immediately after they are written or edited by an AI agent.
+
 ### CI Gate
 
 Use `savvy-changesets check` in CI to validate all changeset files with a human-readable summary:

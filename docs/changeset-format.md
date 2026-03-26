@@ -151,11 +151,14 @@ The remark-lint rules (Layer 1) enforce these structural requirements:
 Run validation with the CLI:
 
 ```bash
-# Machine-readable output
+# Machine-readable output (all files in directory)
 savvy-changesets lint .changeset
 
-# Human-readable summary
+# Human-readable summary (all files in directory)
 savvy-changesets check .changeset
+
+# Validate a single file (editor integrations and hooks)
+savvy-changesets validate-file .changeset/cool-lions-sing.md
 ```
 
 Or programmatically:
