@@ -2,6 +2,17 @@
 
 This document explains the three-layer processing architecture of `@savvy-web/changesets` and how each layer fits into the Changesets workflow.
 
+## Repository Structure
+
+The repository is organized as a pnpm workspace monorepo with two top-level directories:
+
+| Directory | Contents |
+| :--- | :--- |
+| `package/` | The publishable `@savvy-web/changesets` npm package (source code, build config, tests) |
+| `plugin/` | Companion Claude Code plugin (hooks, skills, agent definitions) |
+
+Root-level files (`package.json`, `pnpm-workspace.yaml`, `biome.jsonc`, etc.) configure the workspace tooling. The `package/` subdirectory contains its own `package.json`, `tsconfig.json`, and `rslib.config.ts` for the published package.
+
 ## Why Three Layers?
 
 The Changesets API provides only a line-level formatting hook: `getReleaseLine` is called once per changeset and must return a markdown string. There is no aggregate-level hook for restructuring the assembled CHANGELOG output.
@@ -129,7 +140,7 @@ The version files subsystem consists of three internal components:
 
 | Component | Source | Purpose |
 | :--- | :--- | :--- |
-| `VersionFilesSchema` | `src/schemas/version-files.ts` | Effect Schema for config validation (`glob` + `paths`) |
+| `VersionFilesSchema` | `src/schemas/version-files.ts` | Effect Schema for config validation (`glob` + `paths` + optional `package`) |
 | `jsonpath` utilities | `src/utils/jsonpath.ts` | Minimal JSONPath parser supporting `$.foo.bar`, `[*]`, and `[n]` |
 | `VersionFiles` class | `src/utils/version-files.ts` | Orchestrates glob resolution, workspace version matching, and file updates |
 
@@ -137,10 +148,23 @@ The flow is:
 
 1. **Read config** -- Parse `versionFiles` from the changelog options in `.changeset/config.json`
 2. **Resolve globs** -- Expand each glob pattern against the project root (excluding `node_modules`)
-3. **Match versions** -- For each matched file, determine the correct version using longest-prefix workspace path matching
+3. **Match versions** -- For each matched file, determine the correct version. If the entry specifies a `package` name, the version is taken directly from that workspace package. Otherwise, longest-prefix workspace path matching is used to find the nearest `package.json`
 4. **Update fields** -- Parse each JSON file, set values at the specified JSONPath locations, and write back with preserved formatting
 
 This step adds zero new runtime dependencies. The JSONPath implementation is a custom minimal parser (~200 lines) that supports only the subset of JSONPath syntax needed for version field access. The `VersionFileError` tagged error is raised if a file cannot be read, parsed, or updated.
+
+## Claude Code Plugin
+
+The companion Claude Code plugin in `plugin/` integrates the validation pipeline into AI-agent workflows. It uses four hook types to weave changeset awareness into the agent's session:
+
+| Hook | Trigger | Action |
+| :--- | :--- | :--- |
+| SessionStart | Session begins | Injects changeset format context, CLI commands, and bump type guidelines |
+| PostToolUse (Write\|Edit) | `.changeset/*.md` written | Runs `savvy-changesets validate-file` and feeds errors back to the agent |
+| Stop | Agent finishes responding | Runs `savvy-changesets check .changeset` and reminds about missing changesets |
+| PreToolUse (Bash) | Before `git commit` | Prompts the agent to consider creating a changeset for user-facing changes |
+
+All hooks dynamically detect the project's package manager (pnpm, yarn, bun, or npm) to construct the correct `savvy-changesets` invocation. The PostToolUse hook specifically uses the `validate-file` command for single-file validation, while the Stop hook uses `check` for a full directory scan.
 
 ## CI Integration
 

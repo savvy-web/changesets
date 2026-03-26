@@ -8,6 +8,17 @@ Thank you for your interest in contributing! This document provides guidelines a
 - pnpm 10.30.0+
 - TypeScript 5.9+
 
+## Repository Structure
+
+The repository is a pnpm workspace monorepo with two main directories:
+
+| Directory | Contents |
+| :--- | :--- |
+| `package/` | The publishable `@savvy-web/changesets` npm package (source, build config, tests) |
+| `plugin/` | Companion Claude Code plugin (hooks, skills, agent definitions) |
+
+Root-level files configure the workspace tooling. Package source code lives in `package/src/`.
+
 ## Development Setup
 
 ```bash
@@ -82,7 +93,7 @@ pnpm run test:watch
 pnpm run test:coverage
 
 # Run a single test file
-pnpm vitest run src/changelog/index.test.ts
+pnpm vitest run package/src/changelog/index.test.ts
 ```
 
 ## TypeScript

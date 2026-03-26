@@ -1,10 +1,12 @@
 {
 	"$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
 	"changelog": [
-		"../dist/npm/esm/changelog.js",
+		"@savvy-web/changesets/changelog",
 		{
 			"repo": "savvy-web/changesets",
-			"versionFiles": [{ "glob": "plugin/.claude-plugin/plugin.json", "paths": ["$.version"] }]
+			"versionFiles": [
+				{ "glob": "plugin/.claude-plugin/plugin.json", "paths": ["$.version"], "package": "@savvy-web/changesets" }
+			]
 		}
 	],
 	"commit": false,

@@ -353,7 +353,9 @@ export class VersionFiles {
 
 		for (const [filePath, config] of resolved) {
 			const jsonPaths = config.paths ?? ["$.version"];
-			const version = VersionFiles.resolveVersion(filePath, workspaces, rootVersion);
+			const version = config.package
+				? (workspaces.find((ws) => ws.name === config.package)?.version ?? rootVersion)
+				: VersionFiles.resolveVersion(filePath, workspaces, rootVersion);
 
 			try {
 				if (dryRun) {

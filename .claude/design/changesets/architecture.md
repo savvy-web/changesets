@@ -1277,7 +1277,7 @@ validated at runtime using Effect Schema (ported from prior art's valibot valida
 
 - `commitLinks`: Whether to include commit links in output (default: `true`)
 - `prLinks`: Whether to include PR links in output (default: `true`)
-- `versionFiles`: Array of `{ glob, paths? }` objects specifying additional JSON files to update with version numbers during `savvy-changesets version`. See [Version Files](#version-files) for full details.
+- `versionFiles`: Array of `{ glob, paths?, package? }` objects specifying additional JSON files to update with version numbers during `savvy-changesets version`. See [Version Files](#version-files) for full details.
 
 **Error messages (ported from prior art):**
 
@@ -1934,7 +1934,8 @@ The `versionFiles` option lives inside the changelog options tuple in `.changese
       "versionFiles": [
         { "glob": "plugin.json", "paths": ["$.version"] },
         { "glob": "**/manifest.json" },
-        { "glob": "packages/*/metadata.json", "paths": ["$.metadata.version", "$.engines[*].version"] }
+        { "glob": "packages/*/metadata.json", "paths": ["$.metadata.version", "$.engines[*].version"] },
+        { "glob": "plugin/.claude-plugin/plugin.json", "paths": ["$.version"], "package": "@savvy-web/changesets" }
       ]
     }
   ]
@@ -1947,8 +1948,9 @@ Each entry in the `versionFiles` array is an object with:
 | :--- | :--- | :--- | :--- | :--- |
 | `glob` | `string` | Yes | -- | Glob pattern to match JSON files (resolved from project root) |
 | `paths` | `string[]` | No | `["$.version"]` | JSONPath expressions locating version fields to update |
+| `package` | `string` | No | -- | Workspace package name to source the version from, bypassing path-based resolution |
 
-When `paths` is omitted, it defaults to `["$.version"]`, which covers the most common case.
+When `paths` is omitted, it defaults to `["$.version"]`, which covers the most common case. When `package` is set, the version is looked up by workspace name instead of using longest-prefix path matching -- this is useful for version files that live outside any workspace package directory (e.g., a plugin manifest at the repo root) where path-based resolution would fall back to the root `package.json` version.
 
 ### JSONPath Support
 
@@ -1979,6 +1981,8 @@ In a monorepo, different files may need different versions depending on which wo
 
 This ensures that a `manifest.json` inside `packages/my-plugin/` gets the version from `packages/my-plugin/package.json`, not from the monorepo root.
 
+**Explicit package override:** When a `versionFiles` entry includes the optional `package` field, path-based resolution is bypassed entirely. Instead, the version is looked up by finding the workspace whose `name` matches the `package` value. If no workspace matches, the root version is used as a fallback. This is designed for files that live outside any workspace directory -- for example, a `plugin/.claude-plugin/plugin.json` at the repo root that should track the version of a specific publishable package rather than the root `package.json`.
+
 ### Processing Flow
 
 The version file update runs as **step 5** in the `version` CLI command, after changelog transforms:
@@ -1994,7 +1998,7 @@ savvy-changesets version
      b. Resolve glob patterns to file paths (excludes node_modules)
      c. Discover workspace versions via workspace-tools
      d. For each matched file:
-        - Determine version via longest-prefix workspace matching
+        - Determine version: use explicit package name if configured, otherwise longest-prefix workspace matching
         - Read file, detect indent style and trailing newline
         - Update JSONPath locations with new version
         - Write file preserving original formatting
@@ -2016,7 +2020,7 @@ Three Effect Schemas validate the configuration at the system boundary (`src/sch
 | Schema | Purpose |
 | :--- | :--- |
 | `JsonPathSchema` | Validates JSONPath strings start with `$.` |
-| `VersionFileConfigSchema` | Validates a single `{ glob, paths? }` entry |
+| `VersionFileConfigSchema` | Validates a single `{ glob, paths?, package? }` entry |
 | `VersionFilesSchema` | Validates the full `versionFiles` array |
 
 These schemas are exported from the main package entry point (`.`) for consumers who need to validate configuration programmatically.

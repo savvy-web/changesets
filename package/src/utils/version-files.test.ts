@@ -394,6 +394,26 @@ describe("VersionFiles.processVersionFiles", () => {
 		);
 	});
 
+	it("uses explicit package name to source version instead of path matching", () => {
+		vi.mocked(getWorkspaceInfos).mockReturnValue([createMockWorkspace("@savvy-web/changesets", "/project/package")]);
+		vi.mocked(readFileSync).mockImplementation((p) => {
+			const s = String(p);
+			if (s.endsWith("package/package.json")) return JSON.stringify({ version: "1.2.0" });
+			if (s === join(resolve("/project"), "package.json")) return JSON.stringify({ name: "root", version: "0.0.0" });
+			if (s.endsWith("plugin.json")) return '{\n\t"version": "0.0.0"\n}\n';
+			throw new Error("ENOENT");
+		});
+		vi.mocked(globSync).mockReturnValue(["plugin/.claude-plugin/plugin.json"]);
+
+		const configs = [
+			{ glob: "plugin/.claude-plugin/plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" },
+		];
+		const result = VersionFiles.processVersionFiles("/project", configs);
+
+		expect(result).toHaveLength(1);
+		expect(result[0].version).toBe("1.2.0");
+	});
+
 	it("returns empty array when no globs match", () => {
 		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ name: "root", version: "1.0.0" }));

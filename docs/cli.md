@@ -1,6 +1,6 @@
 # CLI Reference
 
-The `savvy-changesets` CLI provides five subcommands for bootstrapping repos, validating changeset files, post-processing CHANGELOG.md files, and orchestrating the version flow.
+The `savvy-changesets` CLI provides six subcommands for bootstrapping repos, validating changeset files, post-processing CHANGELOG.md files, and orchestrating the version flow.
 
 ## Installation
 
@@ -143,6 +143,50 @@ $ savvy-changesets check .changeset
 | :--- | :--- |
 | 0 | All files passed validation |
 | 1 | One or more validation errors |
+
+### `savvy-changesets validate-file`
+
+Validate a single changeset file against remark-lint rules. Outputs one line per error in machine-readable format. Designed for editor integrations and automation hooks where only one file needs checking.
+
+```bash
+savvy-changesets validate-file <file>
+```
+
+**Arguments:**
+
+| Argument | Description |
+| :--- | :--- |
+| `file` | Path to the changeset `.md` file (required) |
+
+**Output format:**
+
+```text
+file:line:col rule message
+```
+
+When the file passes validation, the command prints `Valid.` to stdout.
+
+**Example:**
+
+```bash
+$ savvy-changesets validate-file .changeset/cool-lions-sing.md
+Valid.
+
+$ savvy-changesets validate-file .changeset/bad-file.md
+.changeset/bad-file.md:3:1 heading-hierarchy \
+  First heading must be h2
+.changeset/bad-file.md:5:1 required-sections \
+  Unknown section heading "Stuff"
+```
+
+**Exit codes:**
+
+| Code | Meaning |
+| :--- | :--- |
+| 0 | No lint errors found |
+| 1 | One or more lint errors, or file cannot be read |
+
+This command is used by the companion Claude Code plugin's PostToolUse hook to validate changeset files immediately after they are written or edited.
 
 ### `savvy-changesets transform`
 
