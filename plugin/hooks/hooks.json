@@ -17,8 +17,9 @@
 				"matcher": "Bash",
 				"hooks": [
 					{
-						"type": "prompt",
-						"prompt": "The agent is about to run a Bash command. If the command is `git commit` (or similar), consider: does this change introduce user-facing behavior that should be documented in a changeset for GitHub releases? Changesets are release documentation — they describe what users upgrading the package need to know. They are not an exhaustive log of every internal change. If a changeset is appropriate and one hasn't been created yet in this session, consider creating one before committing. This is a suggestion, not a requirement — use your judgment. If the command is not a git commit, ignore this message.\n\nCommand: $ARGUMENTS"
+						"type": "command",
+						"command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/pre-commit-reminder.sh",
+						"timeout": 3
 					}
 				]
 			}
