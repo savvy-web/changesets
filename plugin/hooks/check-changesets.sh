@@ -47,7 +47,7 @@ case "$PM" in
   *)    cmd="npx --no -- savvy-changesets" ;;
 esac
 
-if ! result=$($cmd check .changeset 2>&1); then
+if ! result=$($cmd check "$CLAUDE_PROJECT_DIR/.changeset" 2>&1); then
   echo "$result" >&2
   exit 2
 fi
