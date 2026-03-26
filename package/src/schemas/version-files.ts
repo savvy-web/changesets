@@ -86,6 +86,8 @@ export const VersionFileConfigSchema = Schema.Struct({
 	glob: Schema.String.pipe(Schema.minLength(1)),
 	/** JSONPath expressions to locate version fields. Defaults to `["$.version"]`. */
 	paths: Schema.optional(Schema.Array(JsonPathSchema)),
+	/** Workspace package name to source the version from, bypassing path-based resolution. */
+	package: Schema.optional(Schema.String.pipe(Schema.minLength(1))),
 });
 
 /**

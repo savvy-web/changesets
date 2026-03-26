@@ -66,6 +66,20 @@ describe("VersionFileConfigSchema", () => {
 	it("rejects missing glob", () => {
 		expect(() => decode({ paths: ["$.version"] })).toThrow();
 	});
+
+	it("accepts config with package field", () => {
+		const result = decode({
+			glob: "plugin.json",
+			paths: ["$.version"],
+			package: "@savvy-web/changesets",
+		});
+		expect(result.package).toBe("@savvy-web/changesets");
+	});
+
+	it("accepts config without package field", () => {
+		const result = decode({ glob: "plugin.json" });
+		expect(result.package).toBeUndefined();
+	});
 });
 
 describe("VersionFilesSchema", () => {
