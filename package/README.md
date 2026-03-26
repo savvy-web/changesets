@@ -124,12 +124,12 @@ The agent will use the `changeset-writer` subagent to analyze the diff, detect a
 
 ## Documentation
 
-- [Configuration](./docs/configuration.md) -- Options, version files, markdownlint integration, CI scripts
-- [Section-Aware Pipeline](./docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the pipeline
-- [Markdownlint Rule Docs](./docs/rules/) -- Per-rule documentation with examples, fix instructions, and rationale
-- [CLI Reference](./docs/cli.md) -- All commands and options
-- [API Reference](./docs/api.md) -- Classes, types, Effect services, remark plugins
-- [Architecture](./docs/architecture.md) -- Three-layer pipeline design and export map
+- [Configuration](../docs/configuration.md) -- Options, version files, markdownlint integration, CI scripts
+- [Section-Aware Pipeline](../docs/section-aware-pipeline.md) -- End-to-end walkthrough of how section-aware changesets flow through the pipeline
+- [Markdownlint Rule Docs](../docs/rules/) -- Per-rule documentation with examples, fix instructions, and rationale
+- [CLI Reference](../docs/cli.md) -- All commands and options
+- [API Reference](../docs/api.md) -- Classes, types, Effect services, remark plugins
+- [Architecture](../docs/architecture.md) -- Three-layer pipeline design and export map
 
 ## License
 
