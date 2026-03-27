@@ -1,5 +1,16 @@
 # @savvy-web/changesets
 
+## 0.7.1
+
+### Bug Fixes
+
+* [`85244d7`](https://github.com/savvy-web/changesets/commit/85244d74c9fbfead720c4df1a079b8c69dda7394) Plugin hooks no longer block tool calls or prevent Claude from stopping. All hooks now return structured JSON with `additionalContext` instead of using `exit 2` error codes.
+
+- Pre-commit reminder provides context instead of blocking `git commit`
+- Changeset validation returns errors as context instead of failing the hook
+- Removed redundant Stop hook that prevented Claude from finishing
+- Narrowed SessionStart matcher to `startup` only (skip on resume/clear/compact)
+
 ## 0.7.0
 
 ### Features
