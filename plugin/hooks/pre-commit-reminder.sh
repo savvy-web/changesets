@@ -13,8 +13,9 @@ if [[ -z "$command" ]]; then
   exit 0
 fi
 
-# Only trigger on git commit commands
-if [[ ! "$command" =~ git[[:space:]]+commit ]]; then
+# Only trigger on commands that start with git commit
+# (not commands that mention "git commit" in heredocs or strings)
+if [[ ! "$command" =~ ^[[:space:]]*git[[:space:]]+commit ]]; then
   exit 0
 fi
 
