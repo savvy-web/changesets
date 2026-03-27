@@ -2,7 +2,7 @@
 	"hooks": {
 		"SessionStart": [
 			{
-				"matcher": "*",
+				"matcher": "startup",
 				"hooks": [
 					{
 						"type": "command",
@@ -32,21 +32,6 @@
 						"type": "command",
 						"command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-changeset.sh",
 						"timeout": 15
-					}
-				]
-			}
-		],
-		"Stop": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/check-changesets.sh",
-						"timeout": 15
-					},
-					{
-						"type": "prompt",
-						"prompt": "The agent has finished responding. Check whether source files (e.g., in src/, lib/, packages/) were modified during this session but no `.changeset/*.md` file was created or modified. If so, provide a gentle reminder:\n\n\"Source files were modified in this session but no changeset was created. If these changes are user-facing, consider creating one with `/changesets:create`.\"\n\nThis is a nudge, not a blocker. Do not mention this if a changeset was already created, or if only non-source files (config, docs, tests) were modified."
 					}
 				]
 			}

@@ -107,9 +107,8 @@ Prefer this structured approach over flat bullet lists when a minor/major change
 
 ### Active Hooks
 
-- **PostToolUse (Write|Edit)**: After writing a \`.changeset/*.md\` file, the CLI automatically validates it. If validation fails, errors are fed back to you — fix the file before proceeding.
-- **Stop**: When you finish responding, all changesets are validated and you're reminded if source files were modified without a changeset.
-- **PreToolUse (Bash)**: Before git commits, you're prompted to consider whether a changeset is needed.
+- **PostToolUse (Write|Edit)**: After writing a \`.changeset/*.md\` file, the CLI automatically validates it. If validation finds issues, they are provided as context — fix the file before proceeding.
+- **PreToolUse (Bash)**: Before git commits, you're reminded to consider whether a changeset is needed.
 
 ### Bump Type Guidelines
 
