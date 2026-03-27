@@ -61,11 +61,15 @@ Changeset files live in \`.changeset/\` and follow this structure:
 **Key rules:**
 - YAML frontmatter declares affected packages and bump types
 - All content goes under \`##\` category headings (no content before the first heading)
-- Valid headings: Breaking Changes, Features, Bug Fixes, Performance, Documentation, Refactoring, Tests, Build System, CI, Dependencies, Maintenance, Reverts, Other
 - No \`#\` (h1) headings — those are reserved for the changelog formatter
 - No heading depth skips (e.g., \`##\` to \`####\`)
 - Code fences must have a language identifier
 - Focus on what someone upgrading needs to know, not implementation details
+
+**Valid \`##\` headings (in render priority order):**
+\`Breaking Changes\`, \`Features\`, \`Bug Fixes\`, \`Performance\`, \`Documentation\`, \`Refactoring\`, \`Tests\`, \`Build System\`, \`CI\`, \`Dependencies\`, \`Maintenance\`, \`Reverts\`, \`Other\`
+
+Only these exact headings are allowed at the \`##\` level. Use \`### Sub-heading\` under a \`##\` category for named features or distinct changes.
 
 ### Content Structure
 
