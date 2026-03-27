@@ -1,5 +1,4 @@
 {
-	"plansDirectory": ".claude/plans",
 	"permissions": {
 		"allow": ["Write(./**)", "Edit(./**)", "mcp__playwright", "mcp__github"]
 	},
@@ -7,5 +6,6 @@
 	"enabledPlugins": {
 		"vitest-agent-reporter@spencerbeggs": true,
 		"design-docs@spencerbeggs": true
-	}
+	},
+	"plansDirectory": ".claude/plans"
 }

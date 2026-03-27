@@ -61,11 +61,15 @@ Changeset files live in \`.changeset/\` and follow this structure:
 **Key rules:**
 - YAML frontmatter declares affected packages and bump types
 - All content goes under \`##\` category headings (no content before the first heading)
-- Valid headings: Breaking Changes, Features, Bug Fixes, Performance, Documentation, Refactoring, Tests, Build System, CI, Dependencies, Maintenance, Reverts, Other
 - No \`#\` (h1) headings — those are reserved for the changelog formatter
 - No heading depth skips (e.g., \`##\` to \`####\`)
 - Code fences must have a language identifier
 - Focus on what someone upgrading needs to know, not implementation details
+
+**Valid \`##\` headings (in render priority order):**
+\`Breaking Changes\`, \`Features\`, \`Bug Fixes\`, \`Performance\`, \`Documentation\`, \`Refactoring\`, \`Tests\`, \`Build System\`, \`CI\`, \`Dependencies\`, \`Maintenance\`, \`Reverts\`, \`Other\`
+
+Only these exact headings are allowed at the \`##\` level. Use \`### Sub-heading\` under a \`##\` category for named features or distinct changes.
 
 ### Content Structure
 
@@ -107,9 +111,8 @@ Prefer this structured approach over flat bullet lists when a minor/major change
 
 ### Active Hooks
 
-- **PostToolUse (Write|Edit)**: After writing a \`.changeset/*.md\` file, the CLI automatically validates it. If validation fails, errors are fed back to you — fix the file before proceeding.
-- **Stop**: When you finish responding, all changesets are validated and you're reminded if source files were modified without a changeset.
-- **PreToolUse (Bash)**: Before git commits, you're prompted to consider whether a changeset is needed.
+- **PostToolUse (Write|Edit)**: After writing a \`.changeset/*.md\` file, the CLI automatically validates it. If validation finds issues, they are provided as context — fix the file before proceeding.
+- **PreToolUse (Bash)**: Before git commits, you're reminded to consider whether a changeset is needed.
 
 ### Bump Type Guidelines
 
