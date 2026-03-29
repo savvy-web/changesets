@@ -3,8 +3,8 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-03-22
-last-synced: 2026-03-22
+updated: 2026-03-29
+last-synced: 2026-03-29
 completeness: 98
 related: []
 dependencies: []
@@ -217,7 +217,7 @@ src/
 │       ├── lint.ts             # Validate changeset files
 │       ├── transform.ts        # Post-process CHANGELOG.md
 │       ├── check.ts            # Full validation pipeline
-│       └── version.ts          # Orchestrate version + transform all CHANGELOGs
+│       └── version.ts          # Orchestrate version + transform all CHANGELOGs (uses ChangesetConfigReader from @savvy-web/silk-effects)
 │
 ├── vendor/                     # Vendored upstream code (see Decision 7)
 │   ├── types.ts                # From @changesets/types, redefined as Effect Schemas
@@ -234,7 +234,7 @@ src/
     ├── issue-refs.ts           # closes/fixes/refs/resolves pattern extraction
     ├── workspace.ts            # Package manager detection + changelog discovery
     ├── jsonpath.ts             # Minimal JSONPath get/set (property, wildcard, index)
-    ├── version-files.ts        # VersionFiles static utility class
+    ├── version-files.ts        # VersionFiles static utility class (extractVersionFiles + processing)
     ├── version-blocks.ts       # Version block / section extraction from CHANGELOG AST
     ├── dependency-table.ts     # Parse, serialize, collapse, sort dependency tables
     ├── strip-frontmatter.ts    # YAML frontmatter stripping
@@ -947,7 +947,7 @@ API requires.
 │   │       ├── lint.ts             # Validate changeset files
 │   │       ├── transform.ts        # Post-process CHANGELOG.md
 │   │       ├── check.ts            # Full validation pipeline
-│   │       └── version.ts          # Orchestrate version + transform
+│   │       └── version.ts          # Orchestrate version + transform (uses ChangesetConfigReader)
 │   ├── vendor/                     # Vendored upstream code
 │   │   ├── types.ts                # From @changesets/types
 │   │   └── github-info.ts          # From @changesets/get-github-info
@@ -1994,7 +1994,9 @@ savvy-changesets version
   3. Discover all CHANGELOG.md files
   4. Transform each CHANGELOG (Layer 3 post-processing)
   5. Update version files (if configured)
-     a. Read versionFiles config from .changeset/config.json
+     a. Read .changeset/config.json via ChangesetConfigReader service
+        (from @savvy-web/silk-effects/versioning), then extract
+        versionFiles with VersionFiles.extractVersionFiles()
      b. Resolve glob patterns to file paths (excludes node_modules)
      c. Discover workspace versions via workspace-tools
      d. For each matched file:
@@ -2029,7 +2031,7 @@ These schemas are exported from the main package entry point (`.`) for consumers
 
 A `VersionFileError` tagged error (`src/errors.ts`) represents version file update failures. It carries the file path, the JSONPath expression that failed (if applicable), and a human-readable reason.
 
-**Graceful degradation:** If the `versionFiles` config is malformed, missing, or the changelog options tuple does not contain a second element, `VersionFiles.readConfig()` returns `undefined` rather than throwing. This means a misconfigured `versionFiles` entry will not break the normal `changeset version` flow -- version file updates are silently skipped.
+**Graceful degradation:** If the `versionFiles` config is malformed, missing, or the changelog options tuple does not contain a second element, `VersionFiles.extractVersionFiles()` returns `undefined` rather than throwing. In the `version` command, the `ChangesetConfigReader` service (from `@savvy-web/silk-effects/versioning`) handles reading and JSONC-parsing `.changeset/config.json`; any read/parse failure is caught via `Effect.catchAll` so a misconfigured `versionFiles` entry will not break the normal `changeset version` flow -- version file updates are silently skipped.
 
 ### Static Utility Class
 
@@ -2037,7 +2039,7 @@ The `VersionFiles` class (`src/utils/version-files.ts`) follows the established 
 
 | Method | Description |
 | :--- | :--- |
-| `readConfig(cwd)` | Read and validate `versionFiles` from `.changeset/config.json` |
+| `extractVersionFiles(config)` | Extract and validate `versionFiles` from a pre-parsed changeset config object (pure function; file reading is delegated to `ChangesetConfigReader`) |
 | `discoverVersions(cwd)` | Discover all workspace packages and their current versions |
 | `resolveVersion(filePath, workspaces, rootVersion)` | Determine version for a file via longest-prefix matching |
 | `resolveGlobs(configs, cwd)` | Resolve glob patterns to `[filePath, config]` tuples |
@@ -2335,11 +2337,11 @@ silently skipping.
 | `findMarkdownlintConfig(root)` | Find first existing markdownlint config from candidate paths |
 | `ensureChangesetDir(root)` | Create `.changeset/` directory (Effect) |
 | `handleConfig(dir, repo, force)` | Write or patch `.changeset/config.json` (Effect) |
-| `handleBaseMarkdownlint(root)` | Update base markdownlint config; always returns a message (Effect) |
+| `handleBaseMarkdownlint(root)` | Update base markdownlint config via `jsonc-effect` parse/modify/applyEdits; always returns a message (Effect) |
 | `handleChangesetMarkdownlint(dir, root, force)` | Write or patch `.changeset/.markdownlint.json` (Effect) |
 | `checkChangesetDir(root)` | Check `.changeset/` exists (returns `CheckIssue[]`) |
 | `checkConfig(dir, repo)` | Check config has correct changelog entry (returns `CheckIssue[]`) |
-| `checkBaseMarkdownlint(root)` | Check base markdownlint config (returns `CheckIssue[]`) |
+| `checkBaseMarkdownlint(root)` | Check base markdownlint config via `jsonc-effect` parse (returns `CheckIssue[]`) |
 | `checkChangesetMarkdownlint(dir)` | Check `.changeset/.markdownlint.json` rules (returns `CheckIssue[]`) |
 
 **`CheckIssue` interface:**
@@ -2481,6 +2483,8 @@ The plugin complements the three-layer processing architecture:
 | `@effect/cli` | CLI command framework | CLI | New |
 | `@effect/platform` | Platform abstraction | CLI, Services | New |
 | `@effect/platform-node` | Node.js platform implementation | CLI | New |
+| `@savvy-web/silk-effects` | Shared Effect services for Silk Suite (provides `ChangesetConfigReader` for JSONC config reading) | CLI (version command) | New |
+| `jsonc-effect` | Effect-wrapped JSONC parse/modify/applyEdits (replaces `jsonc-parser`) | CLI (init command) | New |
 | `workspace-tools` | Package manager detection + workspace discovery | CLI | New |
 
 ### Vendored Code (src/vendor/)
