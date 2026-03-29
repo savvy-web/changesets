@@ -39,7 +39,7 @@ import { Command, Options } from "@effect/cli";
 import { Data, Effect } from "effect";
 import type { JsoncFormattingOptions } from "jsonc-effect";
 import { applyEdits, modify, parse as parseJsonc } from "jsonc-effect";
-import { findProjectRoot } from "workspace-tools";
+import { WorkspaceRoot } from "workspaces-effect";
 
 const CUSTOM_RULES_ENTRY = "@savvy-web/changesets/markdownlint";
 const CHANGELOG_ENTRY = "@savvy-web/changesets/changelog";
@@ -154,18 +154,21 @@ const JSONC_FORMAT: Partial<JsoncFormattingOptions> = {
 };
 
 /**
- * Resolve the monorepo workspace root from `cwd`.
+ * Resolve the monorepo workspace root from `cwd` using `WorkspaceRoot` service.
  *
- * Uses `workspace-tools`' `findProjectRoot` and falls back to `cwd` itself
- * when no workspace root can be determined.
+ * Falls back to `cwd` itself when the service is unavailable or no workspace
+ * root can be determined.
  *
  * @param cwd - The current working directory to search from
- * @returns The resolved workspace root path
+ * @returns An Effect yielding the resolved workspace root path
  *
  * @internal
  */
-export function resolveWorkspaceRoot(cwd: string): string {
-	return findProjectRoot(cwd) ?? cwd;
+export function resolveWorkspaceRoot(cwd: string): Effect.Effect<string, never, WorkspaceRoot> {
+	return WorkspaceRoot.pipe(
+		Effect.flatMap((wr) => wr.find(cwd)),
+		Effect.catchAll(() => Effect.succeed(cwd)),
+	);
 }
 
 /**
@@ -568,7 +571,7 @@ export const initCommand = Command.make(
 	{ force: forceOption, quiet: quietOption, skipMarkdownlint: skipMarkdownlintOption, check: checkOption },
 	({ force, quiet, skipMarkdownlint, check }) =>
 		Effect.gen(function* () {
-			const root = resolveWorkspaceRoot(process.cwd());
+			const root = yield* resolveWorkspaceRoot(process.cwd());
 
 			// 1. Detect GitHub repo
 			const repo = detectGitHubRepo(root);

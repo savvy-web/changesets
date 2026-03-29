@@ -1,9 +1,10 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { parse as parseJsonc } from "jsonc-effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { WorkspaceRoot } from "workspaces-effect";
 import type { CheckIssue } from "./init.js";
 import {
 	InitError,
@@ -34,10 +35,6 @@ vi.mock("node:fs", async () => {
 		writeFileSync: vi.fn(),
 	};
 });
-
-vi.mock("workspace-tools", () => ({
-	findProjectRoot: vi.fn(),
-}));
 
 afterEach(() => {
 	vi.resetAllMocks();
@@ -93,16 +90,22 @@ describe("detectGitHubRepo", () => {
 // resolveWorkspaceRoot
 // ---------------------------------------------------------------------------
 describe("resolveWorkspaceRoot", () => {
-	it("returns project root from workspace-tools", async () => {
-		const { findProjectRoot } = await import("workspace-tools");
-		vi.mocked(findProjectRoot).mockReturnValue("/monorepo/root");
-		expect(resolveWorkspaceRoot("/monorepo/root/packages/foo")).toBe("/monorepo/root");
+	it("returns project root from WorkspaceRoot service", async () => {
+		const layer = Layer.succeed(WorkspaceRoot, {
+			find: () => Effect.succeed("/monorepo/root"),
+		});
+		const result = await Effect.runPromise(
+			resolveWorkspaceRoot("/monorepo/root/packages/foo").pipe(Effect.provide(layer)),
+		);
+		expect(result).toBe("/monorepo/root");
 	});
 
-	it("falls back to cwd when findProjectRoot returns null", async () => {
-		const { findProjectRoot } = await import("workspace-tools");
-		vi.mocked(findProjectRoot).mockReturnValue(undefined as unknown as string);
-		expect(resolveWorkspaceRoot("/standalone/project")).toBe("/standalone/project");
+	it("falls back to cwd when WorkspaceRoot fails", async () => {
+		const layer = Layer.succeed(WorkspaceRoot, {
+			find: () => Effect.fail({ _tag: "WorkspaceRootNotFoundError" as const, reason: "not found" } as never),
+		});
+		const result = await Effect.runPromise(resolveWorkspaceRoot("/standalone/project").pipe(Effect.provide(layer)));
+		expect(result).toBe("/standalone/project");
 	});
 });
 
