@@ -41,7 +41,7 @@
 		"@effect/cli": "catalog:silk",
 		"@effect/platform": "catalog:silk",
 		"@effect/platform-node": "catalog:silk",
-		"@savvy-web/silk-effects": "^0.1.0",
+		"@savvy-web/silk-effects": "^0.2.0",
 		"effect": "catalog:silk",
 		"jsonc-effect": "^0.2.1",
 		"mdast-util-heading-range": "^4.0.0",
@@ -58,7 +58,7 @@
 	"devDependencies": {
 		"@changesets/types": "^6.1.0",
 		"@microsoft/api-extractor": "^7.57.7",
-		"@rslib/core": "0.20.0",
+		"@rslib/core": "0.20.1",
 		"@savvy-web/rslib-builder": "^0.19.1",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
