@@ -19,10 +19,9 @@
  * @internal
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { Schema } from "effect";
-import { parse as parseJsonc } from "jsonc-parser";
 import { globSync } from "tinyglobby";
 import type { WorkspaceInfos } from "workspace-tools";
 import { getWorkspaceInfos } from "workspace-tools";
@@ -86,7 +85,7 @@ interface WorkspaceVersion {
  * ```typescript
  * import { VersionFiles } from "../utils/version-files.js";
  *
- * const configs = VersionFiles.readConfig("/path/to/project");
+ * const configs = VersionFiles.extractVersionFiles(parsedConfig);
  * if (configs) {
  *   const updates = VersionFiles.processVersionFiles("/path/to/project", configs);
  *   for (const update of updates) {
@@ -100,37 +99,28 @@ interface WorkspaceVersion {
 // biome-ignore lint/complexity/noStaticOnlyClass: Intentional pattern for TSDoc discoverability
 export class VersionFiles {
 	/**
-	 * Read and validate the `versionFiles` config from `.changeset/config.json`.
+	 * Extract and validate `versionFiles` from a pre-parsed changeset config object.
 	 *
 	 * @remarks
-	 * Reads the changeset config as JSONC (supporting comments), extracts
-	 * the `changelog` tuple's second element (options object), and validates
-	 * the `versionFiles` key against `VersionFilesSchema`. Returns `undefined`
-	 * if the config file is missing, the `versionFiles` key is absent, or
-	 * the array is empty. Schema validation errors are logged as warnings
-	 * but do not throw.
+	 * Accepts a config object (already parsed from `.changeset/config.json`),
+	 * extracts the `changelog` tuple's second element (options object), and
+	 * validates the `versionFiles` key against `VersionFilesSchema`. Returns
+	 * `undefined` if `changelog` is not a tuple, the `versionFiles` key is
+	 * absent, or the array is empty. Schema validation errors are logged as
+	 * warnings but do not throw.
 	 *
-	 * @param cwd - Project root directory
+	 * File reading and JSONC parsing are delegated to the caller
+	 * (e.g., `ChangesetConfigReader` from `\@savvy-web/silk-effects`).
+	 *
+	 * @param config - Pre-parsed changeset config object
 	 * @returns Parsed config array, or `undefined` if not configured
 	 */
-	static readConfig(cwd: string): readonly VersionFileConfig[] | undefined {
-		const configPath = join(cwd, ".changeset", "config.json");
-
-		if (!existsSync(configPath)) {
-			return undefined;
-		}
-
-		let raw: string;
-		try {
-			raw = readFileSync(configPath, "utf-8");
-		} catch {
-			return undefined;
-		}
-
-		const config = parseJsonc(raw) as Record<string, unknown>;
+	static extractVersionFiles(config: {
+		changelog?: string | readonly unknown[] | undefined;
+	}): readonly VersionFileConfig[] | undefined {
+		const { changelog } = config;
 
 		// changelog is expected to be a tuple: [formatter, options]
-		const changelog = config.changelog;
 		if (!Array.isArray(changelog) || changelog.length < 2) {
 			return undefined;
 		}

@@ -89,12 +89,25 @@ Turbo orchestrates tasks: `typecheck` depends on `build` completing first.
 - **Effect primitives**: Core logic uses Effect-TS (Schema, services, layers)
 - **Class-based static wrappers**: Simplified API for non-Effect consumers
 
+### Key Dependencies
+
+- `@savvy-web/silk-effects` -- `ChangesetConfigReader` Effect service for
+  reading `.changeset/config.json`
+- `jsonc-effect` -- Effect-returning JSONC parse/modify/applyEdits APIs (used
+  in init command for surgical JSONC edits that preserve comments)
+
 ### Key Patterns
 
 - Effect Schema for validation at system boundaries (not internal shapes)
 - `Schema.TaggedError` for typed error channels
 - `unified().use(plugin).processSync()` for testing remark/unified plugins
 - `Command.make(name, { opts }, handler)` for @effect/cli commands
+- `ChangesetConfigReader` service (from `@savvy-web/silk-effects/versioning`)
+  for config I/O; provide `ChangesetConfigReaderLive` layer at command edges
+- `VersionFiles.extractVersionFiles(config)` -- pure function that extracts
+  version file paths from a parsed changeset config object (no file I/O)
+- `jsonc-effect` `modify` + `applyEdits` for JSONC mutations (not
+  `JSON.stringify`)
 - Biome enforces `interface` over `type` (except literal unions)
 - Use `.js` extensions for relative imports (ESM)
 - Use `node:` protocol for Node.js built-ins

@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
-import { Effect, Logger } from "effect";
+import { ChangesetConfigReader } from "@savvy-web/silk-effects";
+import { Effect, Layer, Logger } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runVersion } from "./version.js";
@@ -24,7 +25,7 @@ vi.mock("../../api/transformer.js", () => ({
 
 vi.mock("../../utils/version-files.js", () => ({
 	VersionFiles: {
-		readConfig: vi.fn(),
+		extractVersionFiles: vi.fn(),
 		processVersionFiles: vi.fn(),
 	},
 }));
@@ -36,6 +37,10 @@ import { Workspace } from "../../utils/workspace.js";
 
 const silentLogger = Logger.replace(Logger.defaultLogger, Logger.none);
 
+const TestChangesetConfigReaderLayer = Layer.succeed(ChangesetConfigReader, {
+	read: () => Effect.succeed({ changelog: undefined }),
+});
+
 afterEach(() => {
 	vi.resetAllMocks();
 });
@@ -45,7 +50,9 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(execSync).not.toHaveBeenCalled();
 		expect(Workspace.detectPackageManager).toHaveBeenCalled();
@@ -57,7 +64,9 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.getChangesetVersionCommand).mockReturnValue("pnpm exec changeset version");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-		await Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(false).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(Workspace.getChangesetVersionCommand).toHaveBeenCalledWith("pnpm");
 		expect(execSync).toHaveBeenCalledWith("pnpm exec changeset version", {
@@ -70,7 +79,9 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("npm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(Workspace.discoverChangelogs).toHaveBeenCalledWith(process.cwd());
 		expect(ChangelogTransformer.transformFile).not.toHaveBeenCalled();
@@ -83,7 +94,9 @@ describe("runVersion Effect handler", () => {
 			{ name: "pkg-b", path: "/project/packages/b", changelogPath: "/project/packages/b/CHANGELOG.md" },
 		]);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(ChangelogTransformer.transformFile).toHaveBeenCalledTimes(2);
 		expect(ChangelogTransformer.transformFile).toHaveBeenCalledWith("/project/packages/a/CHANGELOG.md");
@@ -95,7 +108,9 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("npm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(Workspace.detectPackageManager).toHaveBeenCalledWith(cwd);
 		expect(Workspace.discoverChangelogs).toHaveBeenCalledWith(cwd);
@@ -108,9 +123,11 @@ describe("runVersion Effect handler", () => {
 			throw new Error("command not found");
 		});
 
-		await expect(Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
-			"changeset version failed: command not found",
-		);
+		await expect(
+			Effect.runPromise(
+				runVersion(false).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+			),
+		).rejects.toThrow("changeset version failed: command not found");
 	});
 
 	it("rejects when transformFile throws an error", async () => {
@@ -122,19 +139,23 @@ describe("runVersion Effect handler", () => {
 			throw new Error("ENOENT: no such file");
 		});
 
-		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
-			"Failed to transform /project/packages/a/CHANGELOG.md: ENOENT: no such file",
-		);
+		await expect(
+			Effect.runPromise(
+				runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+			),
+		).rejects.toThrow("Failed to transform /project/packages/a/CHANGELOG.md: ENOENT: no such file");
 	});
 
-	it("skips version files when readConfig returns undefined", async () => {
+	it("skips version files when extractVersionFiles returns undefined", async () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
-		vi.mocked(VersionFiles.readConfig).mockReturnValue(undefined);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(undefined);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
-		expect(VersionFiles.readConfig).toHaveBeenCalledWith(process.cwd());
+		expect(VersionFiles.extractVersionFiles).toHaveBeenCalledWith(expect.any(Object));
 		expect(VersionFiles.processVersionFiles).not.toHaveBeenCalled();
 	});
 
@@ -142,12 +163,14 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 		const configs = [{ glob: "plugin.json", paths: ["$.version"] }];
-		vi.mocked(VersionFiles.readConfig).mockReturnValue(configs);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(configs);
 		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([
 			{ filePath: "/project/plugin.json", jsonPaths: ["$.version"], version: "2.0.0", previousValues: ["1.0.0"] },
 		]);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(VersionFiles.processVersionFiles).toHaveBeenCalledWith(process.cwd(), configs, true);
 	});
@@ -157,10 +180,12 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.getChangesetVersionCommand).mockReturnValue("pnpm exec changeset version");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 		const configs = [{ glob: "plugin.json" }];
-		vi.mocked(VersionFiles.readConfig).mockReturnValue(configs);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(configs);
 		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([]);
 
-		await Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(false).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 
 		expect(VersionFiles.processVersionFiles).toHaveBeenCalledWith(process.cwd(), configs, false);
 	});
@@ -168,25 +193,29 @@ describe("runVersion Effect handler", () => {
 	it("rejects when processVersionFiles throws an error", async () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
-		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue([{ glob: "plugin.json" }]);
 		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
 			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
 		});
 
-		await expect(Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)))).rejects.toThrow(
-			"EACCES: permission denied",
-		);
+		await expect(
+			Effect.runPromise(
+				runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+			),
+		).rejects.toThrow("EACCES: permission denied");
 	});
 
 	it("extracts per-file path into VersionFileError.filePath", async () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
-		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue([{ glob: "plugin.json" }]);
 		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
 			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
 		});
 
-		const exit = await Effect.runPromiseExit(runVersion(true).pipe(Effect.provide(silentLogger)));
+		const exit = await Effect.runPromiseExit(
+			runVersion(true).pipe(Effect.provide(TestChangesetConfigReaderLayer), Effect.provide(silentLogger)),
+		);
 		expect(exit._tag).toBe("Failure");
 		if (exit._tag === "Failure") {
 			const err = exit.cause as { _tag: string; error?: { filePath?: string } };
