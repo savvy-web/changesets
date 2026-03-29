@@ -29,9 +29,11 @@ Split `VersionFiles.readConfig()` into two concerns:
 
 ### Changes
 
-#### 1. Add dependency
+#### 1. Add dependencies
 
-Add `@savvy-web/silk-effects` to `package.json` dependencies (catalog reference).
+- Add `@savvy-web/silk-effects` to `package.json` dependencies (catalog reference).
+- Add `jsonc-effect` to `package.json` dependencies (catalog reference).
+- Remove `jsonc-parser` from `package.json` dependencies.
 
 #### 2. Refactor `VersionFiles.readConfig()` to `VersionFiles.extractVersionFiles()`
 
@@ -77,8 +79,8 @@ Add `ChangesetConfigReaderLive` and `NodeContext.layer` to the CLI layer stack i
 #### 5. Remove replaced code
 
 - Remove `VersionFiles.readConfig()` method
-- Remove `jsonc-parser` import from `version-files.ts` (if no longer used elsewhere)
-- Check if `jsonc-parser` can be removed from `package.json` dependencies (used by `init` command too -- verify)
+- Remove `jsonc-parser` import from `version-files.ts`
+- `jsonc-parser` fully removed from dependencies (replaced by `jsonc-effect` in step 6)
 
 ### What stays unchanged
 
@@ -99,9 +101,21 @@ Add `ChangesetConfigReaderLive` and `NodeContext.layer` to the CLI layer stack i
 - `ChangesetConfigError` from silk-effects maps to the existing "return undefined" behavior (config missing or unreadable)
 - `versionFiles` schema validation errors continue to warn and return `undefined`
 
+### 6. Replace `jsonc-parser` with `jsonc-effect` in `init.ts`
+
+The `init` command uses `jsonc-parser` for JSONC modification in two functions:
+
+- **`handleBaseMarkdownlint`** -- uses `parseJsonc`, `modify`, `applyEdits` to patch markdownlint config
+- **`checkBaseMarkdownlint`** -- uses `parseJsonc` to read and inspect markdownlint config
+
+Replace with `jsonc-effect` equivalents (`parse`, `modify`, `applyEdits`), which return `Effect` values instead of sync. Both functions are already wrapped in `Effect.try`, so the migration converts them to proper `Effect.gen` pipelines.
+
+After this, `jsonc-parser` can be fully removed from dependencies.
+
+The `FormattingOptions` type import changes to `JsoncFormattingOptions` from `jsonc-effect`.
+
 ## Out of Scope
 
 - `SilkPublishabilityPlugin` adoption (no publishability checks in this package currently)
 - `VersioningStrategy` adoption (no strategy detection needed)
 - Converting other sync utilities to Effect services
-- `init` command changes
