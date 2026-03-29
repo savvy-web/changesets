@@ -1,4 +1,3 @@
 {
-	"extends": ["./package/tsconfig.json"],
-	"files": []
+	"extends": ["@savvy-web/rslib-builder/tsconfig/ecma/lib.json"]
 }
