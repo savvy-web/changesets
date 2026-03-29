@@ -53,12 +53,12 @@
 		"unified": "^11.0.5",
 		"unified-lint-rule": "^3.0.1",
 		"unist-util-visit": "^5.1.0",
-		"workspaces-effect": "^0.1.0"
+		"workspaces-effect": "^0.2.0"
 	},
 	"devDependencies": {
 		"@changesets/types": "^6.1.0",
 		"@microsoft/api-extractor": "^7.57.7",
-		"@rslib/core": "0.20.1",
+		"@rslib/core": "0.20.0",
 		"@savvy-web/rslib-builder": "^0.19.1",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
