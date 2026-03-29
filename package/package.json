@@ -53,7 +53,7 @@
 		"unified": "^11.0.5",
 		"unified-lint-rule": "^3.0.1",
 		"unist-util-visit": "^5.1.0",
-		"workspace-tools": "0.41.0"
+		"workspaces-effect": "^0.1.0"
 	},
 	"devDependencies": {
 		"@changesets/types": "^6.1.0",
