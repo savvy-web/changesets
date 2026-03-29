@@ -332,12 +332,12 @@ describe("handleBaseMarkdownlint", () => {
 		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		expect(parsed.customRules).toContain("some-other-plugin");
 		expect(parsed.customRules).toContain("@savvy-web/changesets/markdownlint");
-		expect(parsed.config["changeset-heading-hierarchy"]).toBe(false);
-		expect(parsed.config["changeset-required-sections"]).toBe(false);
-		expect(parsed.config["changeset-content-structure"]).toBe(false);
-		expect(parsed.config["changeset-uncategorized-content"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-heading-hierarchy"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-required-sections"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-content-structure"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-uncategorized-content"]).toBe(false);
 		// Preserved existing config
-		expect(parsed.config.default).toBe(true);
+		expect((parsed.config as Record<string, unknown>).default).toBe(true);
 	});
 
 	it("creates customRules array when missing", async () => {

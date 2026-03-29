@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { globSync } from "tinyglobby";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +8,6 @@ import { getWorkspaceInfos } from "workspace-tools";
 import { VersionFiles } from "./version-files.js";
 
 vi.mock("node:fs", () => ({
-	existsSync: vi.fn(),
 	readFileSync: vi.fn(),
 	writeFileSync: vi.fn(),
 }));
