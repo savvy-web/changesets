@@ -27,9 +27,8 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
+import { ChangesetConfigReader, ChangesetConfigReaderLive } from "@savvy-web/silk-effects/versioning";
 import { Effect } from "effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";
@@ -100,22 +99,15 @@ export function runVersion(dryRun: boolean) {
 		}
 
 		// 5. Update version files (if configured)
-		// TODO(Task 3): Replace with ChangesetConfigReader from @savvy-web/silk-effects
-		const configPath = join(cwd, ".changeset", "config.json");
-		const parsedConfig = existsSync(configPath)
-			? (() => {
-					try {
-						return JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
-					} catch {
-						return {};
-					}
-				})()
-			: {};
-		const versionFileConfigs = VersionFiles.extractVersionFiles(parsedConfig);
-		if (versionFileConfigs) {
-			yield* Effect.log(`Found ${versionFileConfigs.length} versionFiles config(s)`);
+		const configResult = yield* ChangesetConfigReader.pipe(
+			Effect.flatMap((reader) => reader.read(cwd)),
+			Effect.map((config) => VersionFiles.extractVersionFiles(config)),
+			Effect.catchAll(() => Effect.succeed(undefined)),
+		);
+		if (configResult) {
+			yield* Effect.log(`Found ${configResult.length} versionFiles config(s)`);
 			const updates = yield* Effect.try({
-				try: () => VersionFiles.processVersionFiles(cwd, versionFileConfigs, dryRun),
+				try: () => VersionFiles.processVersionFiles(cwd, configResult, dryRun),
 				catch: (error) => {
 					const message = error instanceof Error ? error.message : String(error);
 					return new VersionFileError({
@@ -132,7 +124,7 @@ export function runVersion(dryRun: boolean) {
 	});
 }
 
-/* v8 ignore next 3 -- CLI registration; handler tested via runVersion */
+/* v8 ignore next 5 -- CLI registration; handler tested via runVersion */
 export const versionCommand = Command.make("version", { dryRun: dryRunOption }, ({ dryRun }) =>
-	runVersion(dryRun),
+	runVersion(dryRun).pipe(Effect.provide(ChangesetConfigReaderLive)),
 ).pipe(Command.withDescription("Run changeset version and transform all CHANGELOGs"));
