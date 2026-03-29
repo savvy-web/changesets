@@ -46,6 +46,7 @@ const TestPackageManagerDetectorLayer = Layer.succeed(PackageManagerDetector, {
 const TestWorkspaceDiscoveryLayer = Layer.succeed(WorkspaceDiscovery, {
 	listPackages: () => Effect.succeed([]),
 	getPackage: () => Effect.fail({ _tag: "PackageNotFoundError" as const, name: "", reason: "" } as never),
+	importerMap: () => Effect.succeed(new Map()),
 });
 
 const TestLayers = Layer.mergeAll(
@@ -88,6 +89,7 @@ describe("runVersion Effect handler", () => {
 					{ name: "pkg-b", version: "2.0.0", path: "/project/packages/b" },
 				] as never),
 			getPackage: () => Effect.fail({ _tag: "PackageNotFoundError" as const, name: "", reason: "" } as never),
+			importerMap: () => Effect.succeed(new Map()),
 		});
 
 		vi.mocked(existsSync).mockImplementation((p) => {
@@ -122,6 +124,7 @@ describe("runVersion Effect handler", () => {
 		const packagesLayer = Layer.succeed(WorkspaceDiscovery, {
 			listPackages: () => Effect.succeed([{ name: "pkg-a", version: "1.0.0", path: "/project/packages/a" }] as never),
 			getPackage: () => Effect.fail({ _tag: "PackageNotFoundError" as const, name: "", reason: "" } as never),
+			importerMap: () => Effect.succeed(new Map()),
 		});
 
 		vi.mocked(existsSync).mockReturnValue(true);
