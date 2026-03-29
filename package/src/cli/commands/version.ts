@@ -28,7 +28,7 @@
 
 import { execSync } from "node:child_process";
 import { Command, Options } from "@effect/cli";
-import { ChangesetConfigReader, ChangesetConfigReaderLive } from "@savvy-web/silk-effects/versioning";
+import { ChangesetConfigReader, ChangesetConfigReaderLive } from "@savvy-web/silk-effects";
 import { Effect } from "effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";

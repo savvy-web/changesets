@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { ChangesetConfigReader } from "@savvy-web/silk-effects/versioning";
+import { ChangesetConfigReader } from "@savvy-web/silk-effects";
 import { Effect, Layer, Logger } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
