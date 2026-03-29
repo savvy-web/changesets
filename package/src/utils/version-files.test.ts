@@ -28,53 +28,42 @@ afterEach(() => {
 	vi.resetAllMocks();
 });
 
-describe("VersionFiles.readConfig", () => {
-	it("returns undefined when config file does not exist", () => {
-		vi.mocked(existsSync).mockReturnValue(false);
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+describe("VersionFiles.extractVersionFiles", () => {
+	it("returns undefined when changelog is a plain string", () => {
+		expect(VersionFiles.extractVersionFiles({ changelog: "simple-string" })).toBeUndefined();
 	});
 
-	it("returns undefined when changelog is not a tuple", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ changelog: "simple-string" }));
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+	it("returns undefined when changelog tuple has no options (length < 2)", () => {
+		expect(VersionFiles.extractVersionFiles({ changelog: ["@savvy-web/changesets/changelog"] })).toBeUndefined();
 	});
 
 	it("returns undefined when options lack versionFiles", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(
-			JSON.stringify({
+		expect(
+			VersionFiles.extractVersionFiles({
 				changelog: ["@savvy-web/changesets/changelog", { repo: "owner/repo" }],
 			}),
-		);
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+		).toBeUndefined();
 	});
 
 	it("returns undefined for empty versionFiles array", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(
-			JSON.stringify({
+		expect(
+			VersionFiles.extractVersionFiles({
 				changelog: ["@savvy-web/changesets/changelog", { repo: "owner/repo", versionFiles: [] }],
 			}),
-		);
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+		).toBeUndefined();
 	});
 
 	it("parses valid versionFiles config", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(
-			JSON.stringify({
-				changelog: [
-					"@savvy-web/changesets/changelog",
-					{
-						repo: "owner/repo",
-						versionFiles: [{ glob: "plugin.json", paths: ["$.version"] }, { glob: "**/manifest.json" }],
-					},
-				],
-			}),
-		);
+		const result = VersionFiles.extractVersionFiles({
+			changelog: [
+				"@savvy-web/changesets/changelog",
+				{
+					repo: "owner/repo",
+					versionFiles: [{ glob: "plugin.json", paths: ["$.version"] }, { glob: "**/manifest.json" }],
+				},
+			],
+		});
 
-		const result = VersionFiles.readConfig("/project");
 		expect(result).toHaveLength(2);
 		expect(result?.[0].glob).toBe("plugin.json");
 		expect(result?.[0].paths).toEqual(["$.version"]);
@@ -82,62 +71,40 @@ describe("VersionFiles.readConfig", () => {
 		expect(result?.[1].paths).toBeUndefined();
 	});
 
-	it("returns undefined on malformed JSON", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue("not valid json{{{");
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
-	});
-
 	it("returns undefined when versionFiles fails schema validation", () => {
 		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(
-			JSON.stringify({
-				changelog: [
-					"@savvy-web/changesets/changelog",
-					{
-						repo: "owner/repo",
-						versionFiles: [{ glob: "", paths: ["invalid-path"] }],
-					},
-				],
-			}),
-		);
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+		const result = VersionFiles.extractVersionFiles({
+			changelog: [
+				"@savvy-web/changesets/changelog",
+				{
+					repo: "owner/repo",
+					versionFiles: [{ glob: "", paths: ["invalid-path"] }],
+				},
+			],
+		});
+		expect(result).toBeUndefined();
 		warnSpy.mockRestore();
 	});
 
 	it("warns when versionFiles is present but invalid", () => {
 		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(
-			JSON.stringify({
-				changelog: [
-					"@savvy-web/changesets/changelog",
-					{
-						repo: "owner/repo",
-						versionFiles: [{ glob: "", paths: ["invalid-path"] }],
-					},
-				],
-			}),
-		);
 
-		expect(VersionFiles.readConfig("/project")).toBeUndefined();
+		VersionFiles.extractVersionFiles({
+			changelog: [
+				"@savvy-web/changesets/changelog",
+				{
+					repo: "owner/repo",
+					versionFiles: [{ glob: "", paths: ["invalid-path"] }],
+				},
+			],
+		});
+
 		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[changesets] Invalid versionFiles configuration"));
 		warnSpy.mockRestore();
 	});
 
-	it("strips JSONC comments before parsing", () => {
-		vi.mocked(existsSync).mockReturnValue(true);
-		vi.mocked(readFileSync).mockReturnValue(`{
-			// This is a comment
-			"changelog": ["@savvy-web/changesets/changelog", {
-				"repo": "owner/repo",
-				"versionFiles": [{ "glob": "plugin.json" }]
-			}]
-		}`);
-
-		const result = VersionFiles.readConfig("/project");
-		expect(result).toHaveLength(1);
+	it("returns undefined when changelog is undefined", () => {
+		expect(VersionFiles.extractVersionFiles({})).toBeUndefined();
 	});
 });
 

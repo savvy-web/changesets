@@ -27,6 +27,8 @@
  */
 
 import { execSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Effect } from "effect";
 
@@ -98,7 +100,18 @@ export function runVersion(dryRun: boolean) {
 		}
 
 		// 5. Update version files (if configured)
-		const versionFileConfigs = VersionFiles.readConfig(cwd);
+		// TODO(Task 3): Replace with ChangesetConfigReader from @savvy-web/silk-effects
+		const configPath = join(cwd, ".changeset", "config.json");
+		const parsedConfig = existsSync(configPath)
+			? (() => {
+					try {
+						return JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+					} catch {
+						return {};
+					}
+				})()
+			: {};
+		const versionFileConfigs = VersionFiles.extractVersionFiles(parsedConfig);
 		if (versionFileConfigs) {
 			yield* Effect.log(`Found ${versionFileConfigs.length} versionFiles config(s)`);
 			const updates = yield* Effect.try({

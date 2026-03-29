@@ -24,7 +24,7 @@ vi.mock("../../api/transformer.js", () => ({
 
 vi.mock("../../utils/version-files.js", () => ({
 	VersionFiles: {
-		readConfig: vi.fn(),
+		extractVersionFiles: vi.fn(),
 		processVersionFiles: vi.fn(),
 	},
 }));
@@ -127,14 +127,14 @@ describe("runVersion Effect handler", () => {
 		);
 	});
 
-	it("skips version files when readConfig returns undefined", async () => {
+	it("skips version files when extractVersionFiles returns undefined", async () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
-		vi.mocked(VersionFiles.readConfig).mockReturnValue(undefined);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(undefined);
 
 		await Effect.runPromise(runVersion(true).pipe(Effect.provide(silentLogger)));
 
-		expect(VersionFiles.readConfig).toHaveBeenCalledWith(process.cwd());
+		expect(VersionFiles.extractVersionFiles).toHaveBeenCalledWith(expect.any(Object));
 		expect(VersionFiles.processVersionFiles).not.toHaveBeenCalled();
 	});
 
@@ -142,7 +142,7 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 		const configs = [{ glob: "plugin.json", paths: ["$.version"] }];
-		vi.mocked(VersionFiles.readConfig).mockReturnValue(configs);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(configs);
 		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([
 			{ filePath: "/project/plugin.json", jsonPaths: ["$.version"], version: "2.0.0", previousValues: ["1.0.0"] },
 		]);
@@ -157,7 +157,7 @@ describe("runVersion Effect handler", () => {
 		vi.mocked(Workspace.getChangesetVersionCommand).mockReturnValue("pnpm exec changeset version");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
 		const configs = [{ glob: "plugin.json" }];
-		vi.mocked(VersionFiles.readConfig).mockReturnValue(configs);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(configs);
 		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([]);
 
 		await Effect.runPromise(runVersion(false).pipe(Effect.provide(silentLogger)));
@@ -168,7 +168,7 @@ describe("runVersion Effect handler", () => {
 	it("rejects when processVersionFiles throws an error", async () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
-		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue([{ glob: "plugin.json" }]);
 		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
 			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
 		});
@@ -181,7 +181,7 @@ describe("runVersion Effect handler", () => {
 	it("extracts per-file path into VersionFileError.filePath", async () => {
 		vi.mocked(Workspace.detectPackageManager).mockReturnValue("pnpm");
 		vi.mocked(Workspace.discoverChangelogs).mockReturnValue([]);
-		vi.mocked(VersionFiles.readConfig).mockReturnValue([{ glob: "plugin.json" }]);
+		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue([{ glob: "plugin.json" }]);
 		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
 			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
 		});
