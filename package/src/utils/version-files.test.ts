@@ -2,8 +2,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { globSync } from "tinyglobby";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { WorkspaceInfos } from "workspace-tools";
-import { getWorkspaceInfos } from "workspace-tools";
 
 import { VersionFiles } from "./version-files.js";
 
@@ -15,13 +13,6 @@ vi.mock("node:fs", () => ({
 vi.mock("tinyglobby", () => ({
 	globSync: vi.fn(),
 }));
-
-vi.mock("workspace-tools", () => ({
-	getWorkspaceInfos: vi.fn(),
-}));
-
-const createMockWorkspace = (name: string, path: string): WorkspaceInfos[number] =>
-	({ name, path, packageJson: {} }) as WorkspaceInfos[number];
 
 afterEach(() => {
 	vi.resetAllMocks();
@@ -108,42 +99,58 @@ describe("VersionFiles.extractVersionFiles", () => {
 });
 
 describe("VersionFiles.discoverVersions", () => {
-	it("discovers workspace package versions", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([
-			createMockWorkspace("pkg-a", "/project/packages/a"),
-			createMockWorkspace("pkg-b", "/project/packages/b"),
-		]);
-		vi.mocked(readFileSync).mockImplementation((p) => {
-			const s = String(p);
-			if (s.endsWith("packages/a/package.json")) return JSON.stringify({ version: "1.0.0" });
-			if (s.endsWith("packages/b/package.json")) return JSON.stringify({ version: "2.0.0" });
-			if (s === join(resolve("/project"), "package.json")) return JSON.stringify({ name: "root", version: "0.0.0" });
-			throw new Error("ENOENT");
-		});
+	it("maps workspace packages to versions", () => {
+		const packages = [
+			{ name: "pkg-a", version: "1.0.0", path: "/project/packages/a" },
+			{ name: "pkg-b", version: "2.0.0", path: "/project/packages/b" },
+		];
 
-		const result = VersionFiles.discoverVersions("/project");
-		expect(result).toHaveLength(3);
+		const result = VersionFiles.discoverVersions("/project", packages);
+
+		expect(result).toHaveLength(2);
 		expect(result[0]).toEqual({ name: "pkg-a", path: "/project/packages/a", version: "1.0.0" });
 		expect(result[1]).toEqual({ name: "pkg-b", path: "/project/packages/b", version: "2.0.0" });
 	});
 
-	it("includes root when not a workspace entry", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
-		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ name: "my-project", version: "3.0.0" }));
+	it("includes root when not in packages list", () => {
+		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ name: "root-pkg", version: "3.0.0" }));
 
-		const result = VersionFiles.discoverVersions("/project");
+		const result = VersionFiles.discoverVersions("/project", []);
+
 		expect(result).toHaveLength(1);
-		expect(result[0].version).toBe("3.0.0");
+		expect(result[0]).toEqual({ name: "root-pkg", path: resolve("/project"), version: "3.0.0" });
 	});
 
-	it("handles workspace-tools failure gracefully", () => {
-		vi.mocked(getWorkspaceInfos).mockImplementation(() => {
-			throw new Error("failed");
-		});
-		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ name: "root", version: "1.0.0" }));
+	it("deduplicates root when it appears in packages", () => {
+		const resolvedCwd = resolve("/project");
+		const packages = [{ name: "my-pkg", version: "1.0.0", path: resolvedCwd }];
 
-		const result = VersionFiles.discoverVersions("/project");
+		const result = VersionFiles.discoverVersions("/project", packages);
+
 		expect(result).toHaveLength(1);
+		expect(result[0]?.name).toBe("my-pkg");
+	});
+
+	it("skips packages without a version", () => {
+		const packages = [
+			{ name: "pkg-a", version: "1.0.0", path: "/project/packages/a" },
+			{ name: "pkg-b", version: "", path: "/project/packages/b" },
+		];
+
+		const result = VersionFiles.discoverVersions("/project", packages);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]?.name).toBe("pkg-a");
+	});
+
+	it("uses 'root' as name when root package.json is unreadable", () => {
+		vi.mocked(readFileSync).mockImplementation(() => {
+			throw new Error("ENOENT");
+		});
+
+		const result = VersionFiles.discoverVersions("/project", []);
+
+		expect(result).toHaveLength(0);
 	});
 });
 
@@ -277,7 +284,6 @@ describe("VersionFiles.updateFile", () => {
 
 describe("VersionFiles.processVersionFiles", () => {
 	it("orchestrates full flow: discover, resolve, update", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockImplementation((p) => {
 			const s = String(p);
 			if (s.endsWith("package.json")) return JSON.stringify({ name: "my-project", version: "1.5.0" });
@@ -295,7 +301,6 @@ describe("VersionFiles.processVersionFiles", () => {
 	});
 
 	it("uses dry-run mode without writing files", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockImplementation((p) => {
 			const s = String(p);
 			if (s.endsWith("package.json")) return JSON.stringify({ name: "my-project", version: "1.5.0" });
@@ -313,7 +318,6 @@ describe("VersionFiles.processVersionFiles", () => {
 	});
 
 	it("defaults paths to $.version when not specified", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockImplementation((p) => {
 			const s = String(p);
 			if (s.endsWith("package.json")) return JSON.stringify({ name: "root", version: "2.0.0" });
@@ -330,7 +334,6 @@ describe("VersionFiles.processVersionFiles", () => {
 	});
 
 	it("skips files with no matching paths in dry-run mode", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockImplementation((p) => {
 			const s = String(p);
 			if (s.endsWith("package.json")) return JSON.stringify({ name: "root", version: "2.0.0" });
@@ -346,7 +349,6 @@ describe("VersionFiles.processVersionFiles", () => {
 	});
 
 	it("wraps per-file errors with file path context", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockImplementation((p) => {
 			const s = String(p);
 			if (s.endsWith("package.json")) return JSON.stringify({ name: "root", version: "1.0.0" });
@@ -361,11 +363,9 @@ describe("VersionFiles.processVersionFiles", () => {
 	});
 
 	it("uses explicit package name to source version instead of path matching", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([createMockWorkspace("@savvy-web/changesets", "/project/package")]);
+		const packages = [{ name: "@savvy-web/changesets", version: "1.2.0", path: "/project/package" }];
 		vi.mocked(readFileSync).mockImplementation((p) => {
 			const s = String(p);
-			if (s.endsWith("package/package.json")) return JSON.stringify({ version: "1.2.0" });
-			if (s === join(resolve("/project"), "package.json")) return JSON.stringify({ name: "root", version: "0.0.0" });
 			if (s.endsWith("plugin.json")) return '{\n\t"version": "0.0.0"\n}\n';
 			throw new Error("ENOENT");
 		});
@@ -374,14 +374,13 @@ describe("VersionFiles.processVersionFiles", () => {
 		const configs = [
 			{ glob: "plugin/.claude-plugin/plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" },
 		];
-		const result = VersionFiles.processVersionFiles("/project", configs);
+		const result = VersionFiles.processVersionFiles("/project", configs, false, packages);
 
 		expect(result).toHaveLength(1);
 		expect(result[0].version).toBe("1.2.0");
 	});
 
 	it("returns empty array when no globs match", () => {
-		vi.mocked(getWorkspaceInfos).mockReturnValue([]);
 		vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ name: "root", version: "1.0.0" }));
 		vi.mocked(globSync).mockReturnValue([]);
 

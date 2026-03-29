@@ -8,7 +8,7 @@
  * step.
  *
  * The flow is:
- * 1. Read and validate `versionFiles` from `.changeset/config.json`
+ * 1. Extract and validate `versionFiles` from a pre-parsed config
  * 2. Resolve glob patterns to absolute file paths
  * 3. Discover workspace packages to determine the correct version per file
  *    (using longest-prefix matching)
@@ -23,9 +23,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { Schema } from "effect";
 import { globSync } from "tinyglobby";
-import type { WorkspaceInfos } from "workspace-tools";
-import { getWorkspaceInfos } from "workspace-tools";
-
 import type { VersionFileConfig } from "../schemas/version-files.js";
 import { VersionFilesSchema } from "../schemas/version-files.js";
 import { jsonPathGet, jsonPathSet } from "./jsonpath.js";
@@ -146,33 +143,27 @@ export class VersionFiles {
 	 * Discover all workspace packages and their current versions.
 	 *
 	 * @remarks
-	 * Uses `workspace-tools` to enumerate workspace packages, reading
-	 * the `version` field from each `package.json`. The root package
-	 * is always included if not already present as a workspace entry.
-	 * Deduplicates by absolute path.
+	 * Accepts a pre-resolved list of workspace packages (e.g., from
+	 * `WorkspaceDiscovery.listPackages()`). The root package is always
+	 * included if not already present in the packages list.
+	 * Deduplicates by absolute path and skips entries without a version.
 	 *
 	 * @param cwd - Project root directory
+	 * @param packages - Pre-resolved workspace packages
 	 * @returns Array of workspace packages with versions
 	 */
-	static discoverVersions(cwd: string): WorkspaceVersion[] {
+	static discoverVersions(
+		cwd: string,
+		packages: ReadonlyArray<{ name: string; version: string; path: string }>,
+	): WorkspaceVersion[] {
 		const resolvedCwd = resolve(cwd);
 		const results: WorkspaceVersion[] = [];
 		const seen = new Set<string>();
 
-		// Discover workspace packages
-		try {
-			const workspaces: WorkspaceInfos = getWorkspaceInfos(resolvedCwd) ?? [];
-			for (const ws of workspaces) {
-				if (seen.has(ws.path)) continue;
-				seen.add(ws.path);
-
-				const version = readPackageVersion(ws.path);
-				if (version) {
-					results.push({ name: ws.name, path: ws.path, version });
-				}
-			}
-		} catch {
-			// workspace-tools failed — fall through to root check
+		for (const pkg of packages) {
+			if (seen.has(pkg.path) || !pkg.version) continue;
+			seen.add(pkg.path);
+			results.push({ name: pkg.name, path: pkg.path, version: pkg.version });
 		}
 
 		// Always include root if not already present
@@ -335,8 +326,13 @@ export class VersionFiles {
 	 * @returns Array of update results
 	 * @throws If any file cannot be read or parsed
 	 */
-	static processVersionFiles(cwd: string, configs: readonly VersionFileConfig[], dryRun = false): VersionFileUpdate[] {
-		const workspaces = VersionFiles.discoverVersions(cwd);
+	static processVersionFiles(
+		cwd: string,
+		configs: readonly VersionFileConfig[],
+		dryRun = false,
+		packages: ReadonlyArray<{ name: string; version: string; path: string }> = [],
+	): VersionFileUpdate[] {
+		const workspaces = VersionFiles.discoverVersions(cwd, packages);
 		const rootVersion = workspaces.find((ws) => ws.path === resolve(cwd))?.version ?? "0.0.0";
 		const resolved = VersionFiles.resolveGlobs(configs, cwd);
 		const updates: VersionFileUpdate[] = [];
