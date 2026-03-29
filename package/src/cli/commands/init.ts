@@ -142,7 +142,7 @@ export function detectGitHubRepo(cwd: string): string | null {
 }
 
 /**
- * Formatting options for `jsonc-parser` modify operations.
+ * Formatting options for `jsonc-effect` modify operations.
  *
  * Uses tabs (not spaces) per the Biome / Silk Suite convention.
  *
@@ -257,7 +257,7 @@ export function handleConfig(changesetDir: string, repoSlug: string, force: bool
  * Register custom rules in the base markdownlint config.
  *
  * Locates the project's markdownlint-cli2 config file via
- * {@link findMarkdownlintConfig}, then uses `jsonc-parser` to:
+ * {@link findMarkdownlintConfig}, then uses `jsonc-effect` to:
  * 1. Append `\@savvy-web/changesets/markdownlint` to the `customRules` array.
  * 2. Add each CSH rule name to the `config` object (set to `false` so they
  *    are recognized but disabled at the project root -- they are enabled in
