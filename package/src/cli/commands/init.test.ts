@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { parse as parseJsonc } from "jsonc-parser";
+import { parse as parseJsonc } from "jsonc-effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CheckIssue } from "./init.js";
 import {
@@ -329,7 +329,7 @@ describe("handleBaseMarkdownlint", () => {
 
 		const calls = vi.mocked(writeFileSync).mock.calls;
 		expect(getWrittenPath(calls, 0)).toBe(baseConfigPath);
-		const parsed = parseJsonc(getWritten(calls, 0));
+		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		expect(parsed.customRules).toContain("some-other-plugin");
 		expect(parsed.customRules).toContain("@savvy-web/changesets/markdownlint");
 		expect(parsed.config["changeset-heading-hierarchy"]).toBe(false);
@@ -352,7 +352,7 @@ describe("handleBaseMarkdownlint", () => {
 		await Effect.runPromise(handleBaseMarkdownlint(root));
 
 		const calls = vi.mocked(writeFileSync).mock.calls;
-		const parsed = parseJsonc(getWritten(calls, 0));
+		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		expect(Array.isArray(parsed.customRules)).toBe(true);
 		expect(parsed.customRules).toContain("@savvy-web/changesets/markdownlint");
 	});
@@ -369,12 +369,12 @@ describe("handleBaseMarkdownlint", () => {
 		await Effect.runPromise(handleBaseMarkdownlint(root));
 
 		const calls = vi.mocked(writeFileSync).mock.calls;
-		const parsed = parseJsonc(getWritten(calls, 0));
+		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		expect(typeof parsed.config).toBe("object");
-		expect(parsed.config["changeset-heading-hierarchy"]).toBe(false);
-		expect(parsed.config["changeset-required-sections"]).toBe(false);
-		expect(parsed.config["changeset-content-structure"]).toBe(false);
-		expect(parsed.config["changeset-uncategorized-content"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-heading-hierarchy"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-required-sections"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-content-structure"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-uncategorized-content"]).toBe(false);
 	});
 
 	it("creates config object when config is null", async () => {
@@ -390,10 +390,10 @@ describe("handleBaseMarkdownlint", () => {
 		await Effect.runPromise(handleBaseMarkdownlint(root));
 
 		const calls = vi.mocked(writeFileSync).mock.calls;
-		const parsed = parseJsonc(getWritten(calls, 0));
+		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		expect(typeof parsed.config).toBe("object");
 		expect(parsed.config).not.toBeNull();
-		expect(parsed.config["changeset-heading-hierarchy"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-heading-hierarchy"]).toBe(false);
 	});
 
 	it("does not duplicate customRules entry when already present", async () => {
@@ -414,7 +414,7 @@ describe("handleBaseMarkdownlint", () => {
 		await Effect.runPromise(handleBaseMarkdownlint(root));
 
 		const calls = vi.mocked(writeFileSync).mock.calls;
-		const parsed = parseJsonc(getWritten(calls, 0));
+		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		const count = (parsed.customRules as string[]).filter(
 			(r: string) => r === "@savvy-web/changesets/markdownlint",
 		).length;
@@ -436,13 +436,13 @@ describe("handleBaseMarkdownlint", () => {
 		await Effect.runPromise(handleBaseMarkdownlint(root));
 
 		const calls = vi.mocked(writeFileSync).mock.calls;
-		const parsed = parseJsonc(getWritten(calls, 0));
+		const parsed = Effect.runSync(parseJsonc(getWritten(calls, 0))) as Record<string, unknown>;
 		// Should not overwrite the existing true value
-		expect(parsed.config["changeset-heading-hierarchy"]).toBe(true);
+		expect((parsed.config as Record<string, unknown>)["changeset-heading-hierarchy"]).toBe(true);
 		// Should add missing rules
-		expect(parsed.config["changeset-required-sections"]).toBe(false);
-		expect(parsed.config["changeset-content-structure"]).toBe(false);
-		expect(parsed.config["changeset-uncategorized-content"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-required-sections"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-content-structure"]).toBe(false);
+		expect((parsed.config as Record<string, unknown>)["changeset-uncategorized-content"]).toBe(false);
 	});
 
 	it("preserves JSONC comments in base config", async () => {
@@ -465,9 +465,9 @@ describe("handleBaseMarkdownlint", () => {
 		expect(written).toContain("// Custom rules");
 		expect(written).toContain("/* Config block */");
 		// Values are still correct
-		const parsed = parseJsonc(written);
+		const parsed = Effect.runSync(parseJsonc(written)) as Record<string, unknown>;
 		expect(parsed.customRules).toContain("@savvy-web/changesets/markdownlint");
-		expect(parsed.config.default).toBe(true);
+		expect((parsed.config as Record<string, unknown>).default).toBe(true);
 	});
 
 	it("returns InitError when readFileSync throws", async () => {

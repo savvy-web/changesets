@@ -37,8 +37,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Data, Effect } from "effect";
-import type { FormattingOptions } from "jsonc-parser";
-import { applyEdits, modify, parse as parseJsonc } from "jsonc-parser";
+import type { JsoncFormattingOptions } from "jsonc-effect";
+import { applyEdits, modify, parse as parseJsonc } from "jsonc-effect";
 import { findProjectRoot } from "workspace-tools";
 
 const CUSTOM_RULES_ENTRY = "@savvy-web/changesets/markdownlint";
@@ -148,7 +148,7 @@ export function detectGitHubRepo(cwd: string): string | null {
  *
  * @internal
  */
-const JSONC_FORMAT: FormattingOptions = {
+const JSONC_FORMAT: Partial<JsoncFormattingOptions> = {
 	tabSize: 1,
 	insertSpaces: false,
 };
@@ -269,53 +269,87 @@ export function handleConfig(changesetDir: string, repoSlug: string, force: bool
  * @internal
  */
 export function handleBaseMarkdownlint(root: string): Effect.Effect<string, InitError> {
-	return Effect.try({
-		try: () => {
-			const foundPath = findMarkdownlintConfig(root);
-			if (!foundPath) {
-				return `Warning: no markdownlint config found (checked ${MARKDOWNLINT_CONFIG_PATHS.join(", ")})`;
-			}
+	const foundPath = findMarkdownlintConfig(root);
+	if (!foundPath) {
+		return Effect.succeed(`Warning: no markdownlint config found (checked ${MARKDOWNLINT_CONFIG_PATHS.join(", ")})`);
+	}
 
-			const fullPath = join(root, foundPath);
-			let text = readFileSync(fullPath, "utf-8");
-			const parsed = parseJsonc(text);
+	return Effect.gen(function* () {
+		const fullPath = join(root, foundPath);
+		let text: string;
+		try {
+			text = readFileSync(fullPath, "utf-8");
+		} catch (error) {
+			return yield* Effect.fail(
+				new InitError({
+					step: "markdownlint config",
+					reason: error instanceof Error ? error.message : String(error),
+				}),
+			);
+		}
 
-			// Add customRules entry if missing
-			if (!Array.isArray(parsed.customRules) || !parsed.customRules.includes(CUSTOM_RULES_ENTRY)) {
-				const edits = modify(text, ["customRules", -1], CUSTOM_RULES_ENTRY, {
+		let parsed = (yield* parseJsonc(text)) as Record<string, unknown>;
+
+		// Add customRules entry if missing
+		if (!Array.isArray(parsed.customRules) || !(parsed.customRules as string[]).includes(CUSTOM_RULES_ENTRY)) {
+			if (!Array.isArray(parsed.customRules)) {
+				// customRules key doesn't exist yet — set the whole array
+				const edits = yield* modify(text, ["customRules"], [CUSTOM_RULES_ENTRY], {
 					formattingOptions: JSONC_FORMAT,
-					isArrayInsertion: true,
 				});
-				text = applyEdits(text, edits);
+				text = yield* applyEdits(text, edits);
+			} else {
+				// customRules exists but doesn't contain our entry — append by index
+				const currentArray = parsed.customRules as unknown[];
+				const edits = yield* modify(text, ["customRules", currentArray.length], CUSTOM_RULES_ENTRY, {
+					formattingOptions: JSONC_FORMAT,
+				});
+				text = yield* applyEdits(text, edits);
 			}
+		}
 
-			// Ensure config is an object (replace null/missing with {})
-			const currentConfig = parseJsonc(text).config;
-			if (typeof currentConfig !== "object" || currentConfig === null) {
-				const edits = modify(text, ["config"], {}, { formattingOptions: JSONC_FORMAT });
-				text = applyEdits(text, edits);
+		// Ensure config is an object (replace null/missing with {})
+		parsed = (yield* parseJsonc(text)) as Record<string, unknown>;
+		const currentConfig = parsed.config;
+		if (typeof currentConfig !== "object" || currentConfig === null) {
+			const edits = yield* modify(text, ["config"], {}, { formattingOptions: JSONC_FORMAT });
+			text = yield* applyEdits(text, edits);
+		}
+
+		// Add missing rule entries
+		parsed = (yield* parseJsonc(text)) as Record<string, unknown>;
+		const config = parsed.config as Record<string, unknown>;
+		for (const rule of RULE_NAMES) {
+			if (!(rule in config)) {
+				const edits = yield* modify(text, ["config", rule], false, {
+					formattingOptions: JSONC_FORMAT,
+				});
+				text = yield* applyEdits(text, edits);
 			}
+		}
 
-			// Add missing rule entries — snapshot is safe since RULE_NAMES has unique values
-			const config = parseJsonc(text).config;
-			for (const rule of RULE_NAMES) {
-				if (!(rule in config)) {
-					const edits = modify(text, ["config", rule], false, {
-						formattingOptions: JSONC_FORMAT,
-					});
-					text = applyEdits(text, edits);
-				}
-			}
-
+		try {
 			writeFileSync(fullPath, text);
-			return `Updated ${foundPath}`;
-		},
-		catch: (error) =>
-			new InitError({
-				step: "markdownlint config",
-				reason: error instanceof Error ? error.message : String(error),
-			}),
-	});
+		} catch (error) {
+			return yield* Effect.fail(
+				new InitError({
+					step: "markdownlint config",
+					reason: error instanceof Error ? error.message : String(error),
+				}),
+			);
+		}
+		return `Updated ${foundPath}`;
+	}).pipe(
+		Effect.catchAll((error) => {
+			if (error instanceof InitError) return Effect.fail(error);
+			return Effect.fail(
+				new InitError({
+					step: "markdownlint config",
+					reason: error instanceof Error ? error.message : String(error),
+				}),
+			);
+		}),
+	);
 }
 
 /**
@@ -464,17 +498,17 @@ export function checkBaseMarkdownlint(root: string): CheckIssue[] {
 
 	try {
 		const raw = readFileSync(join(root, foundPath), "utf-8");
-		const parsed = parseJsonc(raw);
+		const parsed = Effect.runSync(parseJsonc(raw)) as Record<string, unknown>;
 		const issues: CheckIssue[] = [];
 
-		if (!Array.isArray(parsed.customRules) || !parsed.customRules.includes(CUSTOM_RULES_ENTRY)) {
+		if (!Array.isArray(parsed.customRules) || !(parsed.customRules as string[]).includes(CUSTOM_RULES_ENTRY)) {
 			issues.push({
 				file: foundPath,
 				message: `customRules does not include ${CUSTOM_RULES_ENTRY}`,
 			});
 		}
 
-		const config = parsed.config;
+		const config = parsed.config as Record<string, unknown> | null;
 		if (typeof config !== "object" || config === null) {
 			issues.push({
 				file: foundPath,
