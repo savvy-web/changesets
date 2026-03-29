@@ -8,10 +8,10 @@
  * @remarks
  * The command performs five steps:
  * 1. Detect the package manager (`pnpm`, `npm`, `yarn`, `bun`) via
- *    {@link Workspace.detectPackageManager}.
+ *    `PackageManagerDetector` from `workspaces-effect`.
  * 2. Run `changeset version` (skipped with `--dry-run`).
  * 3. Discover all CHANGELOG.md files across workspace packages via
- *    {@link Workspace.discoverChangelogs}.
+ *    `WorkspaceDiscovery` from `workspaces-effect`.
  * 4. Transform each discovered changelog with
  *    {@link ChangelogTransformer.transformFile}.
  * 5. Process version file configs (if present) via
@@ -27,14 +27,34 @@
  */
 
 import { execSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { ChangesetConfigReader, ChangesetConfigReaderLive } from "@savvy-web/silk-effects";
 import { Effect } from "effect";
+import { PackageManagerDetector, WorkspaceDiscovery } from "workspaces-effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";
 import { VersionFileError } from "../../errors.js";
 import { VersionFiles } from "../../utils/version-files.js";
-import { Workspace } from "../../utils/workspace.js";
+
+/**
+ * Map package manager to the correct `changeset version` shell command.
+ *
+ * @internal
+ */
+function getChangesetVersionCommand(pm: "npm" | "pnpm" | "yarn" | "bun"): string {
+	switch (pm) {
+		case "pnpm":
+			return "pnpm exec changeset version";
+		case "yarn":
+			return "yarn exec changeset version";
+		case "bun":
+			return "bun x changeset version";
+		default:
+			return "npx changeset version";
+	}
+}
 
 /* v8 ignore start -- CLI option definitions; handler tested via runVersion */
 const dryRunOption = Options.boolean("dry-run").pipe(
@@ -61,12 +81,16 @@ export function runVersion(dryRun: boolean) {
 		const cwd = process.cwd();
 
 		// 1. Detect package manager
-		const pm = Workspace.detectPackageManager(cwd);
+		const detector = yield* PackageManagerDetector;
+		const detected = yield* detector
+			.detect(cwd)
+			.pipe(Effect.catchAll(() => Effect.succeed({ type: "npm" as const, version: undefined })));
+		const pm = detected.type;
 		yield* Effect.log(`Detected package manager: ${pm}`);
 
 		// 2. Run changeset version (unless --dry-run)
 		if (!dryRun) {
-			const cmd = Workspace.getChangesetVersionCommand(pm);
+			const cmd = getChangesetVersionCommand(pm);
 			yield* Effect.log(`Running: ${cmd}`);
 			yield* Effect.try({
 				try: () => execSync(cmd, { cwd, stdio: "inherit" }),
@@ -77,8 +101,42 @@ export function runVersion(dryRun: boolean) {
 			yield* Effect.log("Dry run: skipping changeset version");
 		}
 
-		// 3. Discover all CHANGELOG.md files
-		const changelogs = Workspace.discoverChangelogs(cwd);
+		// 3. Discover workspace packages and CHANGELOG.md files
+		const discovery = yield* WorkspaceDiscovery;
+		const packages = yield* discovery
+			.listPackages()
+			.pipe(
+				Effect.catchAll(() => Effect.succeed([] as ReadonlyArray<{ name: string; version: string; path: string }>)),
+			);
+
+		const changelogs: Array<{ name: string; path: string; changelogPath: string }> = [];
+		const seen = new Set<string>();
+		const resolvedCwd = resolve(cwd);
+
+		for (const pkg of packages) {
+			const changelogPath = join(pkg.path, "CHANGELOG.md");
+			if (existsSync(changelogPath) && !seen.has(pkg.path)) {
+				seen.add(pkg.path);
+				changelogs.push({ name: pkg.name, path: pkg.path, changelogPath });
+			}
+		}
+
+		// Always check root (dedup if already found as workspace entry)
+		if (!seen.has(resolvedCwd)) {
+			const rootChangelog = join(resolvedCwd, "CHANGELOG.md");
+			if (existsSync(rootChangelog)) {
+				let rootName = "root";
+				try {
+					const pkg = JSON.parse(readFileSync(join(resolvedCwd, "package.json"), "utf-8")) as {
+						name?: string;
+					};
+					if (pkg.name) rootName = pkg.name;
+				} catch {
+					// Use default name
+				}
+				changelogs.push({ name: rootName, path: resolvedCwd, changelogPath: rootChangelog });
+			}
+		}
 
 		if (changelogs.length === 0) {
 			yield* Effect.log("No CHANGELOG.md files found.");
@@ -106,8 +164,13 @@ export function runVersion(dryRun: boolean) {
 		);
 		if (configResult) {
 			yield* Effect.log(`Found ${configResult.length} versionFiles config(s)`);
+			const workspaceVersions = packages.map((pkg) => ({
+				name: pkg.name,
+				version: pkg.version,
+				path: pkg.path,
+			}));
 			const updates = yield* Effect.try({
-				try: () => VersionFiles.processVersionFiles(cwd, configResult, dryRun),
+				try: () => VersionFiles.processVersionFiles(cwd, configResult, dryRun, workspaceVersions),
 				catch: (error) => {
 					const message = error instanceof Error ? error.message : String(error);
 					return new VersionFileError({
