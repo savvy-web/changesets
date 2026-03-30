@@ -249,6 +249,39 @@ describe("handleConfig", () => {
 		expect(config.baseBranch).toBe("develop");
 	});
 
+	it("preserves versionFiles when patching existing config", async () => {
+		const existing = {
+			$schema: "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+			changelog: [
+				"@savvy-web/changesets/changelog",
+				{
+					repo: "savvy-web/old-repo",
+					versionFiles: [{ glob: "plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" }],
+				},
+			],
+			commit: false,
+			access: "restricted",
+			baseBranch: "main",
+		};
+
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(JSON.stringify(existing));
+		vi.mocked(writeFileSync).mockReturnValue(undefined);
+
+		const result = await Effect.runPromise(handleConfig(changesetDir, "savvy-web/changesets", false));
+
+		expect(result).toBe("Patched changelog in .changeset/config.json");
+
+		const calls = vi.mocked(writeFileSync).mock.calls;
+		const config = JSON.parse(getWritten(calls, 0));
+		// repo updated
+		expect(config.changelog[1].repo).toBe("savvy-web/changesets");
+		// versionFiles preserved
+		expect(config.changelog[1].versionFiles).toEqual([
+			{ glob: "plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" },
+		]);
+	});
+
 	it("overwrites config.json with defaults when --force is true", async () => {
 		const existing = {
 			changelog: "@changesets/cli/changelog",
@@ -738,6 +771,50 @@ describe("checkConfig", () => {
 		const issues = checkConfig(changesetDir, "owner/repo");
 		expect(issues).toHaveLength(1);
 		expect(issues[0].message).toContain("could not parse");
+	});
+
+	it("returns no issues when versionFiles is valid", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: [
+					"@savvy-web/changesets/changelog",
+					{
+						repo: "owner/repo",
+						versionFiles: [{ glob: "plugin.json", paths: ["$.version"] }],
+					},
+				],
+			}),
+		);
+		expect(checkConfig(changesetDir, "owner/repo")).toEqual([]);
+	});
+
+	it("returns issue when versionFiles is invalid", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: [
+					"@savvy-web/changesets/changelog",
+					{
+						repo: "owner/repo",
+						versionFiles: [{ glob: "", paths: ["bad-path"] }],
+					},
+				],
+			}),
+		);
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("versionFiles config is invalid");
+	});
+
+	it("skips versionFiles validation when not present", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: ["@savvy-web/changesets/changelog", { repo: "owner/repo" }],
+			}),
+		);
+		expect(checkConfig(changesetDir, "owner/repo")).toEqual([]);
 	});
 });
 
