@@ -41,7 +41,7 @@
 		"@effect/cli": "catalog:silk",
 		"@effect/platform": "catalog:silk",
 		"@effect/platform-node": "catalog:silk",
-		"@savvy-web/silk-effects": "^0.1.0",
+		"@savvy-web/silk-effects": "^0.2.1",
 		"effect": "catalog:silk",
 		"jsonc-effect": "^0.2.1",
 		"mdast-util-heading-range": "^4.0.0",
@@ -53,7 +53,7 @@
 		"unified": "^11.0.5",
 		"unified-lint-rule": "^3.0.1",
 		"unist-util-visit": "^5.1.0",
-		"workspace-tools": "0.41.0"
+		"workspaces-effect": "^0.3.0"
 	},
 	"devDependencies": {
 		"@changesets/types": "^6.1.0",

@@ -36,10 +36,11 @@ import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Command, Options } from "@effect/cli";
-import { Data, Effect } from "effect";
+import { Data, Effect, Schema } from "effect";
 import type { JsoncFormattingOptions } from "jsonc-effect";
 import { applyEdits, modify, parse as parseJsonc } from "jsonc-effect";
-import { findProjectRoot } from "workspace-tools";
+import { WorkspaceRoot } from "workspaces-effect";
+import { VersionFilesSchema } from "../../schemas/version-files.js";
 
 const CUSTOM_RULES_ENTRY = "@savvy-web/changesets/markdownlint";
 const CHANGELOG_ENTRY = "@savvy-web/changesets/changelog";
@@ -154,18 +155,21 @@ const JSONC_FORMAT: Partial<JsoncFormattingOptions> = {
 };
 
 /**
- * Resolve the monorepo workspace root from `cwd`.
+ * Resolve the monorepo workspace root from `cwd` using `WorkspaceRoot` service.
  *
- * Uses `workspace-tools`' `findProjectRoot` and falls back to `cwd` itself
- * when no workspace root can be determined.
+ * Falls back to `cwd` itself when the service is unavailable or no workspace
+ * root can be determined.
  *
  * @param cwd - The current working directory to search from
- * @returns The resolved workspace root path
+ * @returns An Effect yielding the resolved workspace root path
  *
  * @internal
  */
-export function resolveWorkspaceRoot(cwd: string): string {
-	return findProjectRoot(cwd) ?? cwd;
+export function resolveWorkspaceRoot(cwd: string): Effect.Effect<string, never, WorkspaceRoot> {
+	return WorkspaceRoot.pipe(
+		Effect.flatMap((wr) => wr.find(cwd)),
+		Effect.catchAll(() => Effect.succeed(cwd)),
+	);
 }
 
 /**
@@ -241,7 +245,11 @@ export function handleConfig(changesetDir: string, repoSlug: string, force: bool
 				return force ? "Overwrote .changeset/config.json" : "Created .changeset/config.json";
 			}
 			const existing = JSON.parse(readFileSync(configPath, "utf-8"));
-			existing.changelog = [CHANGELOG_ENTRY, { repo: repoSlug }];
+			const currentOptions =
+				Array.isArray(existing.changelog) && typeof existing.changelog[1] === "object" && existing.changelog[1] !== null
+					? (existing.changelog[1] as Record<string, unknown>)
+					: {};
+			existing.changelog = [CHANGELOG_ENTRY, { ...currentOptions, repo: repoSlug }];
 			writeFileSync(configPath, `${JSON.stringify(existing, null, "\t")}\n`);
 			return "Patched changelog in .changeset/config.json";
 		},
@@ -475,6 +483,18 @@ export function checkConfig(changesetDir: string, repoSlug: string): CheckIssue[
 			});
 		}
 
+		// Validate versionFiles if present
+		const options = Array.isArray(changelog) ? changelog[1] : undefined;
+		if (options && typeof options === "object" && "versionFiles" in options) {
+			const result = Schema.decodeUnknownEither(VersionFilesSchema)(options.versionFiles);
+			if (result._tag === "Left") {
+				issues.push({
+					file: ".changeset/config.json",
+					message: "versionFiles config is invalid",
+				});
+			}
+		}
+
 		return issues;
 	} catch {
 		return [{ file: ".changeset/config.json", message: "could not parse file" }];
@@ -568,7 +588,7 @@ export const initCommand = Command.make(
 	{ force: forceOption, quiet: quietOption, skipMarkdownlint: skipMarkdownlintOption, check: checkOption },
 	({ force, quiet, skipMarkdownlint, check }) =>
 		Effect.gen(function* () {
-			const root = resolveWorkspaceRoot(process.cwd());
+			const root = yield* resolveWorkspaceRoot(process.cwd());
 
 			// 1. Detect GitHub repo
 			const repo = detectGitHubRepo(root);

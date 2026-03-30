@@ -31,7 +31,8 @@
 
 import { Command } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
+import { PackageManagerDetectorLive, WorkspaceDiscoveryLive, WorkspaceRootLive } from "workspaces-effect";
 
 import { checkCommand } from "./commands/check.js";
 import { initCommand } from "./commands/init.js";
@@ -66,7 +67,18 @@ const cli = Command.run(rootCommand, {
  * @internal
  */
 export function runCli(): void {
-	const main = Effect.suspend(() => cli(process.argv)).pipe(Effect.provide(NodeContext.layer));
+	const main = Effect.suspend(() => cli(process.argv)).pipe(
+		Effect.provide(
+			Layer.provideMerge(
+				Layer.mergeAll(
+					WorkspaceRootLive,
+					PackageManagerDetectorLive,
+					WorkspaceDiscoveryLive.pipe(Layer.provide(WorkspaceRootLive)),
+				),
+				NodeContext.layer,
+			),
+		),
+	);
 	NodeRuntime.runMain(main);
 }
 /* v8 ignore stop */

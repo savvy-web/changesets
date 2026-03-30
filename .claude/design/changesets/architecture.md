@@ -117,7 +117,7 @@ tests passing across 55 test files.
   contributor-footnotes, issue-link-refs,
   normalize-format
 - Effect CLI using `@effect/cli` with
-  `NodeContext.layer`
+  `NodeContext.layer` and `WorkspacesLive` from `workspaces-effect`
 - Class-based API wrappers: `ChangesetLinter`,
   `ChangelogTransformer`, `Changelog`, `Categories`,
   `DependencyTable`
@@ -217,7 +217,7 @@ src/
 │       ├── lint.ts             # Validate changeset files
 │       ├── transform.ts        # Post-process CHANGELOG.md
 │       ├── check.ts            # Full validation pipeline
-│       └── version.ts          # Orchestrate version + transform all CHANGELOGs (uses ChangesetConfigReader from @savvy-web/silk-effects)
+│       └── version.ts          # Orchestrate version + transform all CHANGELOGs (uses workspaces-effect + ChangesetConfigReader from @savvy-web/silk-effects)
 │
 ├── vendor/                     # Vendored upstream code (see Decision 7)
 │   ├── types.ts                # From @changesets/types, redefined as Effect Schemas
@@ -232,7 +232,6 @@ src/
     ├── section-parser.ts       # Parse sections from changeset content
     ├── commit-parser.ts        # Conventional commit type(scope): desc parsing
     ├── issue-refs.ts           # closes/fixes/refs/resolves pattern extraction
-    ├── workspace.ts            # Package manager detection + changelog discovery
     ├── jsonpath.ts             # Minimal JSONPath get/set (property, wildcard, index)
     ├── version-files.ts        # VersionFiles static utility class (extractVersionFiles + processing)
     ├── version-blocks.ts       # Version block / section extraction from CHANGELOG AST
@@ -947,7 +946,7 @@ API requires.
 │   │       ├── lint.ts             # Validate changeset files
 │   │       ├── transform.ts        # Post-process CHANGELOG.md
 │   │       ├── check.ts            # Full validation pipeline
-│   │       └── version.ts          # Orchestrate version + transform (uses ChangesetConfigReader)
+│   │       └── version.ts          # Orchestrate version + transform (uses workspaces-effect + ChangesetConfigReader)
 │   ├── vendor/                     # Vendored upstream code
 │   │   ├── types.ts                # From @changesets/types
 │   │   └── github-info.ts          # From @changesets/get-github-info
@@ -961,7 +960,6 @@ API requires.
 │       ├── version-files.ts        # VersionFiles utility
 │       ├── version-blocks.ts       # CHANGELOG version block extraction
 │       ├── dependency-table.ts     # Dependency table parse/serialize/collapse/sort
-│       ├── workspace.ts            # Package manager detection
 │       ├── strip-frontmatter.ts    # YAML frontmatter stripping
 │       └── markdown-link.ts        # Markdown link extraction
 ├── lib/configs/
@@ -1095,7 +1093,7 @@ API requires.
 │  │  @changesets/types                           Changesets API types  │  │
 │  │  @changesets/get-github-info                 GitHub API client     │  │
 │  │  effect + @effect/cli + @effect/platform     CLI + validation     │  │
-│  │  workspace-tools                              Workspace discovery  │  │
+│  │  workspaces-effect                             Workspace discovery  │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1974,7 +1972,7 @@ A custom minimal JSONPath implementation (`src/utils/jsonpath.ts`, ~80 lines) pr
 
 In a monorepo, different files may need different versions depending on which workspace they belong to. The `VersionFiles` utility uses **longest-prefix workspace matching** to determine the correct version for each file:
 
-1. Discover all workspace packages and their current versions (from `package.json` files, using `workspace-tools`)
+1. Discover all workspace packages and their current versions (from pre-resolved packages provided by `WorkspaceDiscovery` from `workspaces-effect`)
 2. For each matched file, compute the relative path from every workspace root
 3. The workspace whose path is the longest prefix of the file path wins
 4. If no workspace matches, fall back to the root `package.json` version
@@ -1989,16 +1987,16 @@ The version file update runs as **step 5** in the `version` CLI command, after c
 
 ```text
 savvy-changesets version
-  1. Detect package manager
+  1. Detect package manager (via PackageManagerDetector from workspaces-effect)
   2. Run changeset version (Layer 2 generates CHANGELOGs)
-  3. Discover all CHANGELOG.md files
+  3. Discover all CHANGELOG.md files (via WorkspaceDiscovery from workspaces-effect)
   4. Transform each CHANGELOG (Layer 3 post-processing)
   5. Update version files (if configured)
      a. Read .changeset/config.json via ChangesetConfigReader service
         (from @savvy-web/silk-effects/versioning), then extract
         versionFiles with VersionFiles.extractVersionFiles()
      b. Resolve glob patterns to file paths (excludes node_modules)
-     c. Discover workspace versions via workspace-tools
+     c. Use pre-resolved workspace packages from WorkspaceDiscovery (workspaces-effect)
      d. For each matched file:
         - Determine version: use explicit package name if configured, otherwise longest-prefix workspace matching
         - Read file, detect indent style and trailing newline
@@ -2040,12 +2038,12 @@ The `VersionFiles` class (`src/utils/version-files.ts`) follows the established 
 | Method | Description |
 | :--- | :--- |
 | `extractVersionFiles(config)` | Extract and validate `versionFiles` from a pre-parsed changeset config object (pure function; file reading is delegated to `ChangesetConfigReader`) |
-| `discoverVersions(cwd)` | Discover all workspace packages and their current versions |
+| `discoverVersions(cwd, packages)` | Build workspace version map from pre-resolved packages (no file I/O) |
 | `resolveVersion(filePath, workspaces, rootVersion)` | Determine version for a file via longest-prefix matching |
 | `resolveGlobs(configs, cwd)` | Resolve glob patterns to `[filePath, config]` tuples |
 | `detectIndent(content)` | Detect indentation from file content |
 | `updateFile(filePath, jsonPaths, version)` | Update a single JSON file at specified JSONPath locations |
-| `processVersionFiles(cwd, configs, dryRun?)` | Orchestrate the full update flow |
+| `processVersionFiles(cwd, configs, dryRun?, packages?)` | Orchestrate the full update flow; accepts optional pre-resolved packages |
 
 ### Dry Run Support
 
@@ -2333,7 +2331,7 @@ silently skipping.
 | Function | Purpose |
 | :--- | :--- |
 | `detectGitHubRepo(cwd)` | Detect `owner/repo` from git remote origin URL |
-| `resolveWorkspaceRoot(cwd)` | Resolve workspace root via `workspace-tools` |
+| `resolveWorkspaceRoot(cwd)` | Resolve workspace root via `WorkspaceRoot` service from `workspaces-effect` |
 | `findMarkdownlintConfig(root)` | Find first existing markdownlint config from candidate paths |
 | `ensureChangesetDir(root)` | Create `.changeset/` directory (Effect) |
 | `handleConfig(dir, repo, force)` | Write or patch `.changeset/config.json` (Effect) |
@@ -2485,7 +2483,7 @@ The plugin complements the three-layer processing architecture:
 | `@effect/platform-node` | Node.js platform implementation | CLI | New |
 | `@savvy-web/silk-effects` | Shared Effect services for Silk Suite (provides `ChangesetConfigReader` for JSONC config reading) | CLI (version command) | New |
 | `jsonc-effect` | Effect-wrapped JSONC parse/modify/applyEdits (replaces `jsonc-parser`) | CLI (init command) | New |
-| `workspace-tools` | Package manager detection + workspace discovery | CLI | New |
+| `workspaces-effect` | Effect services for workspace discovery (`WorkspaceDiscovery`, `PackageManagerDetector`, `WorkspaceRoot`); replaces `workspace-tools` | CLI | New |
 
 ### Vendored Code (src/vendor/)
 

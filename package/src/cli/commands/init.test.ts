@@ -1,9 +1,10 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { parse as parseJsonc } from "jsonc-effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { WorkspaceRoot } from "workspaces-effect";
 import type { CheckIssue } from "./init.js";
 import {
 	InitError,
@@ -34,10 +35,6 @@ vi.mock("node:fs", async () => {
 		writeFileSync: vi.fn(),
 	};
 });
-
-vi.mock("workspace-tools", () => ({
-	findProjectRoot: vi.fn(),
-}));
 
 afterEach(() => {
 	vi.resetAllMocks();
@@ -93,16 +90,22 @@ describe("detectGitHubRepo", () => {
 // resolveWorkspaceRoot
 // ---------------------------------------------------------------------------
 describe("resolveWorkspaceRoot", () => {
-	it("returns project root from workspace-tools", async () => {
-		const { findProjectRoot } = await import("workspace-tools");
-		vi.mocked(findProjectRoot).mockReturnValue("/monorepo/root");
-		expect(resolveWorkspaceRoot("/monorepo/root/packages/foo")).toBe("/monorepo/root");
+	it("returns project root from WorkspaceRoot service", async () => {
+		const layer = Layer.succeed(WorkspaceRoot, {
+			find: () => Effect.succeed("/monorepo/root"),
+		});
+		const result = await Effect.runPromise(
+			resolveWorkspaceRoot("/monorepo/root/packages/foo").pipe(Effect.provide(layer)),
+		);
+		expect(result).toBe("/monorepo/root");
 	});
 
-	it("falls back to cwd when findProjectRoot returns null", async () => {
-		const { findProjectRoot } = await import("workspace-tools");
-		vi.mocked(findProjectRoot).mockReturnValue(undefined as unknown as string);
-		expect(resolveWorkspaceRoot("/standalone/project")).toBe("/standalone/project");
+	it("falls back to cwd when WorkspaceRoot fails", async () => {
+		const layer = Layer.succeed(WorkspaceRoot, {
+			find: () => Effect.fail({ _tag: "WorkspaceRootNotFoundError" as const, reason: "not found" } as never),
+		});
+		const result = await Effect.runPromise(resolveWorkspaceRoot("/standalone/project").pipe(Effect.provide(layer)));
+		expect(result).toBe("/standalone/project");
 	});
 });
 
@@ -244,6 +247,39 @@ describe("handleConfig", () => {
 		expect(config.commit).toBe(true);
 		expect(config.access).toBe("public");
 		expect(config.baseBranch).toBe("develop");
+	});
+
+	it("preserves versionFiles when patching existing config", async () => {
+		const existing = {
+			$schema: "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+			changelog: [
+				"@savvy-web/changesets/changelog",
+				{
+					repo: "savvy-web/old-repo",
+					versionFiles: [{ glob: "plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" }],
+				},
+			],
+			commit: false,
+			access: "restricted",
+			baseBranch: "main",
+		};
+
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(JSON.stringify(existing));
+		vi.mocked(writeFileSync).mockReturnValue(undefined);
+
+		const result = await Effect.runPromise(handleConfig(changesetDir, "savvy-web/changesets", false));
+
+		expect(result).toBe("Patched changelog in .changeset/config.json");
+
+		const calls = vi.mocked(writeFileSync).mock.calls;
+		const config = JSON.parse(getWritten(calls, 0));
+		// repo updated
+		expect(config.changelog[1].repo).toBe("savvy-web/changesets");
+		// versionFiles preserved
+		expect(config.changelog[1].versionFiles).toEqual([
+			{ glob: "plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" },
+		]);
 	});
 
 	it("overwrites config.json with defaults when --force is true", async () => {
@@ -735,6 +771,50 @@ describe("checkConfig", () => {
 		const issues = checkConfig(changesetDir, "owner/repo");
 		expect(issues).toHaveLength(1);
 		expect(issues[0].message).toContain("could not parse");
+	});
+
+	it("returns no issues when versionFiles is valid", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: [
+					"@savvy-web/changesets/changelog",
+					{
+						repo: "owner/repo",
+						versionFiles: [{ glob: "plugin.json", paths: ["$.version"] }],
+					},
+				],
+			}),
+		);
+		expect(checkConfig(changesetDir, "owner/repo")).toEqual([]);
+	});
+
+	it("returns issue when versionFiles is invalid", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: [
+					"@savvy-web/changesets/changelog",
+					{
+						repo: "owner/repo",
+						versionFiles: [{ glob: "", paths: ["bad-path"] }],
+					},
+				],
+			}),
+		);
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("versionFiles config is invalid");
+	});
+
+	it("skips versionFiles validation when not present", () => {
+		vi.mocked(existsSync).mockReturnValue(true);
+		vi.mocked(readFileSync).mockReturnValue(
+			JSON.stringify({
+				changelog: ["@savvy-web/changesets/changelog", { repo: "owner/repo" }],
+			}),
+		);
+		expect(checkConfig(changesetDir, "owner/repo")).toEqual([]);
 	});
 });
 

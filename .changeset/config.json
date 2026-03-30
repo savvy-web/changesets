@@ -5,7 +5,11 @@
 		{
 			"repo": "savvy-web/changesets",
 			"versionFiles": [
-				{ "glob": "plugin/.claude-plugin/plugin.json", "paths": ["$.version"], "package": "@savvy-web/changesets" }
+				{
+					"glob": "plugin/.claude-plugin/plugin.json",
+					"paths": ["$.version"],
+					"package": "@savvy-web/changesets"
+				}
 			]
 		}
 	],
