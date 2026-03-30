@@ -1,5 +1,12 @@
 # @savvy-web/changesets
 
+## 0.7.3
+
+### Bug Fixes
+
+* [`f4c116f`](https://github.com/savvy-web/changesets/commit/f4c116fa21177377c3e251f493a7930e897c5704) Fixed session-start hook to output structured JSON with `hookSpecificOutput.additionalContext` instead of raw text, matching the expected hook response format
+* Added error trapping and `CLAUDE_PROJECT_DIR` guard for better failure diagnostics
+
 ## 0.7.2
 
 ### Dependencies
