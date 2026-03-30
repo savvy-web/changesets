@@ -1,5 +1,26 @@
 # @savvy-web/changesets
 
+## 0.7.2
+
+### Dependencies
+
+* | [`5d46ce6`](https://github.com/savvy-web/changesets/commit/5d46ce6efe246f3bce9cf19102debeb1839e2a11) | Dependency | Type    | Action | From   | To |
+  | :--------------------------------------------------------------------------------------------------- | :--------- | :------ | :----- | :----- | -- |
+  | @savvy-web/silk-effects                                                                              | dependency | added   | —      | ^0.2.1 |    |
+  | jsonc-effect                                                                                         | dependency | added   | —      | ^0.2.1 |    |
+  | workspaces-effect                                                                                    | dependency | added   | —      | ^0.3.0 |    |
+  | jsonc-parser                                                                                         | dependency | removed | ^3.3.1 | —      |    |
+  | workspace-tools                                                                                      | dependency | removed | 0.41.0 | —      |    |
+
+### Other
+
+* [`5d46ce6`](https://github.com/savvy-web/changesets/commit/5d46ce6efe246f3bce9cf19102debeb1839e2a11) Adopt shared Silk Suite libraries, replacing internal implementations with Effect services:
+
+- Replace changeset config reading with `ChangesetConfigReader` from `@savvy-web/silk-effects`
+- Replace `jsonc-parser` with `jsonc-effect` for Effect-native JSONC operations
+- Replace `workspace-tools` with `workspaces-effect` Effect services (`WorkspaceDiscovery`, `PackageManagerDetector`, `WorkspaceRoot`)
+- Delete `Workspace` static utility class
+
 ## 0.7.1
 
 ### Bug Fixes
