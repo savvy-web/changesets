@@ -76,8 +76,8 @@ importers:
         specifier: catalog:silk
         version: 0.106.0(@effect/cluster@0.58.0(@effect/platform@0.96.0(effect@3.21.0))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(@effect/platform@0.96.0(effect@3.21.0))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(effect@3.21.0))(effect@3.21.0))(@effect/platform@0.96.0(effect@3.21.0))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0))(effect@3.21.0)
       '@savvy-web/silk-effects':
-        specifier: ^0.2.0
-        version: 0.2.0(effect@3.21.0)
+        specifier: ^0.2.1
+        version: 0.2.1(effect@3.21.0)
       effect:
         specifier: catalog:silk
         version: 3.21.0
@@ -112,8 +112,8 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0
       workspaces-effect:
-        specifier: ^0.2.0
-        version: 0.2.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0)
+        specifier: ^0.3.0
+        version: 0.3.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0)
     devDependencies:
       '@changesets/types':
         specifier: ^6.1.0
@@ -1131,6 +1131,11 @@ packages:
 
   '@savvy-web/silk-effects@0.2.0':
     resolution: {integrity: sha512-heZqDqEpn7Bt2cZtVDx+AdDt0xqNLfOf5WlGrGqF5+DVmAELT6HyPe0UYV5EMxoEgeAyQxhT1//WKMp1QPiUZQ==}
+    peerDependencies:
+      effect: '>=3.21.0'
+
+  '@savvy-web/silk-effects@0.2.1':
+    resolution: {integrity: sha512-xMe2nu5X4y8PfJWIYNNJBxLxaUKxOKrc0btGU6kgMgjtDAgdz6RR7BEedAcr8CbDENjrctI16RVA1AsHtb2dWQ==}
     peerDependencies:
       effect: '>=3.21.0'
 
@@ -3902,6 +3907,12 @@ packages:
       '@effect/platform': '>=0.96.0'
       effect: '>=3.21.0'
 
+  workspaces-effect@0.3.0:
+    resolution: {integrity: sha512-ntu9AdP2Q2DTLQdb8rLddzkTBidkbnH0glTS4VVLj/DDTI21ru+sVZq1SIdaNgKqG0DHACoIqRcYGYxvYn3x5g==}
+    peerDependencies:
+      '@effect/platform': '>=0.96.0'
+      effect: '>=3.21.0'
+
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
     engines: {node: '>=10'}
@@ -5118,6 +5129,15 @@ snapshots:
       jsonc-effect: 0.2.1(effect@3.21.0)
       semver-effect: 0.2.1(effect@3.21.0)
       workspaces-effect: 0.2.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0)
+      yaml-effect: 0.2.3(effect@3.21.0)
+
+  '@savvy-web/silk-effects@0.2.1(effect@3.21.0)':
+    dependencies:
+      '@effect/platform': 0.96.0(effect@3.21.0)
+      effect: 3.21.0
+      jsonc-effect: 0.2.1(effect@3.21.0)
+      semver-effect: 0.2.1(effect@3.21.0)
+      workspaces-effect: 0.3.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0)
       yaml-effect: 0.2.3(effect@3.21.0)
 
   '@savvy-web/vitest@1.2.0(@types/node@25.5.0)(@typescript/native-preview@7.0.0-dev.20260329.1)(@vitest/coverage-v8@4.1.2(vitest@4.1.2(@types/node@25.5.0)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(jiti@2.6.1)(yaml@2.8.3))))(typescript@5.9.3)(vitest-agent-reporter@1.2.0(1f6092ef9658cd7ecc46d5bbacd3c6e3))(vitest@4.1.2(@types/node@25.5.0)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(jiti@2.6.1)(yaml@2.8.3)))':
@@ -8124,6 +8144,15 @@ snapshots:
       micromatch: 4.0.8
 
   workspaces-effect@0.2.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0):
+    dependencies:
+      '@effect/platform': 0.96.0(effect@3.21.0)
+      effect: 3.21.0
+      jsonc-effect: 0.2.1(effect@3.21.0)
+      minimatch: 10.2.4
+      semver-effect: 0.2.1(effect@3.21.0)
+      yaml-effect: 0.2.3(effect@3.21.0)
+
+  workspaces-effect@0.3.0(@effect/platform@0.96.0(effect@3.21.0))(effect@3.21.0):
     dependencies:
       '@effect/platform': 0.96.0(effect@3.21.0)
       effect: 3.21.0
