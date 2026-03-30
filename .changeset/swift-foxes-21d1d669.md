@@ -15,8 +15,8 @@ Adopt shared Silk Suite libraries, replacing internal implementations with Effec
 
 | Dependency | Type | Action | From | To |
 | :--- | :--- | :--- | :--- | :--- |
-| @savvy-web/silk-effects | dependency | added | — | ^0.2.0 |
+| @savvy-web/silk-effects | dependency | added | — | ^0.2.1 |
 | jsonc-effect | dependency | added | — | ^0.2.1 |
-| workspaces-effect | dependency | added | — | ^0.1.0 |
+| workspaces-effect | dependency | added | — | ^0.3.0 |
 | jsonc-parser | dependency | removed | ^3.3.1 | — |
 | workspace-tools | dependency | removed | 0.41.0 | — |
