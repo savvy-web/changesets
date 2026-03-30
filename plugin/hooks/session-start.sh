@@ -2,8 +2,16 @@
 set -euo pipefail
 
 # SessionStart hook: inject changeset context into the session.
-# Outputs context about the @savvy-web/changesets format, available tools,
-# and active hooks so the agent understands the changeset workflow.
+# Outputs JSON with additionalContext about the @savvy-web/changesets format,
+# available tools, and active hooks so the agent understands the changeset workflow.
+
+# Error trap: surface failures instead of silently producing no output
+trap 'echo "ERROR: session-start.sh failed at line $LINENO (exit $?)" >&2; exit 1' ERR
+
+if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
+  echo "ERROR: CLAUDE_PROJECT_DIR is not set" >&2
+  exit 1
+fi
 
 # Detect package manager (mirrors .husky/pre-commit pattern)
 detect_pm() {
@@ -35,8 +43,10 @@ case "$PM" in
   *)    RUN="npx --no -- savvy-changesets" ;;
 esac
 
-cat <<CONTEXT
-## @savvy-web/changesets — Session Context
+# Build the context as a variable, then wrap in JSON
+CONTEXT=$(cat <<CONTEXT
+<EXTREMELY_IMPORTANT>
+## Changesets Instructions for Agents
 
 This project uses **section-aware changesets** via @savvy-web/changesets. Changesets are release documentation — they describe what users upgrading the package need to know, organized under category headings.
 
@@ -118,7 +128,15 @@ Prefer this structured approach over flat bullet lists when a minor/major change
 
 - **patch** — bug fixes, docs, internal refactoring, tests, CI/build changes
 - **minor** — new features, new exports, non-breaking additions
-- **major** — removed exports, changed signatures, breaking behavior changes
+- **major** — removed exports, changed signatures, breaking behavior changes</EXTREMELY_IMPORTANT>
 CONTEXT
+)
+
+# Output as JSON with additionalContext
+jq -n --arg ctx "$CONTEXT" '{
+  "hookSpecificOutput": {
+    "additionalContext": $ctx
+  }
+}'
 
 exit 0
