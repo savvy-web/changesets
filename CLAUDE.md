@@ -93,6 +93,9 @@ Turbo orchestrates tasks: `typecheck` depends on `build` completing first.
 
 - `@savvy-web/silk-effects` -- `ChangesetConfigReader` Effect service for
   reading `.changeset/config.json`
+- `workspaces-effect` -- `WorkspaceDiscovery`, `PackageManagerDetector`, and
+  `WorkspaceRoot` Effect services for workspace discovery, package manager
+  detection, and monorepo root finding
 - `jsonc-effect` -- Effect-returning JSONC parse/modify/applyEdits APIs (used
   in init command for surgical JSONC edits that preserve comments)
 
@@ -104,8 +107,12 @@ Turbo orchestrates tasks: `typecheck` depends on `build` completing first.
 - `Command.make(name, { opts }, handler)` for @effect/cli commands
 - `ChangesetConfigReader` service (from `@savvy-web/silk-effects/versioning`)
   for config I/O; provide `ChangesetConfigReaderLive` layer at command edges
-- `VersionFiles.extractVersionFiles(config)` -- pure function that extracts
-  version file paths from a parsed changeset config object (no file I/O)
+- `WorkspaceDiscovery`, `PackageManagerDetector`, `WorkspaceRoot` services
+  (from `workspaces-effect`) for workspace operations; provide `WorkspacesLive`
+  layer at CLI entry point
+- `VersionFiles.discoverVersions(cwd, packages)` -- accepts pre-resolved
+  package list (from `WorkspaceDiscovery.listPackages()`) and returns version
+  file paths
 - `jsonc-effect` `modify` + `applyEdits` for JSONC mutations (not
   `JSON.stringify`)
 - Biome enforces `interface` over `type` (except literal unions)
