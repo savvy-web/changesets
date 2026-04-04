@@ -1,5 +1,13 @@
 # @savvy-web/changesets
 
+## 0.7.4
+
+### Bug Fixes
+
+* [`8721a98`](https://github.com/savvy-web/changesets/commit/8721a98483af5b9a5fd7f0ddb4cb14f60b2292b0) Add missing `hookEventName` field to SessionStart hook JSON output, fixing validation errors
+* Consume stdin in SessionStart hook to prevent broken pipe errors
+* Convert SessionStart hook `additionalContext` from markdown to XML tags for reliable parsing
+
 ## 0.7.3
 
 ### Bug Fixes

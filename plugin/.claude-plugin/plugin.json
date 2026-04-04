@@ -1,6 +1,6 @@
 {
 	"name": "changesets",
-	"version": "0.7.3",
+	"version": "0.7.4",
 	"description": "Companion plugin for @savvy-web/changesets that helps write well-structured changeset files for GitHub release documentation",
 	"author": {
 		"name": "C. Spencer Beggs",
