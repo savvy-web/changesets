@@ -1,5 +1,11 @@
 # @savvy-web/changesets
 
+## 0.8.0
+
+### Other
+
+* [`324d2ec`](https://github.com/savvy-web/changesets/commit/324d2ec429b826befb5fa762c3f3ec195439e022) Support TypeScript v6
+
 ## 0.7.4
 
 ### Bug Fixes
