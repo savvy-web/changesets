@@ -1,5 +1,13 @@
 # @savvy-web/changesets
 
+## 0.7.5
+
+### Dependencies
+
+* | [`324d2ec`](https://github.com/savvy-web/changesets/commit/324d2ec429b826befb5fa762c3f3ec195439e022) | Dependency    | Type    | Action  | From    | To |
+  | :--------------------------------------------------------------------------------------------------- | :------------ | :------ | :------ | :------ | -- |
+  | @savvy-web/rslib-builder                                                                             | devDependency | updated | ^0.19.1 | ^0.20.0 |    |
+
 ## 0.7.4
 
 ### Bug Fixes
