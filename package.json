@@ -38,7 +38,7 @@
 		"types:check": "tsgo --noEmit"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.30.0",
+		"@changesets/cli": "^2.31.0",
 		"@savvy-web/changesets": "workspace:*",
 		"@savvy-web/commitlint": "^0.6.0",
 		"@savvy-web/lint-staged": "^0.8.0",
