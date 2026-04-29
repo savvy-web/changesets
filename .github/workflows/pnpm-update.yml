@@ -58,7 +58,7 @@ jobs:
             jsonc-effect
             tinyglobby
             workspaces-effect
-          peer-minor: |
+          peer-lock: |
             @changesets/cli
           run: |
             pnpm savvy-commit init
