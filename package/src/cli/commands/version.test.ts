@@ -40,7 +40,7 @@ const TestChangesetConfigReaderLayer = Layer.succeed(ChangesetConfigReader, {
 });
 
 const TestPackageManagerDetectorLayer = Layer.succeed(PackageManagerDetector, {
-	detect: () => Effect.succeed({ type: "pnpm" as const, version: "10.0.0" }),
+	detect: () => Effect.succeed({ type: "pnpm" as const, version: "10.0.0", runtime: "node" as const }),
 });
 
 const TestWorkspaceDiscoveryLayer = Layer.succeed(WorkspaceDiscovery, {

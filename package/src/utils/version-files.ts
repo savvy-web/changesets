@@ -113,7 +113,7 @@ export class VersionFiles {
 	 * @returns Parsed config array, or `undefined` if not configured
 	 */
 	static extractVersionFiles(config: {
-		changelog?: string | readonly unknown[] | undefined;
+		changelog?: string | false | readonly unknown[] | undefined;
 	}): readonly VersionFileConfig[] | undefined {
 		const { changelog } = config;
 

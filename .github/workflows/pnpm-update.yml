@@ -54,6 +54,12 @@ jobs:
             @savvy-web/pnpm-plugin-silk
           dependencies: |
             @savvy-web/*
+            @changesets/cli
+            jsonc-effect
+            tinyglobby
+            workspaces-effect
+          peer-minor: |
+            @changesets/cli
           run: |
             pnpm savvy-commit init
             pnpm savvy-lint init
