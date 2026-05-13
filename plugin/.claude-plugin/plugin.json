@@ -4,8 +4,10 @@
 	"description": "Companion plugin for @savvy-web/changesets that helps write well-structured changeset files for GitHub release documentation",
 	"author": {
 		"name": "C. Spencer Beggs",
-		"email": "spencer@savvyweb.systems"
+		"email": "spencer@savvyweb.systems",
+		"url": "https://savvyweb.systems"
 	},
+	"homepage": "https://github.com/savvy-web/changesets#readme",
 	"repository": "https://github.com/savvy-web/changesets.git",
 	"license": "MIT",
 	"keywords": ["changesets", "changelog", "release-notes", "silk-suite"]

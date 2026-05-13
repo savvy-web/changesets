@@ -21,7 +21,9 @@
 import { Effect, Schema } from "effect";
 
 import { ConfigurationError } from "../errors.js";
-import { VersionFilesSchema } from "./version-files.js";
+import { PackagesRecordSchema } from "./package-scope.js";
+// biome-ignore lint/suspicious/noDeprecatedImports: 0.9.0 cycle accepts the legacy shape with a deprecation warning emitted by ConfigInspector; removed in 1.0.0
+import { LegacyVersionFilesSchema } from "./version-files.js";
 
 /** Regex for `owner/repo` format, shared between schema and validation. */
 const REPO_PATTERN = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
@@ -61,9 +63,20 @@ export const RepoSchema = Schema.String.pipe(
  *
  * @remarks
  * The `repo` field is required; all other fields are optional with sensible
- * defaults applied by the changelog formatter at runtime. The `versionFiles`
- * option allows specifying additional JSON files (beyond `package.json`)
- * whose version fields should be updated during `changeset version`.
+ * defaults applied by the changelog formatter at runtime.
+ *
+ * Two related fields describe release surfaces:
+ *
+ * - `packages` (new, recommended) — a record keyed by package name with
+ *   per-package `additionalScopes` and `versionFiles`. This is the shape
+ *   introduced in 0.9.0 and the only shape that will be accepted in 1.0.0.
+ * - `versionFiles` (deprecated) — a flat array of entries each carrying
+ *   their own `package` field. Still accepted in 0.9.0 with a deprecation
+ *   warning emitted by `ConfigInspector` at config-load time; removed in
+ *   1.0.0.
+ *
+ * A config that declares **both** `packages` and the deprecated
+ * `versionFiles` field is rejected — the user must pick one.
  *
  * @example
  * ```typescript
@@ -71,21 +84,22 @@ export const RepoSchema = Schema.String.pipe(
  * import { ChangesetOptionsSchema } from "@savvy-web/changesets";
  * import type { ChangesetOptions } from "@savvy-web/changesets";
  *
- * const options: ChangesetOptions = Schema.decodeUnknownSync(ChangesetOptionsSchema)({
- * 	repo: "savvy-web/changesets",
- * 	commitLinks: true,
- * 	prLinks: true,
- * 	issueLinks: true,
- * 	issuePrefixes: ["#", "GH-"],
- * 	versionFiles: [
- * 		{ glob: "manifest.json", paths: ["$.version"] },
- * 	],
+ * // New per-package shape (recommended)
+ * const opts: ChangesetOptions = Schema.decodeUnknownSync(ChangesetOptionsSchema)({
+ *   repo: "savvy-web/changesets",
+ *   packages: {
+ *     "@savvy-web/changesets": {
+ *       additionalScopes: ["plugin/**"],
+ *       versionFiles: [{ glob: "plugin/.claude-plugin/plugin.json", paths: ["$.version"] }],
+ *     },
+ *   },
  * });
  * ```
  *
  * @see {@link ChangesetOptions} for the inferred TypeScript type
  * @see {@link validateChangesetOptions} for Effect-idiomatic validation with detailed error messages
- * @see {@link VersionFilesSchema} for the `versionFiles` entry format
+ * @see {@link PackagesRecordSchema} for the new `packages` shape
+ * @see {@link LegacyVersionFilesSchema} for the deprecated `versionFiles` shape
  *
  * @public
  */
@@ -100,9 +114,27 @@ export const ChangesetOptionsSchema = Schema.Struct({
 	issueLinks: Schema.optional(Schema.Boolean),
 	/** Custom issue reference prefixes (e.g., `["#", "GH-"]`). */
 	issuePrefixes: Schema.optional(Schema.Array(Schema.String)),
-	/** Additional JSON files to update with version numbers. */
-	versionFiles: Schema.optional(VersionFilesSchema),
-});
+	/**
+	 * Per-package release surfaces. Each entry declares `additionalScopes`
+	 * (globs outside the workspace dir that belong to the package) and
+	 * `versionFiles` (files bumped in lockstep with the package's version).
+	 */
+	packages: Schema.optional(PackagesRecordSchema),
+	/**
+	 * DEPRECATED. Top-level flat array of version-file entries each with
+	 * their own `package` field. Migrate to `packages[<name>].versionFiles`.
+	 * Removed in 1.0.0.
+	 *
+	 * @deprecated 0.9.0 — migrate to `packages`. Removed in 1.0.0.
+	 */
+	versionFiles: Schema.optional(LegacyVersionFilesSchema),
+}).pipe(
+	Schema.filter((opts) => opts.packages === undefined || opts.versionFiles === undefined, {
+		message: () =>
+			"Configuration cannot declare both `packages` and the deprecated top-level `versionFiles` array. " +
+			"Migrate the legacy `versionFiles` entries into `packages[<name>].versionFiles` and remove the top-level field.",
+	}),
+);
 
 /**
  * Inferred type for {@link ChangesetOptionsSchema}.

@@ -42,6 +42,8 @@ export {
 	ChangesetValidationErrorBase,
 	ConfigurationError,
 	ConfigurationErrorBase,
+	GitError,
+	GitErrorBase,
 	GitHubApiError,
 	GitHubApiErrorBase,
 	MarkdownParseError,
@@ -79,9 +81,43 @@ export {
 } from "./schemas/github.js";
 export type { ChangesetOptions } from "./schemas/options.js";
 export { ChangesetOptionsSchema, RepoSchema } from "./schemas/options.js";
+export type { PackageScope } from "./schemas/package-scope.js";
+export { GlobSchema, PackageScopeSchema, PackagesRecordSchema } from "./schemas/package-scope.js";
 export { NonEmptyString, PositiveInteger } from "./schemas/primitives.js";
-export type { VersionFileConfig } from "./schemas/version-files.js";
-export { JsonPathSchema, VersionFileConfigSchema, VersionFilesSchema } from "./schemas/version-files.js";
+export type { LegacyVersionFileConfig, VersionFileConfig } from "./schemas/version-files.js";
+export {
+	JsonPathSchema,
+	LegacyVersionFileConfigSchema,
+	LegacyVersionFilesSchema,
+	VersionFileConfigSchema,
+	VersionFilesSchema,
+} from "./schemas/version-files.js";
+export type {
+	BranchAnalysis,
+	BranchAnalyzerShape,
+	BranchFileEntry,
+	FileStatus,
+} from "./services/branch-analyzer.js";
+export {
+	BranchAnalyzer,
+	BranchAnalyzerBase,
+	BranchAnalyzerLive,
+	makeBranchAnalyzerTest,
+} from "./services/branch-analyzer.js";
+export type {
+	Classification,
+	ClassificationReason,
+	ConfigInspectorShape,
+	InspectedConfig,
+	ResolvedPackageScope,
+	ResolvedVersionFile,
+} from "./services/config-inspector.js";
+export {
+	ConfigInspector,
+	ConfigInspectorBase,
+	ConfigInspectorLive,
+	makeConfigInspectorTest,
+} from "./services/config-inspector.js";
 
 // === Types ===
 

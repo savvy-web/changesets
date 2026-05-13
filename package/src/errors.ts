@@ -309,3 +309,55 @@ export class VersionFileError extends VersionFileErrorBase<{
 		return `Version file error (${this.filePath}${path}): ${this.reason}`;
 	}
 }
+
+/**
+ * Base class for {@link GitError}.
+ *
+ * @privateRemarks
+ * Effect's `Data.TaggedError` creates an anonymous base class that
+ * api-extractor cannot follow without an explicit export.
+ *
+ * @internal
+ */
+export const GitErrorBase = Data.TaggedError("GitError");
+
+/**
+ * Git command failure.
+ *
+ * @remarks
+ * Raised by services that shell out to `git` — `BranchAnalyzer` is the
+ * canonical consumer. Captures the failing command, the working directory
+ * it was invoked in, and the underlying reason (often the captured stderr
+ * from the child process) so callers can produce actionable diagnostics.
+ *
+ * @example
+ * ```typescript
+ * import { Effect } from "effect";
+ * import { GitError } from "@savvy-web/changesets";
+ *
+ * declare const program: Effect.Effect<void, GitError>;
+ *
+ * const handled = program.pipe(
+ *   Effect.catchTag("GitError", (err) =>
+ *     Effect.logError(`git failed in ${err.cwd}: ${err.command}\n${err.reason}`)
+ *   ),
+ * );
+ * ```
+ *
+ * @see {@link BranchAnalyzer} which produces these errors when computing
+ *   merge bases or running `git diff`
+ *
+ * @public
+ */
+export class GitError extends GitErrorBase<{
+	/** The git command that failed, including arguments. */
+	readonly command: string;
+	/** Working directory in which the command was invoked. */
+	readonly cwd: string;
+	/** Human-readable failure reason — typically the captured stderr or thrown error message. */
+	readonly reason: string;
+}> {
+	get message() {
+		return `git command failed in ${this.cwd}: ${this.command}\n${this.reason}`;
+	}
+}

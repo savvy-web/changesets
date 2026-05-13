@@ -1,58 +1,46 @@
 ---
 name: delete
 description: >
-  Delete one or more changeset files from .changeset/. Select by name or
-  interactively pick from the list. Use when a changeset is no longer
-  needed after a revert or scope change.
-disable-model-invocation: true
+  Mechanics for removing one or more changeset files from .changeset/. Invoked
+  by the changeset-manager agent when a stale changeset describes packages no
+  longer in the diff, or as part of squash cleanup. Not user-invokable; users
+  initiate this work via /changesets:create or /changesets:squash.
+user-invocable: false
+model: sonnet
 ---
 
-# Delete a Changeset
+# Delete Changeset Mechanics
 
-## Step 1 — Find Changeset Files
+This is an agent-internal procedural skill. The invoking agent has already decided that one or more changeset files should be removed. Your job is the file-level mechanics and the cleanup report.
 
-List all `.changeset/*.md` files, excluding `README.md`. If no changeset files are found, report "No changeset files found" and stop.
+## Step 1 — Resolve targets
 
-## Step 2 — Resolve Which Files to Delete
+The agent passes one or more changeset filenames (with or without the `.changeset/` prefix or `.md` extension). Resolve each to a full path under `.changeset/`. If a target does not exist, record the failure but continue with the rest.
 
-If `$ARGUMENTS` names one or more specific changeset files (with or without the `.changeset/` prefix or `.md` extension), resolve them to their full paths and use those as the candidates.
+## Step 2 — Capture a one-line summary per target
 
-If `$ARGUMENTS` is empty or does not name specific files, list the available changeset files and ask the user to pick one or more before continuing. Do not proceed past this step until the user has made a selection.
+Before deletion, read each target and capture:
 
-## Step 3 — Show a Content Summary for Each Candidate
+- **Packages**: package-to-bump-type mappings from the frontmatter.
+- **Summary**: the first non-empty content line in the body.
 
-For each candidate file, read it and display a brief summary:
+This is data for the agent's final report, not user-facing confirmation prompts. The decision to delete has already been made upstream.
 
-- **File:** `.changeset/<filename>.md`
-- **Packages:** list each package name and its bump type from the YAML frontmatter
-- **Summary:** the first non-empty content line from the file body (first paragraph text, first list item, or first heading — whichever appears first)
+## Step 3 — Delete
 
-## Step 4 — Ask for Explicit Confirmation
-
-After showing all summaries, ask once:
-
-> Delete X changeset(s)? This cannot be undone.
-
-List the filenames to be deleted so the user can see exactly what will be removed. Wait for an explicit "yes" or equivalent affirmation. If the user says anything other than a clear confirmation, abort and report that no files were deleted.
-
-## Step 5 — Delete the Confirmed Files
-
-For each confirmed file, delete it using:
+For each resolved target:
 
 ```bash
 rm .changeset/<filename>.md
 ```
 
-## Step 6 — Report Results
+Continue past individual failures. Record them for the report.
 
-List every file that was deleted. If any deletion fails (e.g., file not found), report the error for that file without stopping the remaining deletions, then summarize any failures at the end.
+## Step 4 — Return a structured report
 
-**Example output:**
+Return to the invoking agent:
 
-```text
-Deleted:
-  .changeset/brave-dogs-laugh.md
-  .changeset/silver-cups-dream.md
-```
+- Files deleted (with their captured summaries)
+- Files that failed to delete and why
 
-Never delete any file without explicit user confirmation from Step 4.
+The agent will fold this into its overall reconcile / squash report. Do not prompt the user — confirmation belongs at the entry-point skill, not here.

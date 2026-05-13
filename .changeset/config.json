@@ -4,13 +4,17 @@
 		"@savvy-web/changesets/changelog",
 		{
 			"repo": "savvy-web/changesets",
-			"versionFiles": [
-				{
-					"glob": "plugin/.claude-plugin/plugin.json",
-					"paths": ["$.version"],
-					"package": "@savvy-web/changesets"
+			"packages": {
+				"@savvy-web/changesets": {
+					"additionalScopes": ["plugin/**"],
+					"versionFiles": [
+						{
+							"glob": "plugin/.claude-plugin/plugin.json",
+							"paths": ["$.version"]
+						}
+					]
 				}
-			]
+			}
 		}
 	],
 	"commit": false,

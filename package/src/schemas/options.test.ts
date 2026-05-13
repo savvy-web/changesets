@@ -52,13 +52,21 @@ describe("ChangesetOptionsSchema", () => {
 		expect(() => decode({})).toThrow();
 	});
 
-	it("accepts versionFiles option", () => {
+	it("accepts the deprecated versionFiles option", () => {
 		const opts = decode({
 			repo: "owner/repo",
 			versionFiles: [{ glob: "plugin.json", paths: ["$.version"] }, { glob: "**/manifest.json" }],
 		});
 		expect(opts.versionFiles).toHaveLength(2);
 		expect(opts.versionFiles?.[0].glob).toBe("plugin.json");
+	});
+
+	it("accepts the deprecated versionFiles entries with `package` field", () => {
+		const opts = decode({
+			repo: "owner/repo",
+			versionFiles: [{ glob: "plugin.json", paths: ["$.version"], package: "@savvy-web/changesets" }],
+		});
+		expect(opts.versionFiles?.[0].package).toBe("@savvy-web/changesets");
 	});
 
 	it("accepts options without versionFiles", () => {
@@ -82,6 +90,54 @@ describe("ChangesetOptionsSchema", () => {
 				versionFiles: [{ glob: "" }],
 			}),
 		).toThrow();
+	});
+
+	it("accepts the new `packages` shape", () => {
+		const opts = decode({
+			repo: "owner/repo",
+			packages: {
+				"@savvy-web/changesets": {
+					additionalScopes: ["plugin/**"],
+					versionFiles: [{ glob: "plugin/.claude-plugin/plugin.json", paths: ["$.version"] }],
+				},
+			},
+		});
+		expect(opts.packages?.["@savvy-web/changesets"]?.additionalScopes).toEqual(["plugin/**"]);
+		expect(opts.packages?.["@savvy-web/changesets"]?.versionFiles).toHaveLength(1);
+	});
+
+	it("accepts the new `packages` shape with an empty record", () => {
+		const opts = decode({ repo: "owner/repo", packages: {} });
+		expect(opts.packages).toEqual({});
+	});
+
+	it("rejects `packages` with invalid additionalScopes glob", () => {
+		expect(() =>
+			decode({
+				repo: "owner/repo",
+				packages: { "@x/y": { additionalScopes: ["/absolute/path"] } },
+			}),
+		).toThrow();
+	});
+
+	it("rejects `packages` versionFiles entries that smuggle a `package` field (strict)", () => {
+		const strict = Schema.decodeUnknownSync(ChangesetOptionsSchema, { onExcessProperty: "error" });
+		expect(() =>
+			strict({
+				repo: "owner/repo",
+				packages: { "@x/y": { versionFiles: [{ glob: "p.json", package: "@x/y" }] } },
+			}),
+		).toThrow();
+	});
+
+	it("rejects configs that declare BOTH `packages` and the deprecated `versionFiles`", () => {
+		expect(() =>
+			decode({
+				repo: "owner/repo",
+				packages: { "@x/y": { additionalScopes: ["plugin/**"] } },
+				versionFiles: [{ glob: "plugin.json", package: "@x/y" }],
+			}),
+		).toThrow(/cannot declare both `packages` and the deprecated/);
 	});
 });
 

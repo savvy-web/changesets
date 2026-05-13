@@ -13,6 +13,12 @@
  * - **`--check` / `-c`** -- compare the transformed output against the
  *   original and exit with code 1 if they differ (useful in CI).
  *
+ * Before any of those modes run, the command requires a valid
+ * `.changeset/config.json` (when one exists). A broken config indicates
+ * something structurally wrong with the project — refusing here surfaces
+ * that to the user rather than producing output the version step couldn't
+ * later corroborate.
+ *
  * @example
  * ```bash
  * savvy-changesets transform CHANGELOG.md
@@ -24,11 +30,12 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { Args, Command, Options } from "@effect/cli";
 import { Effect } from "effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";
+import { requireValidConfig } from "../utils/config-gate.js";
 
 /* v8 ignore start -- CLI option definitions; handler tested via runTransform */
 const fileArg = Args.file({ name: "file" }).pipe(Args.withDefault("CHANGELOG.md"));
@@ -63,6 +70,11 @@ const checkOption = Options.boolean("check").pipe(
 export function runTransform(file: string, dryRun: boolean, check: boolean) {
 	return Effect.gen(function* () {
 		const resolved = resolve(file);
+		// Anchor the config gate on the CHANGELOG file's directory. For the
+		// canonical `CHANGELOG.md` at the project root that's the project
+		// root; for nested workspace CHANGELOGs the gate walks up via
+		// `requireValidConfig`'s `.changeset/config.json` existence check.
+		yield* requireValidConfig(dirname(resolved));
 		const content = yield* Effect.try(() => readFileSync(resolved, "utf-8"));
 		const result = ChangelogTransformer.transformContent(content);
 

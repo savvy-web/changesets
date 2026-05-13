@@ -7,6 +7,9 @@ description: >
   decisions about new changesets. Activates when reading or listing files
   in the .changeset/ directory, reviewing pending changes, or discussing
   release readiness.
+paths:
+  - ".changeset/*.md"
+  - "**/.changeset/*.md"
 ---
 
 # Changeset Status Awareness

@@ -1,21 +1,25 @@
 /**
  * Version command -- orchestrate `changeset version` and changelog transforms.
  *
- * Detects the package manager, runs `changeset version`, discovers all
- * workspace CHANGELOG.md files, transforms each one with the remark pipeline,
- * and updates any configured version files.
+ * Detects the package manager, validates the config, runs `changeset version`,
+ * discovers all workspace CHANGELOG.md files, transforms each one with the
+ * remark pipeline, and updates any configured version files.
  *
  * @remarks
- * The command performs five steps:
+ * The command performs six steps:
  * 1. Detect the package manager (`pnpm`, `npm`, `yarn`, `bun`) via
  *    `PackageManagerDetector` from `workspaces-effect`.
- * 2. Run `changeset version` (skipped with `--dry-run`).
- * 3. Discover all CHANGELOG.md files across workspace packages via
+ * 2. **Require a valid `.changeset/config.json` via {@link ConfigInspector}**.
+ *    If the config has overlap conflicts, unknown package keys, dual-shape,
+ *    or schema errors, refuse to run and exit non-zero — a broken config
+ *    means we cannot determine the right versions to write.
+ * 3. Run `changeset version` (skipped with `--dry-run`).
+ * 4. Discover all CHANGELOG.md files across workspace packages via
  *    `WorkspaceDiscovery` from `workspaces-effect`.
- * 4. Transform each discovered changelog with
+ * 5. Transform each discovered changelog with
  *    {@link ChangelogTransformer.transformFile}.
- * 5. Process version file configs (if present) via
- *    {@link VersionFiles.processVersionFiles}.
+ * 6. Update version files using the **resolved** {@link InspectedConfig}
+ *    via {@link VersionFiles.processResolvedVersionFiles}.
  *
  * @example
  * ```bash
@@ -30,13 +34,14 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Command, Options } from "@effect/cli";
-import { ChangesetConfigReader, ChangesetConfigReaderLive } from "@savvy-web/silk-effects";
 import { Effect } from "effect";
 import { PackageManagerDetector, WorkspaceDiscovery } from "workspaces-effect";
 
 import { ChangelogTransformer } from "../../api/transformer.js";
 import { VersionFileError } from "../../errors.js";
+import { ConfigInspector } from "../../services/config-inspector.js";
 import { VersionFiles } from "../../utils/version-files.js";
+import { requireValidConfig } from "../utils/config-gate.js";
 
 /**
  * Map package manager to the correct `changeset version` shell command.
@@ -67,8 +72,9 @@ const dryRunOption = Options.boolean("dry-run").pipe(
 /**
  * Run the full version orchestration pipeline.
  *
- * Detects the package manager, optionally runs `changeset version`, discovers
- * and transforms all workspace changelogs, and updates version files.
+ * Detects the package manager, validates the config, optionally runs
+ * `changeset version`, discovers and transforms all workspace changelogs,
+ * and updates version files using the resolved per-package scopes.
  *
  * @param dryRun - When `true`, skip `changeset version` and only transform
  *   existing CHANGELOG files
@@ -88,7 +94,12 @@ export function runVersion(dryRun: boolean) {
 		const pm = detected.type;
 		yield* Effect.log(`Detected package manager: ${pm}`);
 
-		// 2. Run changeset version (unless --dry-run)
+		// 2. Require a valid config (or no config at all). On an invalid
+		//    config, refuse — running version would write inconsistent
+		//    package.json versions or fail to update declared versionFiles.
+		yield* requireValidConfig(cwd);
+
+		// 3. Run changeset version (unless --dry-run)
 		if (!dryRun) {
 			const cmd = getChangesetVersionCommand(pm);
 			yield* Effect.log(`Running: ${cmd}`);
@@ -101,7 +112,7 @@ export function runVersion(dryRun: boolean) {
 			yield* Effect.log("Dry run: skipping changeset version");
 		}
 
-		// 3. Discover workspace packages and CHANGELOG.md files
+		// 4. Discover workspace packages and CHANGELOG.md files
 		const discovery = yield* WorkspaceDiscovery;
 		const packages = yield* discovery
 			.listPackages()
@@ -143,7 +154,7 @@ export function runVersion(dryRun: boolean) {
 		} else {
 			yield* Effect.log(`Found ${changelogs.length} CHANGELOG.md file(s)`);
 
-			// 4. Transform each changelog
+			// 5. Transform each changelog
 			for (const entry of changelogs) {
 				yield* Effect.try({
 					try: () => ChangelogTransformer.transformFile(entry.changelogPath),
@@ -156,38 +167,43 @@ export function runVersion(dryRun: boolean) {
 			}
 		}
 
-		// 5. Update version files (if configured)
-		const configResult = yield* ChangesetConfigReader.pipe(
-			Effect.flatMap((reader) => reader.read(cwd)),
-			Effect.map((config) => VersionFiles.extractVersionFiles(config)),
-			Effect.catchAll(() => Effect.succeed(undefined)),
+		// 6. Update version files using the resolved per-package scopes.
+		//    If `.changeset/config.json` is absent the inspector check in
+		//    step 2 already short-circuited; we skip the rest here too.
+		const configPath = join(resolvedCwd, ".changeset", "config.json");
+		if (!existsSync(configPath)) {
+			return;
+		}
+
+		const inspector = yield* ConfigInspector;
+		const inspected = yield* inspector.inspect(resolvedCwd);
+		const scopesWithVersionFiles = inspected.packages.filter((p) => p.versionFiles.length > 0);
+
+		if (scopesWithVersionFiles.length === 0) {
+			return;
+		}
+
+		yield* Effect.log(
+			`Found ${scopesWithVersionFiles.length} package${scopesWithVersionFiles.length === 1 ? "" : "s"} with versionFiles`,
 		);
-		if (configResult) {
-			yield* Effect.log(`Found ${configResult.length} versionFiles config(s)`);
-			const workspaceVersions = packages.map((pkg) => ({
-				name: pkg.name,
-				version: pkg.version,
-				path: pkg.path,
-			}));
-			const updates = yield* Effect.try({
-				try: () => VersionFiles.processVersionFiles(cwd, configResult, dryRun, workspaceVersions),
-				catch: (error) => {
-					const message = error instanceof Error ? error.message : String(error);
-					return new VersionFileError({
-						filePath: message.match(/Failed to update (.+?):/)?.[1] ?? cwd,
-						reason: message,
-					});
-				},
-			});
-			for (const update of updates) {
-				const action = dryRun ? "Would update" : "Updated";
-				yield* Effect.log(`${action} ${update.filePath} → ${update.version}`);
-			}
+		const updates = yield* Effect.try({
+			try: () => VersionFiles.processResolvedVersionFiles(scopesWithVersionFiles, dryRun),
+			catch: (error) => {
+				const message = error instanceof Error ? error.message : String(error);
+				return new VersionFileError({
+					filePath: message.match(/Failed to update (.+?):/)?.[1] ?? cwd,
+					reason: message,
+				});
+			},
+		});
+		for (const update of updates) {
+			const action = dryRun ? "Would update" : "Updated";
+			yield* Effect.log(`${action} ${update.filePath} → ${update.version}`);
 		}
 	});
 }
 
-/* v8 ignore next 5 -- CLI registration; handler tested via runVersion */
+/* v8 ignore next 4 -- CLI registration; handler tested via runVersion */
 export const versionCommand = Command.make("version", { dryRun: dryRunOption }, ({ dryRun }) =>
-	runVersion(dryRun).pipe(Effect.provide(ChangesetConfigReaderLive)),
+	runVersion(dryRun),
 ).pipe(Command.withDescription("Run changeset version and transform all CHANGELOGs"));
