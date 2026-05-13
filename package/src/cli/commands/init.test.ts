@@ -776,7 +776,7 @@ describe("checkConfig", () => {
 		expect(issues[0].message).toContain("could not parse");
 	});
 
-	it("returns no issues when versionFiles is valid", () => {
+	it("returns a deprecation note when versionFiles is valid (legacy shape)", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFileSync).mockReturnValue(
 			JSON.stringify({
@@ -789,10 +789,12 @@ describe("checkConfig", () => {
 				],
 			}),
 		);
-		expect(checkConfig(changesetDir, "owner/repo")).toEqual([]);
+		const issues = checkConfig(changesetDir, "owner/repo");
+		expect(issues).toHaveLength(1);
+		expect(issues[0].message).toContain("legacy top-level");
 	});
 
-	it("returns issue when versionFiles is invalid", () => {
+	it("returns the deprecation note alongside the validation error when versionFiles is invalid", () => {
 		vi.mocked(existsSync).mockReturnValue(true);
 		vi.mocked(readFileSync).mockReturnValue(
 			JSON.stringify({
@@ -806,8 +808,9 @@ describe("checkConfig", () => {
 			}),
 		);
 		const issues = checkConfig(changesetDir, "owner/repo");
-		expect(issues).toHaveLength(1);
-		expect(issues[0].message).toContain("versionFiles config is invalid");
+		expect(issues).toHaveLength(2);
+		expect(issues.some((i) => i.message.includes("versionFiles config is invalid"))).toBe(true);
+		expect(issues.some((i) => i.message.includes("legacy top-level"))).toBe(true);
 	});
 
 	it("skips versionFiles validation when not present", () => {

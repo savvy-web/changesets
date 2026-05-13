@@ -173,8 +173,12 @@ function toSnapshot(pkg: RawPackageJson, relativePath: string): WorkspaceSnapsho
  */
 function expandGlobAtRef(cwd: string, ref: string, glob: string): Effect.Effect<ReadonlyArray<string>, GitError> {
 	return Effect.gen(function* () {
-		// Strip trailing /** if present.
-		const cleanGlob = glob.replace(/\/\*\*$/, "").replace(/\/\*$/, "/*");
+		// `packages/**` → `packages/*` so it hits the wildcard branch below;
+		// `packages/*` and literal paths pass through unchanged. Stripping
+		// `/**` entirely (the previous form) would silently route
+		// double-star globs into the literal-path branch and miss every
+		// child workspace.
+		const cleanGlob = glob.replace(/\/\*\*$/, "/*");
 
 		// For a literal path (no wildcards), just return it as-is — `git
 		// ls-tree` works fine on a literal directory too, but this is an

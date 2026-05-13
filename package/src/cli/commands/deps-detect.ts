@@ -23,21 +23,18 @@
  * @internal
  */
 
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Effect, Option } from "effect";
 import { WorkspaceDiscovery } from "workspaces-effect";
 
-import { GitError } from "../../errors.js";
 import { ConfigInspector } from "../../services/config-inspector.js";
 import { listPublishablePackageNames } from "../../services/silk-publishability.js";
-import type { WorkspaceSnapshot } from "../../services/workspace-snapshot.js";
 import { WorkspaceSnapshotReader } from "../../services/workspace-snapshot.js";
 import type { WorkspaceDependencyDiff } from "../../utils/dep-diff.js";
 import { computeWorkspaceDependencyDiffs } from "../../utils/dep-diff.js";
 import { serializeDependencyTableToMarkdown } from "../../utils/dependency-table.js";
+import { gitMergeBase, snapshotFromWorktree } from "../../utils/worktree-snapshot.js";
 
 /* v8 ignore start -- CLI option definitions */
 const fromOption = Options.text("from").pipe(
@@ -65,120 +62,6 @@ const markdownOption = Options.boolean("markdown").pipe(
 	Options.withDefault(false),
 );
 /* v8 ignore stop */
-
-/**
- * Run `git merge-base <base> HEAD`, returning the SHA. Errors propagate
- * as {@link GitError}.
- *
- * @internal
- */
-function gitMergeBase(cwd: string, base: string): Effect.Effect<string, GitError> {
-	return Effect.try({
-		try: () =>
-			execFileSync("git", ["merge-base", base, "HEAD"], {
-				cwd,
-				encoding: "utf8",
-				stdio: ["ignore", "pipe", "pipe"],
-			}).trim(),
-		catch: (error) => {
-			const stderr = (error as { stderr?: Buffer | string }).stderr;
-			const text = typeof stderr === "string" ? stderr : (stderr?.toString() ?? "");
-			return new GitError({
-				command: `git merge-base ${base} HEAD`,
-				cwd,
-				reason: text.trim() || ((error as Error).message ?? String(error)),
-			});
-		},
-	});
-}
-
-/**
- * Read a workspace package snapshot from the live working tree. This is
- * the `--to` side when not overridden: we want staged + unstaged
- * package.json edits in the diff.
- *
- * @internal
- */
-function snapshotFromWorktree(cwd: string): ReadonlyArray<WorkspaceSnapshot> {
-	const snapshots: WorkspaceSnapshot[] = [];
-	const dirs = new Set<string>([cwd]);
-
-	// Workspace globs from live pnpm-workspace.yaml. Fall back to root-only.
-	try {
-		const yamlPath = join(cwd, "pnpm-workspace.yaml");
-		const yaml = readFileSync(yamlPath, "utf8");
-		const lines = yaml.split(/\r?\n/);
-		let inPackagesBlock = false;
-		for (const line of lines) {
-			if (/^\s*#/.test(line)) continue;
-			if (/^\s*packages\s*:\s*$/.test(line)) {
-				inPackagesBlock = true;
-				continue;
-			}
-			if (inPackagesBlock) {
-				const m = line.match(/^\s+-\s+["']?(.+?)["']?\s*$/);
-				if (m) {
-					const glob = (m[1] as string).replace(/\/\*\*$/, "");
-					// Materialize against the filesystem using a small inline globber.
-					if (glob.includes("*") || glob.includes("?")) {
-						try {
-							const prefix = glob.includes("/") ? glob.slice(0, glob.lastIndexOf("/") + 1) : "";
-							const ls = execFileSync("ls", [join(cwd, prefix || ".")], { encoding: "utf8" })
-								.split("\n")
-								.filter((s) => s.length > 0);
-							for (const entry of ls) {
-								const candidate = prefix ? `${prefix}${entry}` : entry;
-								const regex = new RegExp(
-									`^${glob
-										.replace(/[.+^${}()|[\]\\]/g, "\\$&")
-										.replace(/\*/g, "[^/]*")
-										.replace(/\?/g, "[^/]")}$`,
-								);
-								if (regex.test(candidate)) dirs.add(join(cwd, candidate));
-							}
-						} catch {
-							// Skip globs that fail to materialize.
-						}
-					} else {
-						dirs.add(join(cwd, glob));
-					}
-				} else if (line.length > 0 && !line.startsWith(" ") && !line.startsWith("\t")) {
-					inPackagesBlock = false;
-				}
-			}
-		}
-	} catch {
-		// No pnpm-workspace.yaml: just consider the root.
-	}
-
-	for (const dir of dirs) {
-		try {
-			const pkgJson = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
-				name?: string;
-				version?: string;
-				dependencies?: Record<string, string>;
-				devDependencies?: Record<string, string>;
-				peerDependencies?: Record<string, string>;
-				optionalDependencies?: Record<string, string>;
-			};
-			if (!pkgJson.name) continue;
-			const rel = dir === cwd ? "." : dir.slice(cwd.length + 1);
-			snapshots.push({
-				name: pkgJson.name,
-				relativePath: rel,
-				version: pkgJson.version ?? "0.0.0",
-				dependencies: pkgJson.dependencies ?? {},
-				devDependencies: pkgJson.devDependencies ?? {},
-				peerDependencies: pkgJson.peerDependencies ?? {},
-				optionalDependencies: pkgJson.optionalDependencies ?? {},
-			});
-		} catch {
-			// Missing package.json or parse error — skip.
-		}
-	}
-
-	return snapshots;
-}
 
 /**
  * Render a per-workspace diff as markdown — one frontmatter+section block

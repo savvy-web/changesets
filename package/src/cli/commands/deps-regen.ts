@@ -43,21 +43,19 @@
  * @internal
  */
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Command, Options } from "@effect/cli";
 import { Effect, Option } from "effect";
 import { WorkspaceDiscovery } from "workspaces-effect";
 
-import { GitError } from "../../errors.js";
 import { ConfigInspector } from "../../services/config-inspector.js";
 import { listPublishablePackageNames } from "../../services/silk-publishability.js";
-import type { WorkspaceSnapshot } from "../../services/workspace-snapshot.js";
 import { WorkspaceSnapshotReader } from "../../services/workspace-snapshot.js";
 import type { WorkspaceDependencyDiff } from "../../utils/dep-diff.js";
 import { computeWorkspaceDependencyDiffs } from "../../utils/dep-diff.js";
 import { serializeDependencyTableToMarkdown } from "../../utils/dependency-table.js";
+import { gitMergeBase, snapshotFromWorktree } from "../../utils/worktree-snapshot.js";
 
 /* v8 ignore start -- CLI option definitions */
 const cwdOption = Options.directory("cwd").pipe(
@@ -86,11 +84,27 @@ const ADJECTIVES = ["brave", "clever", "swift", "silver", "lucky", "happy", "cal
 const NOUNS = ["dogs", "cats", "wolves", "foxes", "cups", "ships", "trees", "owls", "cranes", "hills"] as const;
 const VERBS = ["laugh", "dream", "fly", "sing", "dance", "wander", "soar", "rest", "leap", "ponder"] as const;
 
-function randomFilename(): string {
+function pickRandomTriplet(): string {
 	const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)] as string;
 	const n = NOUNS[Math.floor(Math.random() * NOUNS.length)] as string;
 	const v = VERBS[Math.floor(Math.random() * VERBS.length)] as string;
 	return `${a}-${n}-${v}`;
+}
+
+/**
+ * Pick a `<adjective>-<noun>-<verb>` filename slug that does not collide
+ * with an existing `.changeset/*.md`. The triplet space is 1,000
+ * combinations, so a busy repo can plausibly exhaust it across runs;
+ * fall back to a timestamp suffix after 20 unlucky picks.
+ *
+ * @internal
+ */
+function randomFilename(changesetDir: string): string {
+	for (let i = 0; i < 20; i++) {
+		const candidate = pickRandomTriplet();
+		if (!existsSync(join(changesetDir, `${candidate}.md`))) return candidate;
+	}
+	return `${pickRandomTriplet()}-${Date.now()}`;
 }
 
 /**
@@ -188,104 +202,6 @@ function renderChangesetContent(diff: WorkspaceDependencyDiff): string {
 	return `${frontmatter}\n\n## Dependencies\n\n${table}\n`;
 }
 
-function gitMergeBase(cwd: string, base: string): Effect.Effect<string, GitError> {
-	return Effect.try({
-		try: () =>
-			execFileSync("git", ["merge-base", base, "HEAD"], {
-				cwd,
-				encoding: "utf8",
-				stdio: ["ignore", "pipe", "pipe"],
-			}).trim(),
-		catch: (error) => {
-			const stderr = (error as { stderr?: Buffer | string }).stderr;
-			const text = typeof stderr === "string" ? stderr : (stderr?.toString() ?? "");
-			return new GitError({
-				command: `git merge-base ${base} HEAD`,
-				cwd,
-				reason: text.trim() || ((error as Error).message ?? String(error)),
-			});
-		},
-	});
-}
-
-function snapshotFromWorktree(cwd: string): ReadonlyArray<WorkspaceSnapshot> {
-	const snapshots: WorkspaceSnapshot[] = [];
-	const dirs = new Set<string>([cwd]);
-
-	try {
-		const yaml = readFileSync(join(cwd, "pnpm-workspace.yaml"), "utf8");
-		const lines = yaml.split(/\r?\n/);
-		let inPackagesBlock = false;
-		for (const line of lines) {
-			if (/^\s*#/.test(line)) continue;
-			if (/^\s*packages\s*:\s*$/.test(line)) {
-				inPackagesBlock = true;
-				continue;
-			}
-			if (inPackagesBlock) {
-				const m = line.match(/^\s+-\s+["']?(.+?)["']?\s*$/);
-				if (m) {
-					const glob = (m[1] as string).replace(/\/\*\*$/, "");
-					if (glob.includes("*") || glob.includes("?")) {
-						try {
-							const prefix = glob.includes("/") ? glob.slice(0, glob.lastIndexOf("/") + 1) : "";
-							const ls = execFileSync("ls", [join(cwd, prefix || ".")], { encoding: "utf8" })
-								.split("\n")
-								.filter((s) => s.length > 0);
-							for (const entry of ls) {
-								const candidate = prefix ? `${prefix}${entry}` : entry;
-								const regex = new RegExp(
-									`^${glob
-										.replace(/[.+^${}()|[\]\\]/g, "\\$&")
-										.replace(/\*/g, "[^/]*")
-										.replace(/\?/g, "[^/]")}$`,
-								);
-								if (regex.test(candidate)) dirs.add(join(cwd, candidate));
-							}
-						} catch {
-							// Skip
-						}
-					} else {
-						dirs.add(join(cwd, glob));
-					}
-				} else if (line.length > 0 && !line.startsWith(" ") && !line.startsWith("\t")) {
-					inPackagesBlock = false;
-				}
-			}
-		}
-	} catch {
-		// No workspace yaml — root only.
-	}
-
-	for (const dir of dirs) {
-		try {
-			const pkgJson = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
-				name?: string;
-				version?: string;
-				dependencies?: Record<string, string>;
-				devDependencies?: Record<string, string>;
-				peerDependencies?: Record<string, string>;
-				optionalDependencies?: Record<string, string>;
-			};
-			if (!pkgJson.name) continue;
-			const rel = dir === cwd ? "." : dir.slice(cwd.length + 1);
-			snapshots.push({
-				name: pkgJson.name,
-				relativePath: rel,
-				version: pkgJson.version ?? "0.0.0",
-				dependencies: pkgJson.dependencies ?? {},
-				devDependencies: pkgJson.devDependencies ?? {},
-				peerDependencies: pkgJson.peerDependencies ?? {},
-				optionalDependencies: pkgJson.optionalDependencies ?? {},
-			});
-		} catch {
-			// Skip
-		}
-	}
-
-	return snapshots;
-}
-
 /**
  * Handler exported for direct invocation in tests.
  *
@@ -363,7 +279,7 @@ export function runDepsRegen(
 			: existingPure.filter((p) => publishable.has(p.package));
 
 		const toWrite = diffs.map((diff) => ({
-			file: join(changesetDir, `${randomFilename()}.md`),
+			file: join(changesetDir, `${randomFilename(changesetDir)}.md`),
 			package: diff.package,
 			diff,
 		}));

@@ -17,3 +17,12 @@
 ## Other
 
 - Soft-deprecate the top-level `versionFiles[]` field on `.changeset/config.json`. The CLI now emits a one-line `[deprecation]` warning on every run that resolves a legacy config, and `config show` surfaces a `legacyVersionFilesUsed: true` flag in its JSON output. Migrate to the per-package `packages` shape — see the new *Migrating from `versionFiles[]`* section in `docs/configuration.md` for a five-step mechanical translation. The legacy shape is removed in 1.0.0; setting both `packages` and the top-level `versionFiles[]` in the same config is already rejected today.
+
+## Dependencies
+
+| Dependency | Type | Action | From | To |
+| :--------- | :------------- | :------ | :------- | :------- |
+| @changesets/cli | peerDependency | updated | ^2.30.0 | ^2.31.0 |
+| @changesets/cli | devDependency | updated | ^2.30.0 | ^2.31.0 |
+| @savvy-web/rslib-builder | devDependency | updated | ^0.20.1 | ^0.20.3 |
+| workspaces-effect | dependency | updated | ^0.3.0 | ^0.6.0 |
