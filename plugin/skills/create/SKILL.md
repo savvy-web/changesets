@@ -1,66 +1,53 @@
 ---
 name: create
 description: >
-  Interactively create a changeset file for @savvy-web/changesets. Analyzes
-  git diff, detects affected packages, proposes bump types, and drafts a
-  properly structured changeset with valid section headings.
+  Reconcile changesets with the current branch. Inventories existing changesets,
+  diffs against the default branch, applies exclusion rules (AI context, design
+  docs, trivial config), and decides whether to create, update, or delete
+  changeset files so the .changeset/ directory accurately describes the release.
+when_to_use: >
+  "I need a changeset for this branch", "draft a changeset", "add a changeset",
+  "reconcile the changesets with the diff", "version bump", "the release
+  documentation is out of date", "make sure changesets exist for what I just
+  shipped", "do I need a changeset for this branch?"
+argument-hint: "[--require] [--package <name>] [--bump patch|minor|major] [--dry-run]"
 disable-model-invocation: true
 ---
 
-# Create a Changeset
+# Create / Reconcile Changesets
 
-Before drafting content, load the format specification by invoking the `format` skill via the Skill tool. It contains the complete list of valid section headings, structural rules, content depth tiers, and examples. Do not proceed to draft the changeset until that skill is loaded.
+The user invoked `/changesets:create` with arguments: `$ARGUMENTS`
 
-## Step 1 — Understand What Changed
+## What to do
 
-Run `git diff <base-branch>...HEAD` (or `git diff main...HEAD` if no base is known) to review all changes on the current branch. If `$ARGUMENTS` contains package names, treat them as hints for which packages are affected; still verify against the diff.
+Dispatch the `changeset-manager` agent in **create** mode. The agent owns the discover-and-decide logic — your job is to hand off the arguments verbatim and report the agent's result back to the user.
 
-## Step 2 — Detect Affected Packages
+Use the `Agent` tool with `subagent_type: changeset-manager` and a prompt that includes:
 
-Read `pnpm-workspace.yaml` to find workspace package paths, then check each package's `package.json` for its `"name"` field. Cross-reference the diff file paths against workspace package directories to build the list of affected packages.
+1. **Mode**: `create`
+2. **Arguments received from the user**: `$ARGUMENTS`
+3. **Reminder**: apply the exclusion rules (AI context documents, internal design docs, trivial doc tweaks alongside code, behavior-neutral config) and the depth guidance from the agent's system prompt. The goal is release documentation, not a changelog of the diff.
 
-If `$ARGUMENTS` names specific packages, start with those and confirm they match the diff. The user may also name packages that have indirect effects (e.g., shared config changes) that the diff alone would not reveal.
+## Argument semantics
 
-## Step 3 — Propose Bump Types
+The agent will parse `$ARGUMENTS` according to these flags:
 
-For each affected package, propose a bump type based on the nature of the changes:
+| Flag | Effect |
+| --- | --- |
+| `--require` | Assert that a changeset must exist for this branch even if the agent's judgment is "no changeset needed." Creates a conservative-bump entry for the most-affected package. |
+| `--package <name>` | Restrict the action set to the named package(s). Repeatable; also accepts comma-separated. |
+| `--bump patch\|minor\|major` | Override the agent's auto-classification. |
+| `--dry-run` | Print the plan as a table; write nothing. |
 
-- **patch** — bug fixes, documentation updates, internal refactoring with no API changes, test changes, CI/build changes
-- **minor** — new exported APIs, new features, non-breaking additions to existing behavior
-- **major** — removed exports, changed function signatures, behavior changes that break existing consumers, anything requiring a migration
+If `$ARGUMENTS` is empty, the agent runs with full discretion: it discovers what exists, diffs against the base branch, classifies the work, and acts on its own judgment. It will ask only when ambiguity affects the public release surface.
 
-When in doubt between patch and minor, prefer minor. When in doubt between minor and major, prefer major and note the uncertainty.
+## When the agent finishes
 
-## Step 4 — Propose a Content Depth Tier
+Surface the agent's report to the user:
 
-Assess the significance of the changes and propose one of the three content depth tiers from the `format` skill:
+- Files created, updated, deleted
+- Packages classified and their assigned bump types
+- Categories of change that were deliberately skipped (per the exclusion rules)
+- Any questions the agent needed to ask along the way
 
-- **Simple** — patch bump with a small, focused diff (e.g., single bug fix, typo correction)
-- **Structured** — minor bump or a patch with multiple distinct changes across several files
-- **Rich** — major bump, a significant new feature, or any change that requires migration guidance or usage examples
-
-The user can always override the proposed tier.
-
-## Step 5 — Confirm With the User
-
-Present a summary and ask the user to confirm or adjust before writing anything:
-
-1. List each affected package and its proposed bump type
-2. State the proposed content depth tier and a one-sentence rationale
-3. Ask whether to proceed, change any bump type, or change the tier
-
-Do not write the file until the user confirms.
-
-## Step 6 — Draft the Changeset Content
-
-Using the confirmed packages, bump types, and tier, draft the changeset body. Apply the structural rules and section heading categories from the `format` skill. Key principle: focus on what someone upgrading the package needs to know, not engineering implementation details.
-
-Show the draft to the user and invite edits before writing to disk.
-
-## Step 7 — Generate a Filename
-
-Generate a random changeset filename using the adjective-noun-verb pattern that `@changesets/cli` uses (e.g., `brave-dogs-laugh`, `silver-cups-dream`, `lucky-cats-fly`). The filename must be lowercase, hyphen-separated, and end in `.md`.
-
-## Step 8 — Write the File
-
-Write the final changeset to `.changeset/<generated-name>.md`. Confirm the file path to the user after writing.
+Do not editorialize the result — the agent's own summary is the source of truth.

@@ -23,8 +23,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { Schema } from "effect";
 import { globSync } from "tinyglobby";
-import type { VersionFileConfig } from "../schemas/version-files.js";
-import { VersionFilesSchema } from "../schemas/version-files.js";
+// biome-ignore lint/suspicious/noDeprecatedImports: parses the deprecated top-level versionFiles array during the 0.9.0 cycle; removed when Phase 5 migrates this to ConfigInspector
+import type { LegacyVersionFileConfig } from "../schemas/version-files.js";
+// biome-ignore lint/suspicious/noDeprecatedImports: parses the deprecated top-level versionFiles array during the 0.9.0 cycle; removed when Phase 5 migrates this to ConfigInspector
+import { LegacyVersionFilesSchema } from "../schemas/version-files.js";
+import type { ResolvedPackageScope } from "../services/config-inspector.js";
 import { jsonPathGet, jsonPathSet } from "./jsonpath.js";
 
 /**
@@ -101,7 +104,7 @@ export class VersionFiles {
 	 * @remarks
 	 * Accepts a config object (already parsed from `.changeset/config.json`),
 	 * extracts the `changelog` tuple's second element (options object), and
-	 * validates the `versionFiles` key against `VersionFilesSchema`. Returns
+	 * validates the `versionFiles` key against `LegacyVersionFilesSchema`. Returns
 	 * `undefined` if `changelog` is not a tuple, the `versionFiles` key is
 	 * absent, or the array is empty. Schema validation errors are logged as
 	 * warnings but do not throw.
@@ -114,7 +117,7 @@ export class VersionFiles {
 	 */
 	static extractVersionFiles(config: {
 		changelog?: string | false | readonly unknown[] | undefined;
-	}): readonly VersionFileConfig[] | undefined {
+	}): readonly LegacyVersionFileConfig[] | undefined {
 		const { changelog } = config;
 
 		// changelog is expected to be a tuple: [formatter, options]
@@ -129,7 +132,7 @@ export class VersionFiles {
 
 		// versionFiles key is present — schema errors are now worth reporting
 		try {
-			const decoded = Schema.decodeUnknownSync(VersionFilesSchema)(options.versionFiles);
+			const decoded = Schema.decodeUnknownSync(LegacyVersionFilesSchema)(options.versionFiles);
 			return decoded.length > 0 ? decoded : undefined;
 		} catch (error) {
 			console.warn(
@@ -231,8 +234,11 @@ export class VersionFiles {
 	 * @param cwd - Project root directory
 	 * @returns Array of `[filePath, config]` tuples
 	 */
-	static resolveGlobs(configs: readonly VersionFileConfig[], cwd: string): Array<[string, VersionFileConfig]> {
-		const results: Array<[string, VersionFileConfig]> = [];
+	static resolveGlobs(
+		configs: readonly LegacyVersionFileConfig[],
+		cwd: string,
+	): Array<[string, LegacyVersionFileConfig]> {
+		const results: Array<[string, LegacyVersionFileConfig]> = [];
 		const resolvedCwd = resolve(cwd);
 
 		for (const config of configs) {
@@ -328,7 +334,7 @@ export class VersionFiles {
 	 */
 	static processVersionFiles(
 		cwd: string,
-		configs: readonly VersionFileConfig[],
+		configs: readonly LegacyVersionFileConfig[],
 		dryRun = false,
 		packages: ReadonlyArray<{ name: string; version: string; path: string }> = [],
 	): VersionFileUpdate[] {
@@ -359,6 +365,58 @@ export class VersionFiles {
 				}
 			} catch (error) {
 				throw new Error(`Failed to update ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+			}
+		}
+
+		return updates;
+	}
+
+	/**
+	 * Apply version-file updates from the resolved (post-`ConfigInspector`)
+	 * representation. Each {@link ResolvedPackageScope} already names the
+	 * owning package and carries its current version plus the materialized
+	 * file paths, so no glob expansion or path-prefix workspace resolution
+	 * is needed here — the inspector has done that work.
+	 *
+	 * @remarks
+	 * This is the 0.9.0 successor to {@link VersionFiles.processVersionFiles}.
+	 * The old method stays in place to handle the deprecated top-level
+	 * `versionFiles[]` shape (read by `cli/commands/init.ts` for its
+	 * validation pass), and is removed alongside the legacy schema in
+	 * 1.0.0.
+	 *
+	 * @param scopes - Per-package resolved scopes from {@link ConfigInspector.inspect}
+	 * @param dryRun - When `true`, do not write files
+	 * @returns Array of update results, one per file that actually had a
+	 *   matching JSONPath
+	 *
+	 * @internal
+	 */
+	static processResolvedVersionFiles(scopes: ReadonlyArray<ResolvedPackageScope>, dryRun = false): VersionFileUpdate[] {
+		const updates: VersionFileUpdate[] = [];
+
+		for (const scope of scopes) {
+			for (const vf of scope.versionFiles) {
+				const jsonPaths = vf.paths.length > 0 ? vf.paths : ["$.version"];
+				for (const filePath of vf.matchedFiles) {
+					try {
+						if (dryRun) {
+							const content = readFileSync(filePath, "utf-8");
+							const obj = JSON.parse(content) as unknown;
+							const previousValues = jsonPaths.flatMap((jp) => jsonPathGet(obj, jp));
+							if (previousValues.length > 0) {
+								updates.push({ filePath, jsonPaths, version: scope.version, previousValues });
+							}
+						} else {
+							const result = VersionFiles.updateFile(filePath, jsonPaths, scope.version);
+							if (result) {
+								updates.push(result);
+							}
+						}
+					} catch (error) {
+						throw new Error(`Failed to update ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+					}
+				}
 			}
 		}
 

@@ -1,74 +1,53 @@
 ---
 name: merge
 description: >
-  Merge multiple changeset files in .changeset/ that share the same
-  package-to-bump-type mapping. Combines content from matching changesets
-  into a single file and removes the originals. Use to consolidate
-  related changesets before release.
-disable-model-invocation: true
+  Mechanics for consolidating two or more changesets that share an identical
+  package-to-bump-type mapping. Invoked by the changeset-manager agent during
+  /changesets:squash. Not user-invokable; users initiate this work via
+  /changesets:squash.
+user-invocable: false
+model: sonnet
 ---
 
-# Merge Changesets
+# Merge Changesets Mechanics
 
-Before doing anything else, load the `format` skill via the Skill tool. It contains the complete list of valid section headings, structural rules, content depth tiers, and examples. Do not proceed until that skill is loaded.
+This is an agent-internal procedural skill. The invoking agent has already grouped changesets by identical frontmatter mapping and identified which group to merge. Your job is the content combination, the file-level write/delete, and the merged-file report.
 
-## Step 1 — Find Changeset Files
+If the `style` skill is not already in scope, invoke it via the `Skill` tool — the merged output must still satisfy CSH001–CSH005.
 
-List all `.md` files in the `.changeset/` directory. Exclude `README.md`. If no files are found, report "No changeset files found" and stop.
+## Inputs from the invoking agent
 
-## Step 2 — Parse Each File
+- The list of source filenames in the group (all share an identical package-to-bump-type mapping)
+- A target filename, or a directive to generate a fresh `<adjective>-<noun>-<verb>.md` filename
+- Optional content directives (e.g., "drop bullets matching `<exclusion category>` during the merge")
 
-Read every discovered changeset file. For each file, extract the YAML frontmatter and build a normalized package-to-bump-type mapping. The mapping is the complete set of package name / bump type pairs in the frontmatter — order does not matter, but both the package names and the bump types must match exactly.
+## Step 1 — Validate inputs
 
-## Step 3 — Group by Identical Frontmatter Mapping
+Read each source file. Verify their frontmatter mappings are in fact identical. If they diverge, return a failure to the invoking agent rather than silently merging.
 
-Two changesets can be merged only if they have **identical** package-to-bump-type mappings: every package name must be the same, and every corresponding bump type must be the same.
+## Step 2 — Combine content sections
 
-Examples:
+- Collect all `##` sections from every source file.
+- Where multiple sources contain the same `##` heading, merge their content under a single occurrence of that heading.
+- Use `### Sub-headings` to keep distinct contributions separable when they're substantial (named features, independent fix descriptions). Omit sub-headings when items are homogeneous and read naturally as a flat list.
+- Re-apply the exclusion rules from the agent's system prompt: drop bullets describing AI-context updates, internal design docs, or behavior-neutral config changes.
+- Preserve any code fences and their language identifiers verbatim — they were intentionally authored.
 
-- `"@savvy-web/foo": minor` + `"@savvy-web/foo": minor` → can merge
-- `"@savvy-web/foo": minor` + `"@savvy-web/foo": patch` → CANNOT merge (different bump type)
-- `"@savvy-web/foo": minor, "@savvy-web/bar": patch` + `"@savvy-web/foo": minor, "@savvy-web/bar": patch` → can merge
-- `"@savvy-web/foo": minor, "@savvy-web/bar": patch` + `"@savvy-web/foo": minor` → CANNOT merge (different package sets)
+## Step 3 — Resolve the target filename
 
-Groups with only one changeset have nothing to merge — skip them.
+If the agent passed a target filename, use it. Otherwise generate a fresh `<adjective>-<noun>-<verb>.md` (e.g., `brave-dogs-laugh.md`). Never reuse any source filename.
 
-## Step 4 — Present Merge Groups for Confirmation
+## Step 4 — Write the merged file and remove sources
 
-For each group that has two or more changesets, show the user:
+1. Write the merged changeset to `.changeset/<target>.md` with the shared frontmatter and combined content.
+2. Delete each source file.
 
-1. The file names that will be merged together
-2. The shared frontmatter (package-to-bump mapping)
-3. A preview of the combined content (see Step 5 for how to combine sections)
+## Step 5 — Return a structured report
 
-Ask the user to confirm or reject each merge group individually before writing anything. The user may approve all, reject all, or approve a subset.
+Return to the invoking agent:
 
-## Step 5 — Combine Content Sections
+- The target filename written
+- The list of source filenames removed
+- A diff-style summary of which sections were combined and where sub-headings were introduced
 
-For each approved merge group, combine the body content as follows:
-
-- Collect all `##` sections from every changeset in the group
-- Where multiple changesets contain the same `##` section heading, merge their content under a single `##` heading — do not repeat the heading
-- Use `### Sub-heading` within a merged section to separate contributions that are distinct enough to warrant separation (e.g., different sub-features or independent bug fix descriptions); omit sub-headings when the items are homogeneous and read naturally together as a flat list
-- Apply the structural rules from the `format` skill to the merged result: no empty sections, no h1 headings, no preamble content, no heading depth skips
-- The merged content depth tier should reflect the richest tier present among the source files
-
-## Step 6 — Generate a Filename
-
-Generate a new filename using the adjective-noun-verb pattern that `@changesets/cli` uses (e.g., `brave-dogs-laugh`, `silver-cups-dream`, `lucky-cats-fly`). The filename must be lowercase, hyphen-separated, and end in `.md`. Do not reuse any of the original filenames.
-
-## Step 7 — Write the Merged File and Remove Originals
-
-For each approved merge group:
-
-1. Write the merged changeset to `.changeset/<generated-name>.md` with the shared frontmatter and combined content
-2. Delete each of the original changeset files that were merged into it
-
-## Step 8 — Report Results
-
-After completing all merges, report:
-
-- Which files were merged and what new filename was created for each group
-- Which files were left unchanged (either skipped because the group had only one file, or rejected by the user)
-
-Do not commit.
+User confirmation belongs at the entry-point skill, not here.

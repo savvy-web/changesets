@@ -60,30 +60,94 @@ Custom issue reference prefixes to recognize.
 - Default: not set
 - Example: `["#", "GH-"]`
 
-### `versionFiles` (optional)
+### `packages` (recommended in 0.9.0+)
 
-Additional JSON files to update with version numbers during `changeset version`. Each entry specifies a glob pattern to match files and optional JSONPath expressions pointing to the version fields within those files.
+Per-package release surfaces. Maps each workspace package name to its non-workspace files: `additionalScopes` (globs that belong to the package even though they live outside the workspace directory) and `versionFiles` (JSON files whose version field is bumped in lockstep with the package).
 
-- Type: `Array<{ glob: string; paths?: string[]; package?: string }>`
-- Default: not set (step is skipped entirely)
+- Type: `Record<string, { additionalScopes?: string[]; versionFiles?: Array<{ glob: string; paths?: string[] }> }>`
+- Default: not set (single-workspace projects don't need it)
 
 ```json
 {
   "changelog": ["@savvy-web/changesets/changelog", {
     "repo": "owner/repo",
-    "versionFiles": [
-      { "glob": "plugin.json", "paths": ["$.version"] },
-      { "glob": ".claude-plugin/marketplace.json", "paths": ["$.metadata.version", "$.plugins[*].version"] }
-    ]
+    "packages": {
+      "@savvy-web/changesets": {
+        "additionalScopes": ["plugin/**"],
+        "versionFiles": [
+          {
+            "glob": "plugin/.claude-plugin/plugin.json",
+            "paths": ["$.version"]
+          }
+        ]
+      }
+    }
   }]
 }
 ```
 
-**`glob`** (required) -- A glob pattern matched against the project root, with `node_modules` excluded automatically. Examples: `"plugin.json"`, `"**/manifest.json"`, `".claude-plugin/*.json"`.
+In this example, the companion Claude Code plugin under `plugin/**` is declared as part of `@savvy-web/changesets`'s release surface. Every file in `plugin/**` classifies as owned by `@savvy-web/changesets`. The `plugin.json` manifest's `$.version` field is bumped in lockstep with `@savvy-web/changesets`'s version.
 
-**`paths`** (optional) -- An array of JSONPath expressions identifying which fields to update. Defaults to `["$.version"]` when omitted.
+#### `packages[<name>].additionalScopes` (optional)
 
-**`package`** (optional) -- Workspace package name to source the version from (e.g., `"@savvy-web/changesets"`). When set, the version is taken directly from the named package instead of using path-based resolution. This is useful in monorepo layouts where a version file lives outside the workspace package directory it belongs to. Without `package`, such files fall back to the root `package.json` version, which is often `0.0.0` or otherwise incorrect.
+Repo-relative globs naming files outside the workspace package's directory that belong to its release surface. Negation patterns (`!path/**`) are supported.
+
+- Type: `string[]`
+- Default: not set
+- Rules: globs must be repo-relative — absolute paths and parent traversal (`../`) are rejected.
+
+#### `packages[<name>].versionFiles` (optional)
+
+JSON files whose version field is updated alongside the workspace package's version during `savvy-changesets version`. Each entry has a `glob` and an optional `paths` array of JSONPath expressions.
+
+- Type: `Array<{ glob: string; paths?: string[] }>`
+- Default: not set
+
+The `package` field that lived on each entry in the legacy shape is dropped — the parent record key names the owner, so per-entry `package` is redundant.
+
+#### Supported JSONPath Syntax
+
+| Pattern | Description | Example |
+| :--- | :--- | :--- |
+| `$.foo.bar` | Nested property access | `$.metadata.version` |
+| `$.foo[*].bar` | Array wildcard (iterates all elements) | `$.plugins[*].version` |
+| `$.foo[0].bar` | Array index access | `$.entries[0].version` |
+
+All expressions must start with `$.`.
+
+#### Validation Contracts
+
+`ConfigInspector` enforces these cross-package rules at config-load time. `version` and `transform` refuse to run when any of them is violated; `lint` is unaffected (it never reads the config).
+
+| Rule | Reason |
+| :--- | :--- |
+| `packages` keys must resolve to known workspace packages | Catches typos and stale entries |
+| `additionalScopes` globs of two different packages must not overlap | A file belongs to exactly one release surface |
+| `additionalScopes` of one package must not shadow another package's workspace directory | Prevents one package from silently claiming another's files |
+| Two `versionFiles` entries must not target the same `(file, JSONPath)` tuple | Prevents conflicting writes during `version` |
+| A config cannot declare both `packages` and the legacy top-level `versionFiles[]` | Pick one shape |
+
+When validation fails, `savvy-changesets config validate` exits non-zero with a structured error naming the field and the conflict.
+
+#### Formatting Preservation
+
+The version-file updater detects the existing indent style (tabs or spaces) and preserves trailing newlines, so version bumps produce minimal diffs.
+
+#### Dry Run
+
+When `savvy-changesets version --dry-run` is used, version file updates are simulated and logged without writing to disk.
+
+### `versionFiles` (deprecated — 0.9.0, removed in 1.0.0)
+
+The original flat top-level shape, kept during 0.9.0 for backwards compatibility:
+
+- Type: `Array<{ glob: string; paths?: string[]; package?: string }>`
+
+Configs that still use this shape produce a one-line deprecation warning on every `savvy-changesets` run (stderr, naming the config path and the required edit). `savvy-changesets config show` reports `legacyVersionFilesUsed: true`. `savvy-changesets init` also flags the deprecation when run against an existing config.
+
+#### Migrating from `versionFiles[]`
+
+**Before** (0.8.x):
 
 ```json
 {
@@ -100,31 +164,35 @@ Additional JSON files to update with version numbers during `changeset version`.
 }
 ```
 
-In this example, `plugin/.claude-plugin/plugin.json` sits outside the `package/` workspace directory. Without the `package` field, path-based resolution would match the root `package.json` (version `0.0.0`). Setting `"package": "@savvy-web/changesets"` tells the updater to use the version from that workspace package instead.
+**After** (0.9.0+):
 
-#### Supported JSONPath Syntax
+```json
+{
+  "changelog": ["@savvy-web/changesets/changelog", {
+    "repo": "owner/repo",
+    "packages": {
+      "@savvy-web/changesets": {
+        "versionFiles": [
+          {
+            "glob": "plugin/.claude-plugin/plugin.json",
+            "paths": ["$.version"]
+          }
+        ]
+      }
+    }
+  }]
+}
+```
 
-| Pattern | Description | Example |
-| :--- | :--- | :--- |
-| `$.foo.bar` | Nested property access | `$.metadata.version` |
-| `$.foo[*].bar` | Array wildcard (iterates all elements) | `$.plugins[*].version` |
-| `$.foo[0].bar` | Array index access | `$.entries[0].version` |
+Mechanical translation:
 
-All expressions must start with `$.`.
+1. Remove the top-level `versionFiles` array.
+2. Add a `packages` record.
+3. Group entries by their `package` field — each group becomes one entry in the record.
+4. Drop the `package` field from each entry (the parent key carries it now).
+5. Optional but recommended: add `additionalScopes` if files outside the workspace directory belong to the package's release surface beyond just the version file.
 
-#### Monorepo Version Resolution
-
-In monorepos, each matched file is assigned the version from its nearest workspace package using longest-prefix path matching. A file at `packages/core/plugin.json` gets the version from `packages/core/package.json`, while a file at the project root gets the root `package.json` version.
-
-When a version file lives outside the workspace package it belongs to, path-based resolution picks the wrong version. Use the `package` field to explicitly name the source package and bypass path matching entirely. See the `package` field description above for a concrete example.
-
-#### Formatting Preservation
-
-The updater detects the existing indent style (tabs or spaces) and preserves trailing newlines, so version bumps produce minimal diffs.
-
-#### Dry Run
-
-When `savvy-changesets version --dry-run` is used, version file updates are simulated and logged without writing to disk.
+Run `savvy-changesets config show --json` after migrating to confirm the resolved shape matches expectations.
 
 ## CI Integration
 

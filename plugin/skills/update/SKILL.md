@@ -1,56 +1,50 @@
 ---
 name: update
 description: >
-  Update an existing changeset file in .changeset/. Select a changeset to
-  modify, then edit its content, bump types, or affected packages. Use when
-  the scope of a change evolves after the initial changeset was created.
-disable-model-invocation: true
+  Mechanics for modifying an existing changeset file. Invoked by the
+  changeset-manager agent when the diff has grown since the changeset was
+  authored, when a bump-type mismatch is detected, or when a squash needs
+  to rewrite an entry's content. Not user-invokable; users initiate this
+  work via /changesets:create.
+user-invocable: false
+model: sonnet
 ---
 
-# Update a Changeset
+# Update Changeset Mechanics
 
-Before making any edits, load the format specification by invoking the `format` skill via the Skill tool. It contains the complete list of valid section headings, structural rules, content depth tiers, and examples. Do not proceed until that skill is loaded.
+This is an agent-internal procedural skill. The invoking agent has already decided that a specific changeset needs to be modified and has identified what to change. Your job is the file-level mechanics, the structural validation, and the modified-file report.
 
-## Step 1 — Identify the Target Changeset
+If the `style` skill is not already in scope, invoke it via the `Skill` tool before drafting any content — it contains the 13 valid section headings, CSH001–CSH005, and the depth tiers that the modified file must continue to satisfy.
 
-Find all `.changeset/*.md` files, excluding `README.md`.
+## Step 1 — Read the target
 
-If `$ARGUMENTS` names a specific changeset file (e.g., `brave-dogs-laugh` or `brave-dogs-laugh.md`), resolve it to `.changeset/<name>.md` and use that file. Skip the selection prompt.
+The agent passes the target filename and a structured edit spec describing what to change. Resolve the filename to a full path under `.changeset/` and read its current contents. If the file does not exist, return a failure record to the invoking agent.
 
-If `$ARGUMENTS` is empty or does not identify a file, list the available changesets with their file paths and a one-line summary of the frontmatter (package names and bump types). Ask the user to pick one before continuing.
+## Step 2 — Apply the edits
 
-If no changeset files exist, report "No changeset files found in .changeset/" and stop.
+Edit categories the agent may pass:
 
-## Step 2 — Read the Selected Changeset
+- **Content** — add, remove, or rewrite sections; revise bullets or prose under a section.
+- **Bump type** — change the bump level for one or more packages in the frontmatter.
+- **Affected packages** — add or remove package entries in the frontmatter.
 
-Read the full contents of the selected changeset file. Display it to the user so they can see the current state before proposing changes.
+When applying edits:
 
-## Step 3 — Ask What to Change
+- Preserve valid structure: YAML frontmatter block, valid `##` headings from the 13 known categories, no content before the first `##` heading, no `#` h1 headings, no heading depth skips.
+- Preserve section ordering unless explicitly asked to reorder.
+- Do not rewrite content the agent did not flag for change.
+- Re-apply the exclusion rules from the agent's system prompt — if an edit would add a bullet about AI-context, internal-design-doc, or behavior-neutral config changes, drop it.
 
-Ask the user what they want to update. They may request one or more of the following:
+## Step 3 — Write back
 
-- **Content** — add, remove, or edit sections; revise prose or bullet points within a section
-- **Bump type** — upgrade or downgrade the bump level for one or more packages (e.g., `patch` → `minor`)
-- **Affected packages** — add a package (with its bump type) or remove a package from the frontmatter
-- **Open-ended** — describe the change in plain language and let the agent propose the appropriate edits
+Write the modified content back to the same file path. Do not rename the file or change directories.
 
-Do not make any edits yet. Wait for the user's answer.
+## Step 4 — Return a structured report
 
-## Step 4 — Propose the Updated Draft
+Return to the invoking agent:
 
-Apply the requested changes to produce an updated draft. When doing so:
+- The file path written
+- A diff-style summary of what changed (frontmatter changes, section additions/removals/rewrites)
+- Any structural concerns surfaced during the edit (e.g., a section the agent asked to remove was the only section in the file)
 
-- Preserve valid structure at all times: YAML frontmatter block, valid `##` section headings from the 13 known categories, no content before the first `##` heading, no `#` h1 headings, no heading depth skips
-- Do not reorder sections unless the user explicitly asks — preserve the author's original ordering
-- Do not silently discard or rewrite content the user did not ask to change
-- If the user described changes in plain language and the intent maps to multiple edits (e.g., a new section plus a bump upgrade), enumerate each proposed change clearly
-
-Show the complete updated draft to the user and ask for confirmation before writing. If the user wants further adjustments, revise the draft and confirm again.
-
-## Step 5 — Write the File
-
-Once the user confirms the draft, write it back to the same file path. Do not rename the file or change the directory.
-
-Confirm the file path to the user after writing.
-
-Do NOT commit the file.
+User confirmation belongs at the entry-point skill, not here.

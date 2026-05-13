@@ -43,10 +43,28 @@ pnpm vitest run src/changelog/index.test.ts
 ### CLI
 
 ```bash
-npx tsx src/bin/cli.ts lint [dir]        # Machine-readable changeset validation
-npx tsx src/bin/cli.ts check [dir]       # Human-readable validation summary
-npx tsx src/bin/cli.ts transform [file]  # CHANGELOG.md post-processing
-npx tsx src/bin/cli.ts version [dir]     # Monorepo changelog orchestration
+# Bootstrap & validation
+npx tsx src/bin/cli.ts init                    # Bootstrap a repo for @savvy-web/changesets
+npx tsx src/bin/cli.ts lint [dir]              # Machine-readable changeset validation
+npx tsx src/bin/cli.ts check [dir]             # Human-readable validation summary
+npx tsx src/bin/cli.ts validate-file <file>    # Validate one changeset file
+
+# CHANGELOG pipeline
+npx tsx src/bin/cli.ts transform [file]        # CHANGELOG.md post-processing
+npx tsx src/bin/cli.ts version                 # Monorepo changelog orchestration
+
+# Configuration inspection
+npx tsx src/bin/cli.ts config show [dir]       # Resolved .changeset/config.json (JSON / human)
+npx tsx src/bin/cli.ts config validate [dir]   # Validate-only mode (exit code is the signal)
+
+# Release-surface classification
+npx tsx src/bin/cli.ts classify <paths...>     # Map paths to owning packages
+npx tsx src/bin/cli.ts analyze-branch          # Diff + classify every changed file in one call
+npx tsx src/bin/cli.ts release-surface <pkg>   # List everything owned by a package
+
+# Dependency changesets
+npx tsx src/bin/cli.ts deps detect             # Per-package dep diff (JSON or CSH005 markdown)
+npx tsx src/bin/cli.ts deps regen              # Delete + recreate pure-dep changesets
 ```
 
 ## Architecture
@@ -107,12 +125,34 @@ Turbo orchestrates tasks: `typecheck` depends on `build` completing first.
 - `Command.make(name, { opts }, handler)` for @effect/cli commands
 - `ChangesetConfigReader` service (from `@savvy-web/silk-effects/versioning`)
   for config I/O; provide `ChangesetConfigReaderLive` layer at command edges
+- `ConfigInspector` service (in `src/services/config-inspector.ts`) — reads
+  the config, validates it against the schema, normalizes legacy
+  `versionFiles[]` into the new `packages` shape with a deprecation
+  warning, resolves package names against `WorkspaceDiscovery`, and runs
+  the cross-package overlap / shadowing / conflict checks. Consumed by
+  every 0.9.0 CLI command that needs the config.
+- `BranchAnalyzer` service (`src/services/branch-analyzer.ts`) — wraps
+  `ConfigInspector` plus `git diff` against the merge-base (covering
+  committed + staged + unstaged) and `git ls-files --others` (untracked)
+  to return per-file classification in one call. Used by `analyze-branch`
+  and the agent's create-mode flow.
+- `WorkspaceSnapshotReader` service (`src/services/workspace-snapshot.ts`)
+  — reads workspace packages at arbitrary git refs via `git show <ref>:...`
+  for the `deps detect` / `deps regen` diff. Caches per `(cwd, ref)`.
+- `SilkPublishabilityDetectorLive` layer (`src/services/silk-publishability.ts`)
+  — overrides `workspaces-effect`'s `PublishabilityDetector` with the
+  silk-suite rules (private + `publishConfig.access` = publishable,
+  `publishConfig.targets` array support, shorthand inheritance). Filters
+  non-publishable workspaces out of the `deps detect` / `deps regen`
+  defaults. Eventual home: `@savvy-web/silk-effects`.
 - `WorkspaceDiscovery`, `PackageManagerDetector`, `WorkspaceRoot` services
   (from `workspaces-effect`) for workspace operations; provide `WorkspacesLive`
   layer at CLI entry point
-- `VersionFiles.discoverVersions(cwd, packages)` -- accepts pre-resolved
-  package list (from `WorkspaceDiscovery.listPackages()`) and returns version
-  file paths
+- `VersionFiles.processResolvedVersionFiles(scopes, dryRun)` — 0.9.0 path
+  for version-file updates; consumes `ResolvedPackageScope[]` from
+  `ConfigInspector.inspect`. The legacy `VersionFiles.processVersionFiles`
+  (legacy top-level `versionFiles[]`) still exists for the `init`
+  command's check path; both go away in 1.0.0.
 - `jsonc-effect` `modify` + `applyEdits` for JSONC mutations (not
   `JSON.stringify`)
 - Biome enforces `interface` over `type` (except literal unions)

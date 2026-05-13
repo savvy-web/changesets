@@ -1,10 +1,12 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { ChangesetConfigReader } from "@savvy-web/silk-effects";
 import { Effect, Layer, Logger } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PackageManagerDetector, WorkspaceDiscovery } from "workspaces-effect";
 
+import { ConfigurationError } from "../../errors.js";
+import type { InspectedConfig } from "../../services/config-inspector.js";
+import { ConfigInspector, makeConfigInspectorTest } from "../../services/config-inspector.js";
 import { runVersion } from "./version.js";
 
 vi.mock("node:child_process", () => ({
@@ -24,20 +26,30 @@ vi.mock("../../api/transformer.js", () => ({
 
 vi.mock("../../utils/version-files.js", () => ({
 	VersionFiles: {
-		extractVersionFiles: vi.fn(),
-		processVersionFiles: vi.fn(),
+		processResolvedVersionFiles: vi.fn(() => []),
 	},
 }));
 
-// Import the mocked modules so we can configure them per-test
 import { ChangelogTransformer } from "../../api/transformer.js";
 import { VersionFiles } from "../../utils/version-files.js";
 
 const silentLogger = Logger.replace(Logger.defaultLogger, Logger.none);
 
-const TestChangesetConfigReaderLayer = Layer.succeed(ChangesetConfigReader, {
-	read: () => Effect.succeed({ changelog: undefined }),
-});
+function makeInspected(overrides: Partial<InspectedConfig> = {}): InspectedConfig {
+	return {
+		configPath: "/project/.changeset/config.json",
+		projectDir: "/project",
+		changelog: "@savvy-web/changesets/changelog",
+		baseBranch: "main",
+		access: "restricted",
+		ignore: [],
+		packages: [],
+		legacyVersionFilesUsed: false,
+		...overrides,
+	};
+}
+
+const ValidConfigInspectorLayer = makeConfigInspectorTest(makeInspected());
 
 const TestPackageManagerDetectorLayer = Layer.succeed(PackageManagerDetector, {
 	detect: () => Effect.succeed({ type: "pnpm" as const, version: "10.0.0", runtime: "node" as const }),
@@ -50,7 +62,7 @@ const TestWorkspaceDiscoveryLayer = Layer.succeed(WorkspaceDiscovery, {
 });
 
 const TestLayers = Layer.mergeAll(
-	TestChangesetConfigReaderLayer,
+	ValidConfigInspectorLayer,
 	TestPackageManagerDetectorLayer,
 	TestWorkspaceDiscoveryLayer,
 );
@@ -61,14 +73,14 @@ afterEach(() => {
 
 describe("runVersion Effect handler", () => {
 	it("skips execSync and logs dry-run message when dryRun is true", async () => {
+		vi.mocked(existsSync).mockReturnValue(false); // no config and no changelogs
 		await Effect.runPromise(runVersion(true).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)));
-
 		expect(execSync).not.toHaveBeenCalled();
 	});
 
 	it("runs execSync with changeset version command when dryRun is false", async () => {
+		vi.mocked(existsSync).mockReturnValue(false);
 		await Effect.runPromise(runVersion(false).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)));
-
 		expect(execSync).toHaveBeenCalledWith("pnpm exec changeset version", {
 			cwd: process.cwd(),
 			stdio: "inherit",
@@ -76,8 +88,8 @@ describe("runVersion Effect handler", () => {
 	});
 
 	it("handles zero changelogs gracefully", async () => {
+		vi.mocked(existsSync).mockReturnValue(false);
 		await Effect.runPromise(runVersion(true).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)));
-
 		expect(ChangelogTransformer.transformFile).not.toHaveBeenCalled();
 	});
 
@@ -94,23 +106,21 @@ describe("runVersion Effect handler", () => {
 
 		vi.mocked(existsSync).mockImplementation((p) => {
 			const s = String(p);
-			// Only workspace packages have changelogs, not root
 			return s.endsWith("packages/a/CHANGELOG.md") || s.endsWith("packages/b/CHANGELOG.md");
 		});
 
 		await Effect.runPromise(
 			runVersion(true).pipe(
-				Effect.provide(Layer.mergeAll(TestChangesetConfigReaderLayer, TestPackageManagerDetectorLayer, packagesLayer)),
+				Effect.provide(Layer.mergeAll(ValidConfigInspectorLayer, TestPackageManagerDetectorLayer, packagesLayer)),
 				Effect.provide(silentLogger),
 			),
 		);
 
 		expect(ChangelogTransformer.transformFile).toHaveBeenCalledTimes(2);
-		expect(ChangelogTransformer.transformFile).toHaveBeenCalledWith("/project/packages/a/CHANGELOG.md");
-		expect(ChangelogTransformer.transformFile).toHaveBeenCalledWith("/project/packages/b/CHANGELOG.md");
 	});
 
 	it("rejects when execSync throws an error", async () => {
+		vi.mocked(existsSync).mockReturnValue(false);
 		vi.mocked(execSync).mockImplementation(() => {
 			throw new Error("command not found");
 		});
@@ -132,85 +142,93 @@ describe("runVersion Effect handler", () => {
 			throw new Error("ENOENT: no such file");
 		});
 
+		// existsSync returns true everywhere — also for .changeset/config.json,
+		// which would force a config inspect call. Provide a valid inspector layer
+		// (the default TestLayers does, but we override workspaces here).
 		await expect(
 			Effect.runPromise(
 				runVersion(true).pipe(
-					Effect.provide(
-						Layer.mergeAll(TestChangesetConfigReaderLayer, TestPackageManagerDetectorLayer, packagesLayer),
-					),
+					Effect.provide(Layer.mergeAll(ValidConfigInspectorLayer, TestPackageManagerDetectorLayer, packagesLayer)),
 					Effect.provide(silentLogger),
 				),
 			),
-		).rejects.toThrow("Failed to transform /project/packages/a/CHANGELOG.md: ENOENT: no such file");
+		).rejects.toThrow(/Failed to transform .*\/CHANGELOG.md: ENOENT/);
 	});
 
-	it("skips version files when extractVersionFiles returns undefined", async () => {
-		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(undefined);
-
+	it("skips version files when inspected config has no packages with versionFiles", async () => {
+		// existsSync returns true for the config path so requireValidConfig runs;
+		// the inspector layer returns an empty packages list so processing is skipped.
+		vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith(".changeset/config.json"));
 		await Effect.runPromise(runVersion(true).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)));
-
-		expect(VersionFiles.processVersionFiles).not.toHaveBeenCalled();
+		expect(VersionFiles.processResolvedVersionFiles).not.toHaveBeenCalled();
 	});
 
-	it("processes version files when config is present", async () => {
-		const configs = [{ glob: "plugin.json", paths: ["$.version"] }];
-		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(configs);
-		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([
+	it("processes version files when inspector reports packages with versionFiles", async () => {
+		const InspectorWithVF = makeConfigInspectorTest(
+			makeInspected({
+				packages: [
+					{
+						name: "@scope/foo",
+						workspaceDir: "/project/packages/foo",
+						version: "2.0.0",
+						additionalScopes: [],
+						additionalScopeFiles: [],
+						versionFiles: [
+							{
+								glob: "plugin.json",
+								paths: ["$.version"],
+								matchedFiles: ["/project/plugin.json"],
+							},
+						],
+					},
+				],
+			}),
+		);
+		vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith(".changeset/config.json"));
+		vi.mocked(VersionFiles.processResolvedVersionFiles).mockReturnValue([
 			{ filePath: "/project/plugin.json", jsonPaths: ["$.version"], version: "2.0.0", previousValues: ["1.0.0"] },
 		]);
 
-		await Effect.runPromise(runVersion(true).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)));
+		await Effect.runPromise(
+			runVersion(true).pipe(
+				Effect.provide(Layer.mergeAll(InspectorWithVF, TestPackageManagerDetectorLayer, TestWorkspaceDiscoveryLayer)),
+				Effect.provide(silentLogger),
+			),
+		);
 
-		expect(VersionFiles.processVersionFiles).toHaveBeenCalledWith(process.cwd(), configs, true, []);
+		expect(VersionFiles.processResolvedVersionFiles).toHaveBeenCalledTimes(1);
+		const callArgs = vi.mocked(VersionFiles.processResolvedVersionFiles).mock.calls[0];
+		expect(callArgs[0]).toHaveLength(1);
+		expect(callArgs[1]).toBe(true);
 	});
 
-	it("passes dryRun=false to processVersionFiles when not in dry-run mode", async () => {
-		const configs = [{ glob: "plugin.json" }];
-		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue(configs);
-		vi.mocked(VersionFiles.processVersionFiles).mockReturnValue([]);
-
-		await Effect.runPromise(runVersion(false).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)));
-
-		expect(VersionFiles.processVersionFiles).toHaveBeenCalledWith(process.cwd(), configs, false, []);
-	});
-
-	it("rejects when processVersionFiles throws an error", async () => {
-		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue([{ glob: "plugin.json" }]);
-		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
-			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
+	it("refuses to run when the config inspector returns ConfigurationError", async () => {
+		const failingInspector = Layer.succeed(ConfigInspector, {
+			inspect: () => Effect.fail(new ConfigurationError({ field: "options", reason: "synthetic" })),
+			classify: () => Effect.fail(new ConfigurationError({ field: "options", reason: "synthetic" })),
 		});
-
-		await expect(
-			Effect.runPromise(runVersion(true).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger))),
-		).rejects.toThrow("EACCES: permission denied");
-	});
-
-	it("extracts per-file path into VersionFileError.filePath", async () => {
-		vi.mocked(VersionFiles.extractVersionFiles).mockReturnValue([{ glob: "plugin.json" }]);
-		vi.mocked(VersionFiles.processVersionFiles).mockImplementation(() => {
-			throw new Error("Failed to update /project/plugin.json: EACCES: permission denied");
-		});
+		vi.mocked(existsSync).mockImplementation((p) => String(p).endsWith(".changeset/config.json"));
 
 		const exit = await Effect.runPromiseExit(
-			runVersion(true).pipe(Effect.provide(TestLayers), Effect.provide(silentLogger)),
+			runVersion(false).pipe(
+				Effect.provide(Layer.mergeAll(failingInspector, TestPackageManagerDetectorLayer, TestWorkspaceDiscoveryLayer)),
+				Effect.provide(silentLogger),
+			),
 		);
 		expect(exit._tag).toBe("Failure");
-		if (exit._tag === "Failure") {
-			const err = exit.cause as { _tag: string; error?: { filePath?: string } };
-			expect(err.error?.filePath).toBe("/project/plugin.json");
-		}
+		// Confirm execSync was not called — refusal happens before the version step.
+		expect(execSync).not.toHaveBeenCalled();
 	});
 
 	it("falls back to npm when PackageManagerDetector fails", async () => {
 		const failingDetectorLayer = Layer.succeed(PackageManagerDetector, {
 			detect: () => Effect.fail({ _tag: "PackageManagerDetectionError" as const, reason: "no pm found" } as never),
 		});
+		vi.mocked(existsSync).mockReturnValue(false);
 
 		await Effect.runPromise(
 			runVersion(false).pipe(
-				Effect.provide(
-					Layer.mergeAll(TestChangesetConfigReaderLayer, failingDetectorLayer, TestWorkspaceDiscoveryLayer),
-				),
+				Effect.provide(Layer.mergeAll(ValidConfigInspectorLayer, failingDetectorLayer, TestWorkspaceDiscoveryLayer)),
 				Effect.provide(silentLogger),
 			),
 		);

@@ -4,16 +4,21 @@ description: >
   Preview what the combined CHANGELOG output would look like with all
   pending changesets. Shows the rendered release notes grouped by package,
   with sections merged and ordered by priority. Use to review before merging.
+when_to_use: >
+  "preview the changelog", "what will the release notes look like",
+  "preview the release", "show me what the CHANGELOG would say",
+  "render the pending release notes", "what would users see if I shipped now"
 disable-model-invocation: true
+model: sonnet
 ---
 
 # Preview Pending Changeset Output
 
 Render a preview of what the CHANGELOG entries would look like if all pending changesets were released now.
 
-## Step 1: Load Format Rules
+## Step 1: Load Style Rules
 
-Load the `format` skill via the Skill tool to get the authoritative list of the 13 section categories and their priority order. Use the priority table from that skill for all ordering decisions in the steps below.
+Load the `style` skill via the Skill tool to get the authoritative list of the 13 section categories and their priority order. Use the priority table from that skill for all ordering decisions in the steps below.
 
 ## Step 2: Find Changeset Files
 
@@ -57,7 +62,7 @@ Gather all content contributed under each section heading across all changesets 
 
 ### 5c: Order Sections
 
-Sort the merged sections by their priority number from the `format` category table (Breaking Changes = 1 first, Other = 13 last). Omit any category that has no content.
+Sort the merged sections by their priority number from the `style` category table (Breaking Changes = 1 first, Other = 13 last). Omit any category that has no content.
 
 ## Step 6: Render the Preview
 

@@ -40,7 +40,8 @@ import { Data, Effect, Schema } from "effect";
 import type { JsoncFormattingOptions } from "jsonc-effect";
 import { applyEdits, modify, parse as parseJsonc } from "jsonc-effect";
 import { WorkspaceRoot } from "workspaces-effect";
-import { VersionFilesSchema } from "../../schemas/version-files.js";
+// biome-ignore lint/suspicious/noDeprecatedImports: validates the deprecated top-level versionFiles array during the 0.9.0 cycle; Phase 6 will add a migration warning here
+import { LegacyVersionFilesSchema } from "../../schemas/version-files.js";
 
 const CUSTOM_RULES_ENTRY = "@savvy-web/changesets/markdownlint";
 const CHANGELOG_ENTRY = "@savvy-web/changesets/changelog";
@@ -258,6 +259,77 @@ export function handleConfig(changesetDir: string, repoSlug: string, force: bool
 				step: ".changeset/config.json",
 				reason: error instanceof Error ? error.message : String(error),
 			}),
+	});
+}
+
+/**
+ * Detect whether a config's changelog options carry the deprecated top-level
+ * `versionFiles[]` array (the 0.8.x shape).
+ *
+ * @remarks
+ * The new shape (introduced in 0.9.0) lives under
+ * `changelog[1].packages[<name>].versionFiles`. The legacy shape has
+ * `versionFiles` as a top-level key of the changelog options object with
+ * each entry carrying its own `package` field. Returns `true` only when the
+ * legacy shape is present and non-empty.
+ *
+ * Reads from a pre-parsed config object — `handleConfig` and `checkConfig`
+ * already parse the file once; we don't re-parse here.
+ *
+ * @internal
+ */
+export function detectLegacyVersionFiles(config: unknown): boolean {
+	if (typeof config !== "object" || config === null) return false;
+	const cfg = config as { changelog?: unknown };
+	const changelog = cfg.changelog;
+	if (!Array.isArray(changelog) || changelog.length < 2) return false;
+	const options = changelog[1] as { versionFiles?: unknown } | null;
+	if (typeof options !== "object" || options === null) return false;
+	return Array.isArray(options.versionFiles) && options.versionFiles.length > 0;
+}
+
+/**
+ * Format the deprecation message emitted when an existing config still
+ * uses the legacy top-level `versionFiles[]`.
+ *
+ * @internal
+ */
+export function legacyVersionFilesWarning(configPath: string): string {
+	return [
+		`DEPRECATION: ${configPath} uses the legacy top-level \`versionFiles[]\` array.`,
+		"  Migrate each entry to `changelog[1].packages[<entry.package>].versionFiles`",
+		"  and remove the top-level field. Run `savvy-changesets config show --json`",
+		"  to see the normalized form, or check the 0.9.0 release notes for examples.",
+		"  Removed in @savvy-web/changesets 1.0.0.",
+	].join("\n");
+}
+
+/**
+ * Read the config at `configPath` and emit an `Effect.logWarning` if it
+ * still uses the deprecated top-level `versionFiles[]` shape. Silent
+ * when the file doesn't exist (e.g., the caller just created a fresh
+ * default config) or when the file uses the new `packages` shape.
+ *
+ * @remarks
+ * Never fails — config-parse errors are swallowed because deeper diagnosis
+ * is the job of `config validate`. This helper exists only to surface the
+ * migration hint at `init` time.
+ *
+ * @internal
+ */
+export function warnIfLegacyVersionFiles(changesetDir: string): Effect.Effect<void, never> {
+	return Effect.gen(function* () {
+		const configPath = join(changesetDir, "config.json");
+		if (!existsSync(configPath)) return;
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(readFileSync(configPath, "utf-8"));
+		} catch {
+			return;
+		}
+		if (detectLegacyVersionFiles(parsed)) {
+			yield* Effect.logWarning(legacyVersionFilesWarning(configPath));
+		}
 	});
 }
 
@@ -486,13 +558,24 @@ export function checkConfig(changesetDir: string, repoSlug: string): CheckIssue[
 		// Validate versionFiles if present
 		const options = Array.isArray(changelog) ? changelog[1] : undefined;
 		if (options && typeof options === "object" && "versionFiles" in options) {
-			const result = Schema.decodeUnknownEither(VersionFilesSchema)(options.versionFiles);
+			const result = Schema.decodeUnknownEither(LegacyVersionFilesSchema)(options.versionFiles);
 			if (result._tag === "Left") {
 				issues.push({
 					file: ".changeset/config.json",
 					message: "versionFiles config is invalid",
 				});
 			}
+		}
+
+		// Surface deprecation when the config still uses the legacy shape.
+		// Reported as a CheckIssue so `init --check` callers (CI gates,
+		// postinstall scripts) see it the same way they see other drift.
+		if (detectLegacyVersionFiles(config)) {
+			issues.push({
+				file: ".changeset/config.json",
+				message:
+					"uses the legacy top-level `versionFiles[]` array (deprecated; removed in 1.0.0). Migrate to `packages[<name>].versionFiles`.",
+			});
 		}
 
 		return issues;
@@ -630,6 +713,12 @@ export const initCommand = Command.make(
 			const configResult = yield* handleConfig(changesetDir, repoSlug, force).pipe(Effect.either);
 			if (configResult._tag === "Right") {
 				yield* Effect.log(configResult.right);
+				// 3b. Surface deprecation when the (possibly newly patched) config
+				//     still carries the legacy top-level `versionFiles[]`. This is
+				//     never fatal — the warning text names the migration target.
+				if (!quiet) {
+					yield* warnIfLegacyVersionFiles(changesetDir);
+				}
 			} else {
 				errors.push(configResult.left);
 			}

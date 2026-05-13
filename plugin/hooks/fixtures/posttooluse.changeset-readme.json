@@ -1,0 +1,11 @@
+{
+	"session_id": "test-session-0001",
+	"transcript_path": "/tmp/transcript.jsonl",
+	"cwd": "/tmp/changesets-test-cwd",
+	"hook_event_name": "PostToolUse",
+	"tool_name": "Edit",
+	"tool_input": {
+		"file_path": ".changeset/README.md"
+	},
+	"tool_response": {}
+}

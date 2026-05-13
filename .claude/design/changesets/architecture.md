@@ -3,12 +3,14 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-03-29
-last-synced: 2026-03-29
+updated: 2026-05-13
+last-synced: 2026-05-13
 completeness: 98
 related: []
 dependencies: []
 implementation-status: implemented
+implementation-plans:
+  - ../../plans/v1-typed-release-surfaces.md
 ---
 
 # @savvy-web/changesets - Architecture
@@ -32,16 +34,19 @@ generated CHANGELOG.md files, and markdownlint custom rules for editor/CI integr
 10. [Contributor Tracking](#contributor-tracking)
 11. [Issue and Ticket Linking](#issue-and-ticket-linking)
 12. [Version Files](#version-files)
-13. [Dependency Table Format](#dependency-table-format)
-14. [Changeset File Format](#changeset-file-format)
-15. [Export Map and CLI](#export-map-and-cli)
-16. [Claude Code Plugin](#claude-code-plugin)
-17. [Dependencies](#dependencies)
-18. [Integration Points](#integration-points)
-19. [Compatibility Requirements](#compatibility-requirements)
-20. [Testing Strategy](#testing-strategy)
-21. [Future Enhancements](#future-enhancements)
-22. [Related Documentation](#related-documentation)
+13. [Per-Package Release Surfaces](#per-package-release-surfaces)
+14. [Service Layer](#service-layer)
+15. [CLI Configuration Gate](#cli-configuration-gate)
+16. [Dependency Table Format](#dependency-table-format)
+17. [Changeset File Format](#changeset-file-format)
+18. [Export Map and CLI](#export-map-and-cli)
+19. [Claude Code Plugin](#claude-code-plugin)
+20. [Dependencies](#dependencies)
+21. [Integration Points](#integration-points)
+22. [Compatibility Requirements](#compatibility-requirements)
+23. [Testing Strategy](#testing-strategy)
+24. [Future Enhancements](#future-enhancements)
+25. [Related Documentation](#related-documentation)
 
 ---
 
@@ -87,6 +92,18 @@ the Effect CLI, integration test suite,
 markdownlint custom rules, and the dependency table
 format feature. The package is functional with
 tests passing across 55 test files.
+
+The **0.9.0 release** adds the per-package release surface model on top of
+the three-layer pipeline. This introduces a new top-level `packages` config
+shape (replacing the legacy top-level `versionFiles[]`), four new Effect
+services (`ConfigInspector`, `BranchAnalyzer`, `WorkspaceSnapshotReader`,
+`SilkPublishabilityDetectorLive`), and five new CLI subcommands (`config
+show`, `config validate`, `classify`, `analyze-branch`,
+`release-surface`, `deps detect`, `deps regen`). 0.9.0 accepts both shapes
+with a deprecation warning on the legacy shape; **1.0.0 removes the legacy
+shape entirely**. See the [Per-Package Release Surfaces](#per-package-release-surfaces)
+and [Service Layer](#service-layer) sections below, and the full sequencing
+plan at `.claude/plans/v1-typed-release-surfaces.md`.
 
 **What is implemented:**
 
@@ -1915,6 +1932,8 @@ Issue linking is configured via `changelogOpts`:
 
 The `versionFiles` feature bumps version fields in additional JSON files beyond `package.json` during the `savvy-changesets version` flow. This addresses a common monorepo need where version numbers must be synchronized across plugin manifests, app manifests, and other non-npm configuration files.
 
+> **Deprecation cycle (0.9.0 -> 1.0.0):** The top-level `versionFiles[]` configuration described in this section is the **legacy shape** as of 0.9.0. It is still accepted, but `ConfigInspector` emits a one-line `Effect.logWarning` at config-load time pointing users at the new per-package shape. The init command's `--check` mode appends a `CheckIssue` for the same deprecation. The legacy shape and its longest-prefix workspace resolution are **removed in 1.0.0**. New configs should use the per-package `packages` record described in [Per-Package Release Surfaces](#per-package-release-surfaces). The schemas defining both shapes live side-by-side in `package/src/schemas/version-files.ts` (`VersionFileConfigSchema` for the new per-package entry, `LegacyVersionFileConfigSchema` for the legacy top-level entry).
+
 ### Motivation
 
 Many projects maintain version numbers in files other than `package.json` -- for example, `plugin.json` for editor plugins, `manifest.json` for browser extensions, or custom metadata files. Without `versionFiles`, developers must manually update these after every `changeset version` run, which is error-prone and easy to forget.
@@ -2048,6 +2067,305 @@ The `VersionFiles` class (`src/utils/version-files.ts`) follows the established 
 ### Dry Run Support
 
 The `version` command's `--dry-run` flag is respected by `processVersionFiles`. In dry-run mode, files are read and analyzed but not written. The CLI logs "Would update" instead of "Updated" for each file, allowing users to preview what would change.
+
+---
+
+## Per-Package Release Surfaces
+
+The **per-package release surface** model (0.9.0) replaces the flat top-level `versionFiles[]` with a structured `packages` record keyed by workspace package name. Each workspace package declares its own release surface: which non-workspace files belong to it (`additionalScopes`) and which version files target it (`versionFiles`). This makes attribution explicit, removes the fragile longest-prefix-match heuristic, and is the foundation for the new classification, branch-analysis, and dependency-regeneration commands.
+
+### Motivation
+
+The legacy `versionFiles[]` shape used a flat array of `{ glob, paths?, package? }` entries. Resolution was driven by **longest-prefix workspace matching** against each matched file path, with the optional `package` field as an override escape hatch. This worked for the common case but had structural problems:
+
+- **Implicit attribution.** A file like `plugin/.claude-plugin/plugin.json` at the repo root sat in *no* workspace directory and resolved to the root `package.json` version by default. Authors needed the `package` override to fix this, but only if they noticed.
+- **No release-surface concept.** "What files belong to package X" was never a first-class question the config could answer. Tools wanting to attribute a changed file to its owning package had to recompute longest-prefix matching themselves.
+- **One-way mapping.** The legacy shape mapped *files to versions*, not *files to packages*. The new shape is the inverse, which makes the classification, branch-analysis, and dependency-regeneration features tractable.
+
+### Configuration Shape
+
+The new shape lives on the changelog formatter's options object as a top-level `packages` record:
+
+```json
+{
+  "changelog": [
+    "@savvy-web/changesets/changelog",
+    {
+      "repo": "savvy-web/my-monorepo",
+      "packages": {
+        "@savvy-web/my-package": {
+          "additionalScopes": [
+            "plugin/.claude-plugin/**",
+            "docs/my-package/**"
+          ],
+          "versionFiles": [
+            { "glob": "plugin/.claude-plugin/plugin.json", "paths": ["$.version"] }
+          ]
+        },
+        "@savvy-web/another-package": {
+          "additionalScopes": [],
+          "versionFiles": [
+            { "glob": "packages/another-package/manifest.json" }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+Each `packages[name]` entry has two fields:
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `additionalScopes` | `string[]` | Yes (may be empty) | Glob patterns declaring **non-workspace files** that belong to this package's release surface. A file matched here is attributed to the keyed package for classification, branch analysis, and changeset routing -- even though it sits outside the package's workspace directory. |
+| `versionFiles` | `Array<{ glob, paths? }>` | Yes (may be empty) | Per-package version-file targets. Same `{ glob, paths? }` schema as the legacy entry, but **without** the per-entry `package` field -- attribution comes from the enclosing `packages[name]` key. |
+
+The schemas live in `package/src/schemas/package-scope.ts`:
+
+| Schema | Purpose |
+| :--- | :--- |
+| `GlobSchema` | Non-empty string with basic glob-shape validation |
+| `PackageScopeSchema` | `Schema.Struct({ additionalScopes, versionFiles })` -- one workspace package's release surface |
+| `PackagesRecordSchema` | `Schema.Record({ key: PackageNameSchema, value: PackageScopeSchema })` -- the full top-level record |
+
+The per-package `versionFiles` entry shape lives in `package/src/schemas/version-files.ts` as `VersionFileConfigSchema`. The legacy entry shape (with optional `package` field) is preserved alongside as `LegacyVersionFileConfigSchema`.
+
+### Dual-Shape Rejection
+
+A single config **cannot declare both** the new top-level `packages` record and the legacy top-level `versionFiles[]` array. This is enforced at the schema level in `ChangesetOptionsSchema` via a `Schema.filter` that fails decoding when both fields are present, with an actionable error message pointing the user at the migration path.
+
+The two shapes are mutually exclusive deliberately: there is no reasonable merge semantics ("what happens if package X owns `foo.json` per the new shape but the legacy entry also targets `foo.json` with package=Y?"), and accepting both would make `ConfigInspector` resolution non-deterministic.
+
+### Deprecation Cycle
+
+| Version | Behavior |
+| :--- | :--- |
+| **0.9.0 (current)** | Both shapes accepted. New `packages` shape is the recommended form. Legacy `versionFiles[]` continues to work; `ConfigInspector.inspect(cwd)` emits a one-line `Effect.logWarning` at load time and the init command's `--check` mode appends a `CheckIssue` for the deprecation. Documents the migration path in the warning text. |
+| **1.0.0 (future)** | Legacy `versionFiles[]` shape and its longest-prefix workspace resolution are removed. `LegacyVersionFileConfigSchema` and the legacy normalization branch in `ConfigInspector` are deleted. The `extractVersionFiles` + `processVersionFiles` helper chain (still used by the `init --check` path) is also removed. Only the per-package shape is decoded. The 1.0.0 hard break lands as Phase 10 of `.claude/plans/v1-typed-release-surfaces.md` on a future branch. |
+
+### Migration Path
+
+Mechanically:
+
+1. For each legacy `versionFiles[]` entry, identify the owning package (either via the entry's existing `package` field or via longest-prefix workspace matching against the entry's `glob`).
+2. Move the entry under `packages[name].versionFiles[]`, dropping the `package` field.
+3. If the entry was attributed to a package whose surface extends beyond its workspace directory (e.g., a plugin manifest at the repo root), add the manifest's parent directory to that package's `additionalScopes`.
+
+### Relationship to Existing Sections
+
+- The legacy [Version Files](#version-files) section continues to describe the `versionFiles[]` array, JSONPath, formatting preservation, and `VersionFiles` static utility class. All of that machinery still works in 0.9.0; only the **top-level shape** changes.
+- The new `packages[name].versionFiles[]` entries reuse the same `VersionFileConfigSchema`-derived structure (minus the `package` field) and flow through the same JSONPath/formatting-preservation/dry-run machinery once `ConfigInspector` has resolved them.
+- The new `version` command consumes `ConfigInspector.inspect`'s resolved packages directly via `VersionFiles.processResolvedVersionFiles(scopes, dryRun)` and bypasses `extractVersionFiles` entirely. The legacy chain is kept alive only for `init --check`. Both paths disappear in 1.0.0.
+
+---
+
+## Service Layer
+
+The 0.9.0 release introduces four new Effect services in `package/src/services/` that sit between the config and the formatter. They expose typed, composable views over the workspace and its history so that the new `classify`, `analyze-branch`, `release-surface`, and `deps` commands -- and the companion plugin's agents -- can ask high-level questions without recomputing classification logic themselves.
+
+### ConfigInspector
+
+`package/src/services/config-inspector.ts` is the central authority on the resolved `.changeset/config.json`. Every other 0.9.0 surface (the CLI commands, the rewritten `version` flow, the `BranchAnalyzer`, the companion plugin's `analyze-branch.sh` wrapper) goes through it.
+
+**Operations:**
+
+| Method | Description |
+| :--- | :--- |
+| `inspect(cwd)` | Read `.changeset/config.json` via `ChangesetConfigReader`, normalize legacy `versionFiles[]` into the new per-package shape, decode the result via `ChangesetOptionsSchema`, resolve package names against `WorkspaceDiscovery`, materialize globs against the filesystem, and run cross-package overlap detection. Returns a fully resolved `ResolvedConfig` carrying the `packages[]` array with materialized file paths per scope. |
+| `classify(cwd, paths)` | For each input path (repo-relative), return its attribution: `"workspace"` (the path is inside a workspace package's own directory), `{ kind: "additionalScope", glob, package }` (the path matched an `additionalScopes` glob on the keyed package), `{ kind: "versionFile", glob, package }` (the path is a per-package version-file target), or `null` (unattributed). |
+
+**Normalization (legacy -> new):** When `inspect` sees a top-level `versionFiles[]`, it walks each entry and synthesizes a `packages[name]` entry: either using the entry's `package` field if present, or by longest-prefix workspace matching against the entry's resolved glob (mirroring the legacy `VersionFiles` resolution). The deprecation warning is emitted exactly once per `inspect` call. Downstream consumers see the same `ResolvedConfig` shape regardless of which input shape was on disk.
+
+**Cross-package validation rules:** Once globs are materialized, `inspect` runs four overlap/conflict checks against the resolved set and surfaces any failure as a `ConfigurationError`:
+
+1. **Unknown package keys** -- A `packages[name]` key that does not match any workspace package's `name` field is rejected. The error lists the unknown keys and the available workspace names.
+2. **additionalScopes overlap between packages** -- Two different packages cannot claim the same file via their `additionalScopes`. The error names both packages and the offending file(s).
+3. **additionalScopes shadowing a different workspace's directory** -- Package A's `additionalScopes` cannot match any file inside package B's workspace directory. The check **excludes the workspace root itself** from the shadowing check, because every `additionalScopes` file sits inside the project root by definition -- treating the root as shadowing would make every `additionalScopes` entry an error.
+4. **versionFiles `(file, JSONPath)` tuple conflicts** -- Two different packages cannot target the same `(file, JSONPath)` tuple. The same file is fine if the JSONPath differs (e.g., multiple version fields in one manifest); the conflict is at the pair level.
+
+**Service shape:**
+
+```typescript
+export class ConfigInspector extends Context.Tag("@savvy-web/changesets/ConfigInspector")<
+  ConfigInspector,
+  {
+    readonly inspect: (cwd: string) => Effect.Effect<ResolvedConfig, ConfigurationError>;
+    readonly classify: (cwd: string, paths: ReadonlyArray<string>) => Effect.Effect<
+      ReadonlyArray<ClassificationResult>,
+      ConfigurationError
+    >;
+  }
+>() {}
+```
+
+`ConfigInspectorLive` requires `ChangesetConfigReader | WorkspaceDiscovery` and produces the `ConfigInspector` tag. `makeConfigInspectorTest({ config, packages })` builds an in-memory test fixture for unit tests that need fixed config/workspace state without touching disk or git.
+
+### BranchAnalyzer
+
+`package/src/services/branch-analyzer.ts` answers the question: *given the current branch, which packages have changes that need a changeset?* This is what the new `analyze-branch` command and the companion plugin's `changeset-manager` agent call to replace the previous "manual git diff + workspace-lookup" dance.
+
+**Operations:**
+
+| Method | Description |
+| :--- | :--- |
+| `analyzeBranch(cwd, opts?)` | Resolve the base branch, compute the merge-base against `HEAD`, collect every file that has changed since the merge-base (including untracked work), classify each via `ConfigInspector.classify`, and roll up the result into a `BranchAnalysis`. |
+
+**Result shape (`BranchAnalysis`):**
+
+```typescript
+interface BranchAnalysis {
+  readonly baseBranch: string;
+  readonly mergeBaseSha: string;
+  readonly files: ReadonlyArray<{ path: string; status: FileStatus; classification: ClassificationResult | null }>;
+  readonly packagesAffected: ReadonlyArray<string>; // workspace package names with at least one attributed change
+  readonly unmappedFiles: ReadonlyArray<string>;    // paths classification returned null for
+}
+```
+
+**Base branch resolution order:**
+
+1. Explicit `opts.baseBranch` (passed by the CLI's `--base` flag or programmatic caller)
+2. The config's `baseBranch` field (read via `ChangesetConfigReader`)
+3. `origin/HEAD` (resolved via `git symbolic-ref refs/remotes/origin/HEAD`)
+4. Fallback to the literal string `"main"`
+
+The first option that resolves to an existing ref wins. The resolved branch name is included in the result so callers can surface it to users.
+
+**Diff coverage -- the work-in-progress fix:** Earlier in this branch the diff was computed via `git diff --name-status -z <merge-base>...HEAD`, which only sees **committed** changes on the branch and silently misses staged and unstaged work. The current implementation uses two `git` calls, then merges the results:
+
+1. `git diff --name-status -z <merge-base>` -- working tree vs merge-base. The two-dot form (no `...`) compares the index/working tree against the merge-base directly, covering committed + staged + unstaged changes in one call.
+2. `git ls-files -z --others --exclude-standard` -- untracked files honoring `.gitignore`. Each result is reported as `status: "added"`.
+
+The fix is documented in the file's module header so future readers (and AI agents writing changesets for branch-analyzer changes) understand why the implementation looks the way it does.
+
+**FileStatus union:** Covers every status code `git diff --name-status` may emit, so the type is exhaustive over real-world `git` output:
+
+```typescript
+type FileStatus =
+  | "added"      // A or untracked
+  | "modified"   // M
+  | "deleted"    // D
+  | "renamed"    // R
+  | "copied"     // C
+  | "typechange" // T
+  | "unmerged"   // U
+  | "unknown";   // anything else, including X (broken)
+```
+
+**Service shape:**
+
+```typescript
+export class BranchAnalyzer extends Context.Tag("@savvy-web/changesets/BranchAnalyzer")<
+  BranchAnalyzer,
+  {
+    readonly analyzeBranch: (
+      cwd: string,
+      opts?: { baseBranch?: string }
+    ) => Effect.Effect<BranchAnalysis, ConfigurationError | GitError>;
+  }
+>() {}
+```
+
+`BranchAnalyzerLive` requires `ConfigInspector` (which in turn requires `ChangesetConfigReader | WorkspaceDiscovery`). `makeBranchAnalyzerTest({ baseBranch, mergeBaseSha, files })` builds an in-memory fixture for tests.
+
+### WorkspaceSnapshotReader
+
+`package/src/services/workspace-snapshot.ts` reads the workspace state at an arbitrary git ref. This is what the dependency-regeneration flow uses to diff "what did the workspace look like at the base branch" against "what does the workspace look like now" without checking out the old ref.
+
+**Operations:**
+
+| Method | Description |
+| :--- | :--- |
+| `snapshotAt(cwd, ref)` | Return one `WorkspaceSnapshot` per workspace package as they existed at `ref`. Reads `pnpm-workspace.yaml` and each workspace's `package.json` via `git show <ref>:<path>`. Caches the result per `(cwd, ref)` for the lifetime of the service instance so repeat lookups during a single `deps regen` invocation don't re-shell out to git. |
+
+**Result shape (`WorkspaceSnapshot`):**
+
+```typescript
+interface WorkspaceSnapshot {
+  readonly name: string;
+  readonly relativePath: string;
+  readonly version: string;
+  readonly dependencies: Readonly<Record<string, string>>;
+  readonly devDependencies: Readonly<Record<string, string>>;
+  readonly peerDependencies: Readonly<Record<string, string>>;
+  readonly optionalDependencies: Readonly<Record<string, string>>;
+}
+```
+
+These are **plain objects**, not `WorkspacePackage` instances from `workspaces-effect`. `WorkspacePackage` is tied to the live filesystem (it knows how to read its own `package.json`, watch for changes, etc.), which is the wrong abstraction for a historical snapshot. The plain-object shape is also easier to serialize for the `deps regen --json` output that the companion plugin consumes.
+
+`WorkspaceSnapshotReaderLive` only depends on the `git` binary being available; the test factory `makeWorkspaceSnapshotReaderTest({ snapshots })` returns fixed snapshots for unit tests.
+
+### SilkPublishabilityDetectorLive
+
+`package/src/services/silk-publishability.ts` is a **layer override** of `workspaces-effect`'s `PublishabilityDetector` tag with Silk Suite-specific rules. It is provided at the same point in the layer stack as `WorkspacesLive` so that any downstream consumer asking "is package X publishable?" gets the Silk answer instead of the default.
+
+The detection logic was lifted directly from `pnpm-config-dependency-action/src/services/publishability.ts`. Its eventual home is `@savvy-web/silk-effects` -- it lives in this package only until `silk-effects` exposes the shared service, at which point it'll be a thin re-export.
+
+**Rules:**
+
+| Condition | Verdict |
+| :--- | :--- |
+| `private !== true` (i.e., field absent or explicitly `false`) | **Publishable** to the default registry |
+| `private === true` AND `publishConfig.access` is set | **Publishable** with the explicit `publishConfig` |
+| `private === true` AND `publishConfig.targets[]` is set | **Publishable per resolved target.** Each target may be a string shorthand (which inherits the parent `access`) or a full `{ registry, access }` object. The detector resolves the target list and reports the package as publishable to each resolved target. |
+| Otherwise | **Not publishable** |
+
+**Helper export:** `listPublishablePackageNames(packages: ReadonlyArray<WorkspacePackage>) => ReadonlySet<string>` returns the set of workspace package names that resolve as publishable under these rules. The `deps detect` and `deps regen` commands use this set to filter out non-publishable workspaces by default, since the typical "regenerate dependency changesets" workflow is only interested in packages that will actually ship to a registry.
+
+### Service Composition
+
+```text
+                    +----------------------+
+                    | ChangesetConfigReader |  (from @savvy-web/silk-effects)
+                    +----------+------------+
+                               |
+                               v
++-----------------+   +--------+---------+
+| WorkspaceDisc.  +-->|  ConfigInspector |
+| (workspaces-eff)|   +--------+---------+
++--------+--------+            |
+         |                     v
+         |            +--------+---------+
+         |            |  BranchAnalyzer  |
+         |            +------------------+
+         |
+         v
++--------+---------+   (provided alongside WorkspacesLive)
+| Silk Publishabil.+-> overrides PublishabilityDetector tag
++------------------+
+
++--------------------------+
+| WorkspaceSnapshotReader  |  (depends only on git binary)
++--------------------------+
+```
+
+All four services follow the same conventions as the existing `ChangelogService` / `GitHubService` / `MarkdownService` triad: class-based `Context.Tag`, a `*Live` layer for production, a `make*Test` factory for fixtures, and a `ConfigurationError` (or `GitError`) tagged error in the error channel.
+
+---
+
+## CLI Configuration Gate
+
+In 0.9.0, the `version` and `transform` commands both invoke `requireValidConfig(cwd)` (defined in `package/src/cli/utils/config-gate.ts`) before doing any work. The gate has three branches:
+
+1. **No `.changeset/config.json`** -- The gate short-circuits and the command proceeds as if no Silk-specific config exists. This preserves the "unconfigured repo" path; `version` falls back to whatever `changeset version` would do natively.
+2. **Config exists and is valid** -- `ConfigInspector.inspect(cwd)` returns successfully. The command continues, and the resolved config is reused (no second `inspect` call needed).
+3. **Config exists but is invalid** -- `ConfigInspector.inspect(cwd)` raises a `ConfigurationError`. The command **refuses to run** with a non-zero exit and prints the error. The user fixes the config and re-runs.
+
+**Why `lint` is exempt:** The `lint` command operates on changeset markdown, not on the resolved config. Refusing to lint when the config is broken would prevent the user from getting feedback on the changeset they're editing while they fix the config. `lint` deliberately bypasses the gate.
+
+**Why `init` is exempt:** `init` is the command users run *to* fix a broken or missing config, so it cannot itself depend on the config being valid.
+
+The `version` command was rewritten in 0.9.0 to consume `ConfigInspector.inspect`'s resolved `packages[]` array directly:
+
+```typescript
+// 0.9.0 version flow (simplified)
+const resolved = yield* ConfigInspector.inspect(cwd);
+yield* VersionFiles.processResolvedVersionFiles(resolved.packages, dryRun);
+```
+
+`VersionFiles.processResolvedVersionFiles(scopes, dryRun)` is a new entry point on the existing `VersionFiles` static utility class. It accepts the already-resolved per-package scopes from `ConfigInspector` and skips the entire legacy `extractVersionFiles` + `processVersionFiles` + longest-prefix-match chain. That legacy chain is retained only because `init --check` still calls it; both paths disappear in 1.0.0 along with the legacy schema.
 
 ---
 
@@ -2287,6 +2605,17 @@ a clean bridge. The `./changelog` export uses this bridge since Changesets requi
 | `savvy-changesets transform` | Post-process CHANGELOG.md with remark transform pipeline | Standalone use |
 | `savvy-changesets check` | Run full validation pipeline (lint + structure) | CI gate |
 | `savvy-changesets version` | Run changeset version, transform all workspace CHANGELOGs, and update version files | ci:version script |
+| `savvy-changesets config show` | Print the resolved config (post-normalization, post-glob-materialization) | Debug, CI inspection |
+| `savvy-changesets config validate` | Validate the config without doing anything else; exits non-zero on `ConfigurationError` | CI gate, pre-commit |
+| `savvy-changesets classify <paths...>` | For each path, print its attribution (workspace / additionalScope / versionFile / unmapped) | Agent classification, scripts |
+| `savvy-changesets analyze-branch` | Diff the current branch against its base, classify every changed file, and print `BranchAnalysis` | Agent-driven changeset authoring |
+| `savvy-changesets release-surface <package>` | List every file owned by a named workspace package (workspace dir + additionalScopes + versionFiles) | Manual auditing |
+| `savvy-changesets deps detect` | Detect dependency changes across the workspace since the base branch | Agent dependency tracking |
+| `savvy-changesets deps regen` | Regenerate pure-dependency changesets from the workspace snapshot | Automated dep-bot flow |
+
+All five new 0.9.0 commands (`config show`, `config validate`, `classify`, `analyze-branch`, `release-surface`, `deps detect`, `deps regen`) are registered in `package/src/cli/index.ts`. `config show` and `config validate` are nested under a `config` subcommand group; `deps detect` and `deps regen` are nested under a `deps` subcommand group. Each new command takes the `WorkspacesLive | ConfigInspectorLive` layer stack at the CLI edge.
+
+The new commands all support `--json` for machine-readable output, which is what the companion plugin's `analyze-branch.sh` wrapper consumes.
 
 #### init Command
 
@@ -2354,6 +2683,16 @@ interface CheckIssue {
 **`InitError` tagged error:** Uses `Data.TaggedError("InitError")` with `step` and
 `reason` fields. Each init step can fail independently; errors are collected and
 reported at the end (non-fatal unless `--quiet` is not set).
+
+**Legacy `versionFiles[]` deprecation warning (0.9.0):** When `init` (in either write or `--check` mode) inspects an existing `.changeset/config.json`, it detects whether the config still uses the legacy top-level `versionFiles[]` shape. If so, it emits a one-line `Effect.logWarning` pointing at the new per-package `packages` shape (see [Per-Package Release Surfaces](#per-package-release-surfaces)), and in `--check` mode appends a `CheckIssue` for the deprecation so the postinstall surface sees it too. The detection and warning helpers live in `init.ts`:
+
+| Helper | Purpose |
+| :--- | :--- |
+| `detectLegacyVersionFiles(config)` | Pure predicate: true when the resolved config object carries a top-level `versionFiles[]` array |
+| `legacyVersionFilesWarning()` | The canonical one-line migration warning text (kept in one place so the wording stays consistent across the `Effect.logWarning` call and the `CheckIssue` message) |
+| `warnIfLegacyVersionFiles(config)` | Effect that calls `detectLegacyVersionFiles` and emits the warning once if it returns true |
+
+The warning persists across the 0.9.0 release line as a deprecation runway; it is removed alongside the legacy schema in 1.0.0 (Phase 10).
 
 ### CI Integration
 
@@ -2460,6 +2799,16 @@ The plugin complements the three-layer processing architecture:
 - **Layer 2 (Changelog Formatter)** consumes well-formed changesets to produce CHANGELOG entries. The plugin's `create` skill and `changeset-writer` agent produce changesets that the formatter can process without issues.
 - **Layer 3 (Remark Transform)** post-processes the generated CHANGELOG. The plugin's `preview` skill shows users what the final output will look like after all three layers run.
 - **Markdownlint rules** (CSH001-CSH005) provide editor feedback. The plugin's `check` skill runs equivalent validation from the Claude Code context.
+
+### 0.9.0 Companion Plugin Updates
+
+The 0.9.0 release simplifies the companion plugin to take advantage of the new service-layer surface. The major changes:
+
+- **`changeset-manager` agent rewritten around `analyze-branch`.** The agent previously did its own `git diff` and workspace-lookup dance to figure out which packages had changed. In 0.9.0 it instead invokes `bash "${CLAUDE_PLUGIN_ROOT}/skills/config/scripts/analyze-branch.sh"`, which wraps `savvy-changesets analyze-branch --json`. The agent gets the full `BranchAnalysis` -- files, statuses, classifications, `packagesAffected[]`, and `unmappedFiles[]` -- in one call. It then applies its own exclusion-category filter on top (e.g., skipping pure-documentation paths), and finally asks the user about anything still sitting in `unmappedFiles[]` rather than silently dropping those changes.
+- **New `dependencies` skill.** A thin wrapper around `savvy-changesets deps detect` and `savvy-changesets deps regen` so that agents can answer "what dependency changesets do I need to write?" and "regenerate them" via the same skill-invocation pattern as the existing changeset-lifecycle skills.
+- **"One package per changeset" reinforcement.** The agent body now uses imperative language ("write one changeset per package") rather than guidance ("prefer one changeset per package"). This pairs with the per-package release surface model: now that attribution is unambiguous via `ConfigInspector`, splitting per package is mechanical and the agent should not be talked out of it.
+
+These updates land alongside the package's 0.9.0 release because the agent's `analyze-branch.sh` wrapper depends on the new CLI subcommand being available.
 
 ---
 
@@ -3001,6 +3350,10 @@ not future enhancements:
 
 - None yet (this is the first design doc for this module)
 
+**Implementation Plans:**
+
+- `.claude/plans/v1-typed-release-surfaces.md` -- Full sequencing for the per-package release surface migration. Phases 1-9 land in 0.9.0 (with the deprecation cycle); Phase 10 is the 1.0.0 hard break that removes the legacy `versionFiles[]` shape, `LegacyVersionFileConfigSchema`, the legacy normalization branch in `ConfigInspector`, and the `extractVersionFiles` + `processVersionFiles` chain.
+
 **Prior Art:**
 
 - `workflow/pkgs/changelog/` - The existing `@savvy-web/changelog` package that this replaces
@@ -3030,7 +3383,7 @@ not future enhancements:
 
 ---
 
-**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers. Claude Code plugin fully implemented with 9 skills, 1 subagent, and 3 hooks.
+**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers. Claude Code plugin fully implemented with 9 skills, 1 subagent, and 3 hooks. **0.9.0** adds the per-package release surface model, four new Effect services (`ConfigInspector`, `BranchAnalyzer`, `WorkspaceSnapshotReader`, `SilkPublishabilityDetectorLive`), and five new CLI subcommands (`config show`/`validate`, `classify`, `analyze-branch`, `release-surface`, `deps detect`/`regen`) with a deprecation cycle on the legacy `versionFiles[]` shape; **1.0.0** removes the legacy shape entirely (Phase 10 of `.claude/plans/v1-typed-release-surfaces.md`, future branch).
 
 **Architecture Notes:**
 
@@ -3047,6 +3400,13 @@ not future enhancements:
   validated by CSH005 (lint) and aggregated by AggregateDependencyTablesPlugin (transform)
 - The Claude Code plugin extends the three-layer architecture into the authoring phase, enforcing
   format rules at write time rather than only at lint/CI time
+- The 0.9.0 service layer (`ConfigInspector`, `BranchAnalyzer`, `WorkspaceSnapshotReader`,
+  `SilkPublishabilityDetectorLive`) sits at the boundary between the config and the formatter:
+  it owns config resolution, classification, and branch analysis, exposing typed answers that the
+  new CLI commands and the companion plugin's agents can consume without recomputing
+- `version` and `transform` now go through `requireValidConfig(cwd)` and refuse to run on an
+  invalid config; `lint` and `init` are deliberately exempt because they must keep working
+  while the user fixes the config
 
 **Maintenance:**
 
