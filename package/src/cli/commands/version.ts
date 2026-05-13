@@ -177,7 +177,17 @@ export function runVersion(dryRun: boolean) {
 
 		const inspector = yield* ConfigInspector;
 		const inspected = yield* inspector.inspect(resolvedCwd);
-		const scopesWithVersionFiles = inspected.packages.filter((p) => p.versionFiles.length > 0);
+		// `ConfigInspector` (and the underlying `WorkspaceDiscovery`) cache
+		// per project root and were warmed by `requireValidConfig` above —
+		// before `changeset version` rewrote each workspace's `package.json`.
+		// Re-read each scope's version from disk so the linked versionFiles
+		// targets receive the freshly-bumped value, not the cached one.
+		const scopesWithVersionFiles = inspected.packages
+			.filter((p) => p.versionFiles.length > 0)
+			.map((p) => {
+				const fresh = readPackageVersionFromDisk(p.workspaceDir);
+				return fresh && fresh !== p.version ? { ...p, version: fresh } : p;
+			});
 
 		if (scopesWithVersionFiles.length === 0) {
 			return;
@@ -201,6 +211,23 @@ export function runVersion(dryRun: boolean) {
 			yield* Effect.log(`${action} ${update.filePath} → ${update.version}`);
 		}
 	});
+}
+
+/**
+ * Read the `version` field from a workspace package's `package.json` on
+ * disk. Used to bypass cached state in `ConfigInspector` and
+ * `WorkspaceDiscovery` after `changeset version` has rewritten each
+ * workspace's manifest.
+ *
+ * @internal
+ */
+function readPackageVersionFromDisk(workspaceDir: string): string | null {
+	try {
+		const pkg = JSON.parse(readFileSync(join(workspaceDir, "package.json"), "utf-8")) as { version?: string };
+		return pkg.version ?? null;
+	} catch {
+		return null;
+	}
 }
 
 /* v8 ignore next 4 -- CLI registration; handler tested via runVersion */

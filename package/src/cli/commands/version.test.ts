@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { Effect, Layer, Logger } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PackageManagerDetector, WorkspaceDiscovery } from "workspaces-effect";
@@ -15,7 +15,7 @@ vi.mock("node:child_process", () => ({
 
 vi.mock("node:fs", () => ({
 	existsSync: vi.fn(),
-	readFileSync: vi.fn(),
+	readFileSync: vi.fn(() => '{"name":"root"}'),
 }));
 
 vi.mock("../../api/transformer.js", () => ({
@@ -200,6 +200,57 @@ describe("runVersion Effect handler", () => {
 		const callArgs = vi.mocked(VersionFiles.processResolvedVersionFiles).mock.calls[0];
 		expect(callArgs[0]).toHaveLength(1);
 		expect(callArgs[1]).toBe(true);
+	});
+
+	it("reads fresh package.json versions from disk after changeset version mutates them", async () => {
+		// The inspector cache (and the underlying WorkspaceDiscovery cache) is
+		// warmed by requireValidConfig BEFORE `changeset version` runs, so its
+		// `scope.version` is the pre-bump value. version.ts must re-read each
+		// scope's package.json from disk after the bump so processResolvedVersionFiles
+		// writes the new version into the linked versionFiles target.
+		const StaleInspector = makeConfigInspectorTest(
+			makeInspected({
+				packages: [
+					{
+						name: "@scope/foo",
+						workspaceDir: "/project/packages/foo",
+						version: "1.0.0", // pre-bump cached
+						additionalScopes: [],
+						additionalScopeFiles: [],
+						versionFiles: [
+							{
+								glob: "plugin.json",
+								paths: ["$.version"],
+								matchedFiles: ["/project/plugin.json"],
+							},
+						],
+					},
+				],
+			}),
+		);
+		vi.mocked(existsSync).mockImplementation((p) => {
+			const s = String(p);
+			return s.endsWith(".changeset/config.json") || s.endsWith("/packages/foo/package.json");
+		});
+		vi.mocked(VersionFiles.processResolvedVersionFiles).mockReturnValue([]);
+		// Post-bump disk state: @scope/foo's package.json now declares 2.0.0.
+		vi.mocked(readFileSync).mockImplementation(((p: unknown) => {
+			const s = String(p);
+			if (s.endsWith("/packages/foo/package.json")) {
+				return '{"name":"@scope/foo","version":"2.0.0"}';
+			}
+			return '{"name":"root"}';
+		}) as typeof readFileSync);
+
+		await Effect.runPromise(
+			runVersion(false).pipe(
+				Effect.provide(Layer.mergeAll(StaleInspector, TestPackageManagerDetectorLayer, TestWorkspaceDiscoveryLayer)),
+				Effect.provide(silentLogger),
+			),
+		);
+
+		const passedScopes = vi.mocked(VersionFiles.processResolvedVersionFiles).mock.calls[0]?.[0];
+		expect(passedScopes?.[0]?.version).toBe("2.0.0");
 	});
 
 	it("refuses to run when the config inspector returns ConfigurationError", async () => {
