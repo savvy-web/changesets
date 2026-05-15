@@ -8,9 +8,8 @@ when_to_use: >
   "what changesets are pending", "show me the changesets", "list changesets",
   "summarize the pending releases", "what's queued for release",
   "what packages have changesets ready"
-disable-model-invocation: true
 model: sonnet
-allowed-tools: Bash
+allowed-tools: Bash(bash *)
 ---
 
 # List Pending Changesets
@@ -22,7 +21,7 @@ This skill wraps `@changesets/cli`'s `status` command to produce a structured li
 Use the Bash tool:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/list.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/list/scripts/list.sh"
 ```
 
 The script:

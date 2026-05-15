@@ -11,7 +11,6 @@ when_to_use: >
   documentation is out of date", "make sure changesets exist for what I just
   shipped", "do I need a changeset for this branch?"
 argument-hint: "[--require] [--package <name>] [--bump patch|minor|major] [--dry-run]"
-disable-model-invocation: true
 ---
 
 # Create / Reconcile Changesets

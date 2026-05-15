@@ -7,7 +7,7 @@ description: >
   package attribution without re-implementing the logic.
 user-invocable: false
 model: sonnet
-allowed-tools: Bash
+allowed-tools: Bash(bash *)
 ---
 
 # Inspect Changeset Configuration
@@ -35,14 +35,14 @@ diff to analyze).
 Use the Bash tool:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/analyze-branch.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/config/scripts/analyze-branch.sh"
 ```
 
 Pass `--base <branch>` (or other CLI flags) as positional args to override
 auto-detection:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/analyze-branch.sh" --base develop
+bash "${CLAUDE_PLUGIN_ROOT}/skills/config/scripts/analyze-branch.sh" --base develop
 ```
 
 Output schema (matches `BranchAnalysis` in the CLI source):
@@ -73,7 +73,7 @@ render a release-surface list for a specific package, or to confirm that
 the config validates after a manual edit — use:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/inspect.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/config/scripts/inspect.sh"
 ```
 
 Output schema (matches `InspectedConfig` in the CLI source):

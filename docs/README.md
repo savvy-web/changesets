@@ -31,9 +31,8 @@ A companion [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin
 
 The plugin provides:
 
-- **SessionStart hook** -- Injects changeset format context, available CLI commands, and bump type guidelines into the session. Dynamically detects the project's package manager to construct the correct `savvy-changesets` invocation.
+- **SessionStart hook** -- Injects changeset format context, available CLI commands, and bump type guidelines into the session, and persists per-session env (`CHANGESETS_PROJECT_DIR`, `CHANGESETS_PLUGIN_ROOT`, `CHANGESETS_PACKAGE_MANAGER`, etc.) for sibling hooks. Dynamically detects the project's package manager to construct the correct `savvy-changesets` invocation.
+- **PreToolUse hook (Bash)** -- Before `git push` from a feature branch, denies the push when the diff against `origin/main` (or `origin/master`) contains no added or modified `.changeset/*.md`. Override per-invocation with `CHANGESETS_SKIP_PUSH_CHECK=1 git push ...` (inline or via `env(1)`), or for the whole session by exporting it before launching Claude Code.
 - **PostToolUse hook (Write|Edit)** -- After any write or edit to a `.changeset/*.md` file, automatically runs `savvy-changesets validate-file` and feeds errors back to the agent for immediate correction.
-- **Stop hook** -- Runs `savvy-changesets check .changeset` when the agent finishes responding and reminds the agent if source files were modified without a changeset.
-- **PreToolUse hook (Bash)** -- Before git commit commands, prompts the agent to consider whether a changeset is needed for user-facing changes.
-- **Skills** -- Interactive commands (`/changesets:create`, `/changesets:check`, `/changesets:status`, etc.) for guided changeset management.
-- **changeset-writer agent** -- Autonomous subagent that analyzes diffs, detects affected packages, and writes properly structured changeset files.
+- **Skills** -- Interactive commands (`/changesets:create`, `/changesets:check`, `/changesets:list`, `/changesets:preview`, `/changesets:squash`, `/changesets:style`) for guided changeset management.
+- **changeset-manager agent** -- Autonomous subagent that analyzes diffs, detects affected packages, and reconciles changesets (create / update / merge / delete).

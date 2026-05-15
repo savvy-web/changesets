@@ -12,7 +12,6 @@ when_to_use: >
   before release."
 argument-hint: "[branch|all] [--package <name>] [--dry-run]"
 arguments: [scope]
-disable-model-invocation: true
 ---
 
 # Squash Changesets

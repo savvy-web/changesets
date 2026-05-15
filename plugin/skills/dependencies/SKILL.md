@@ -7,7 +7,7 @@ description: >
   changeset and one-dependency-changeset-per-package.
 user-invocable: false
 model: sonnet
-allowed-tools: Bash
+allowed-tools: Bash(bash *)
 ---
 
 # Manage Dependency Changesets
@@ -29,7 +29,7 @@ package may have at most **one** changeset file whose only content is a
 ## Primary path: `regen.sh`
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/regen.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/dependencies/scripts/regen.sh"
 ```
 
 What it does:
@@ -67,7 +67,7 @@ Common flags forwarded to the CLI:
 ## Secondary path: `detect.sh`
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/detect.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/dependencies/scripts/detect.sh"
 ```
 
 Read-only. Returns the same per-workspace-package diff structure that
