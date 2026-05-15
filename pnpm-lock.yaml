@@ -50,8 +50,8 @@ importers:
         specifier: ^0.9.0
         version: 0.9.0(@commitlint/cli@20.5.3(@types/node@25.7.0)(conventional-commits-parser@6.4.0)(typescript@6.0.3))(@commitlint/config-conventional@20.5.3)(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/typeclass@0.40.0(effect@3.21.2))(@effect/workflow@0.18.1(@effect/experimental@0.60.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(@effect/platform@0.96.1(effect@3.21.2))(@effect/rpc@0.75.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2))(effect@3.21.2))(commitizen@4.3.1(@types/node@25.7.0)(typescript@6.0.3))(husky@9.1.7)
       '@savvy-web/lint-staged':
-        specifier: ^1.0.0
-        version: 1.0.0(d051bd78c78cec8f70221007b9fa69d8)
+        specifier: ^1.0.1
+        version: 1.0.1(d051bd78c78cec8f70221007b9fa69d8)
       '@savvy-web/vitest':
         specifier: ^1.3.2
         version: 1.3.2(add150a43bf732ac8878a01da80db9cd)
@@ -117,11 +117,11 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0
       '@rslib/core':
-        specifier: ^0.21.1
-        version: 0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)
+        specifier: ^0.21.5
+        version: 0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)
       '@savvy-web/rslib-builder':
         specifier: ^0.20.3
-        version: 0.20.3(@pnpm/logger@1001.0.1)(@rslib/core@0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3))(@types/node@25.7.0)(@typescript/native-preview@7.0.0-dev.20260513.1)(jiti@2.7.0)(typescript@6.0.3)
+        version: 0.20.3(@pnpm/logger@1001.0.1)(@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3))(@types/node@25.7.0)(@typescript/native-preview@7.0.0-dev.20260513.1)(jiti@2.7.0)(typescript@6.0.3)
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
@@ -1025,8 +1025,8 @@ packages:
     engines: {node: '>=18.12.0'}
     hasBin: true
 
-  '@rslib/core@0.21.4':
-    resolution: {integrity: sha512-lGQ3znngCmzYaIbPZcfEm4t+fGhSM4os1GKwXaLydUOB2mf3Q/MDffpEkuMtbzrW+PmAGJ8NIbjgipXd9mlcsg==}
+  '@rslib/core@0.21.5':
+    resolution: {integrity: sha512-KPWR8gcodSIw8txfJ+KbgF5NoL7CxX0AljHiJk1VWDiClrN94jYmF5iGCFgaDraOBV9jJhpIIwPOfu09ild8eA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -1145,14 +1145,14 @@ packages:
       commitizen: ^4.3.0
       husky: ^9.1.0
 
-  '@savvy-web/lint-staged@1.0.0':
-    resolution: {integrity: sha512-r+IoAhZeiGw+cKX+0Ly3Y+EX+MKEpJe2Z9Kjkob9z95YADWZT5tTHiTYt0+n5TWLv4qd2nY6/uTeZtZ4u/I1/Q==}
+  '@savvy-web/lint-staged@1.0.1':
+    resolution: {integrity: sha512-JELWQGKusQcgIMYg7izh6oFr/4tGbFZjHRgMIA4MRJCUTphxsmX/9tlLB1zOxSatxHaQqu4Cir7MEYzuRHkOfQ==}
     engines: {node: '>=24.0.0'}
     hasBin: true
     peerDependencies:
-      '@biomejs/biome': 2.4.12
+      '@biomejs/biome': 2.4.15
       '@types/node': ^25.6.0
-      '@typescript/native-preview': ^7.0.0-dev.20260124.1
+      '@typescript/native-preview': ^7.0.0-dev.20260513.1
       husky: ^9.1.0
       lint-staged: ^16.4.0
       markdownlint-cli2: ^0.22.0
@@ -1769,6 +1769,10 @@ packages:
     resolution: {integrity: sha512-nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA==}
     engines: {node: '>= 0.6'}
 
+  content-type@2.0.0:
+    resolution: {integrity: sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ==}
+    engines: {node: '>=18'}
+
   conventional-changelog-angular@8.3.1:
     resolution: {integrity: sha512-6gfI3otXK5Ph5DfCOI1dblr+kN3FAm5a97hYoQkqNZxOaYa5WKfXH+AnpsmS+iUH2mgVC2Cg2Qw9m5OKcmNrIg==}
     engines: {node: '>=18'}
@@ -2081,8 +2085,8 @@ packages:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
     engines: {node: '>=12.0.0'}
 
-  express-rate-limit@8.5.1:
-    resolution: {integrity: sha512-5O6KYmyJEpuPJV5hNTXKbAHWRqrzyu+OI3vUnSd2kXFubIVpG7ezpgxQy76Zo5GQZtrQBg86hF+CM/NX+cioiQ==}
+  express-rate-limit@8.5.2:
+    resolution: {integrity: sha512-5Kb34ipNX694DH48vN9irak1Qx30nb0PLYHXfJgw4YEjiC3ZEmZJhwOp+VfiCYwFzvFTdB9QkArYS5kXa2cx2A==}
     engines: {node: '>= 16'}
     peerDependencies:
       express: '>= 4.11'
@@ -2819,8 +2823,8 @@ packages:
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
-  magicast@0.5.2:
-    resolution: {integrity: sha512-E3ZJh4J3S9KfwdjZhe2afj6R9lGIN5Pher1pF39UGrXRqq/VDaGVIGN13BjHd2u8B61hArAGOnso7nBOouW3TQ==}
+  magicast@0.5.3:
+    resolution: {integrity: sha512-pVKE4UdSQ7DvHzivsCIFx2BJn1mHG6KsyrFcaxFx6tONdneEuThrDx0Cj3AMg58KyN4pzYT+LHOotxDQDjNvkw==}
 
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
@@ -3435,8 +3439,8 @@ packages:
     resolution: {integrity: sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ==}
     engines: {node: '>= 18'}
 
-  rsbuild-plugin-dts@0.21.4:
-    resolution: {integrity: sha512-hqXzk3pQFcbviCZNECxIZsH8ygyf9F9n3UZWHpjcAZmYeH5wLPsGqa6CyXWh4+EDXkO++7iXTVuIuw2x2hGn/w==}
+  rsbuild-plugin-dts@0.21.5:
+    resolution: {integrity: sha512-tRSqSCmaY2Ef/FTxcLUw26jQxM/HJHAFqTsqngXnXnfic0BHlSCKzJuwjGoGUYimb3RdH6qnC7jzkXuoe+ZXOA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@microsoft/api-extractor': ^7
@@ -3772,9 +3776,9 @@ packages:
     resolution: {integrity: sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w==}
     engines: {node: '>=10'}
 
-  type-is@2.0.1:
-    resolution: {integrity: sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw==}
-    engines: {node: '>= 0.6'}
+  type-is@2.1.0:
+    resolution: {integrity: sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA==}
+    engines: {node: '>= 18'}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -4734,7 +4738,7 @@ snapshots:
       eventsource: 3.0.7
       eventsource-parser: 3.0.8
       express: 5.2.1
-      express-rate-limit: 8.5.1(express@5.2.1)
+      express-rate-limit: 8.5.2(express@5.2.1)
       hono: 4.12.18
       jose: 6.2.3
       json-schema-typed: 8.0.2
@@ -5139,10 +5143,10 @@ snapshots:
       core-js: 3.47.0
       jiti: 2.7.0
 
-  '@rslib/core@0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)':
+  '@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)':
     dependencies:
       '@rsbuild/core': 1.7.5
-      rsbuild-plugin-dts: 0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@rsbuild/core@1.7.5)(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)
+      rsbuild-plugin-dts: 0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@rsbuild/core@1.7.5)(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.58.7(@types/node@25.7.0)
       typescript: 6.0.3
@@ -5269,7 +5273,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@savvy-web/lint-staged@1.0.0(d051bd78c78cec8f70221007b9fa69d8)':
+  '@savvy-web/lint-staged@1.0.1(d051bd78c78cec8f70221007b9fa69d8)':
     dependencies:
       '@effect/cli': 0.75.1(@effect/platform@0.96.1(effect@3.21.2))(@effect/printer-ansi@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(@effect/printer@0.49.0(@effect/typeclass@0.40.0(effect@3.21.2))(effect@3.21.2))(effect@3.21.2)
       '@effect/platform': 0.96.1(effect@3.21.2)
@@ -5287,7 +5291,7 @@ snapshots:
       sort-package-json: 3.6.1
       turbo: 2.9.12
       typescript: 6.0.3
-      workspaces-effect: 0.4.1(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
+      workspaces-effect: 1.0.0(@effect/platform@0.96.1(effect@3.21.2))(effect@3.21.2)
       yaml: 2.9.0
       yaml-lint: 1.7.0
     transitivePeerDependencies:
@@ -5299,7 +5303,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@savvy-web/rslib-builder@0.20.3(@pnpm/logger@1001.0.1)(@rslib/core@0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3))(@types/node@25.7.0)(@typescript/native-preview@7.0.0-dev.20260513.1)(jiti@2.7.0)(typescript@6.0.3)':
+  '@savvy-web/rslib-builder@0.20.3(@pnpm/logger@1001.0.1)(@rslib/core@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3))(@types/node@25.7.0)(@typescript/native-preview@7.0.0-dev.20260513.1)(jiti@2.7.0)(typescript@6.0.3)':
     dependencies:
       '@microsoft/api-extractor': 7.58.7(@types/node@25.7.0)
       '@microsoft/tsdoc': 0.16.0
@@ -5310,7 +5314,7 @@ snapshots:
       '@pnpm/lockfile.fs': 1100.0.7(@pnpm/logger@1001.0.1)
       '@pnpm/workspace.read-manifest': 1000.3.1
       '@rsbuild/core': 1.7.5
-      '@rslib/core': 0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)
+      '@rslib/core': 0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3)
       '@types/node': 25.7.0
       '@typescript-eslint/parser': 8.59.3(eslint@10.3.0(jiti@2.7.0))(typescript@6.0.3)
       '@typescript/native-preview': 7.0.0-dev.20260513.1
@@ -5577,7 +5581,7 @@ snapshots:
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
       istanbul-reports: 3.2.0
-      magicast: 0.5.2
+      magicast: 0.5.3
       obug: 2.1.1
       std-env: 4.1.0
       tinyrainbow: 3.1.0
@@ -5770,7 +5774,7 @@ snapshots:
       on-finished: 2.4.1
       qs: 6.15.1
       raw-body: 3.0.2
-      type-is: 2.0.1
+      type-is: 2.1.0
     transitivePeerDependencies:
       - supports-color
 
@@ -5923,6 +5927,8 @@ snapshots:
   content-disposition@1.1.0: {}
 
   content-type@1.0.5: {}
+
+  content-type@2.0.0: {}
 
   conventional-changelog-angular@8.3.1:
     dependencies:
@@ -6260,7 +6266,7 @@ snapshots:
 
   expect-type@1.3.0: {}
 
-  express-rate-limit@8.5.1(express@5.2.1):
+  express-rate-limit@8.5.2(express@5.2.1):
     dependencies:
       express: 5.2.1
       ip-address: 10.2.0
@@ -6293,7 +6299,7 @@ snapshots:
       send: 1.2.1
       serve-static: 2.2.1
       statuses: 2.0.2
-      type-is: 2.0.1
+      type-is: 2.1.0
       vary: 1.1.2
     transitivePeerDependencies:
       - supports-color
@@ -6988,7 +6994,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  magicast@0.5.2:
+  magicast@0.5.3:
     dependencies:
       '@babel/parser': 7.29.3
       '@babel/types': 7.29.0
@@ -7824,7 +7830,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  rsbuild-plugin-dts@0.21.4(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@rsbuild/core@1.7.5)(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3):
+  rsbuild-plugin-dts@0.21.5(@microsoft/api-extractor@7.58.7(@types/node@25.7.0))(@rsbuild/core@1.7.5)(@typescript/native-preview@7.0.0-dev.20260513.1)(typescript@6.0.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
       '@rsbuild/core': 1.7.5
@@ -8155,9 +8161,9 @@ snapshots:
 
   type-fest@0.21.3: {}
 
-  type-is@2.0.1:
+  type-is@2.1.0:
     dependencies:
-      content-type: 1.0.5
+      content-type: 2.0.0
       media-typer: 1.1.0
       mime-types: 3.0.2
 
