@@ -15,7 +15,7 @@ Install via the `savvy-web/systems` marketplace, or load directly from this repo
 | Event | Matcher | Purpose |
 | --- | --- | --- |
 | `SessionStart` | — | Injects the changeset format reference into the session context and persists `CHANGESETS_PROJECT_DIR` / `CHANGESETS_DATA_DIR` / `CHANGESETS_PLUGIN_ROOT` / `CHANGESETS_PACKAGE_MANAGER` for reader hooks. |
-| `PreToolUse` | `Bash` | Reminds about changesets before a `git commit`. Suggestion-only — never blocks. |
+| `PreToolUse` | `Bash` | Blocks `git push` from a feature branch when no changeset is present in the diff against the default branch. Override per-invocation by prefixing `CHANGESETS_SKIP_PUSH_CHECK=1`. |
 | `PostToolUse` | `Write\|Edit` | Validates `.changeset/*.md` files via the `savvy-changesets validate-file` CLI after a write. Fails open if the CLI is not installed. |
 
 ### Skills
@@ -81,7 +81,7 @@ plugin/
 │   ├── session-start/
 │   │   └── env-export.sh
 │   ├── pre-tool-use/
-│   │   └── commit-reminder.sh
+│   │   └── push-guard.sh
 │   ├── post-tool-use/
 │   │   └── validate-changeset.sh
 │   ├── lib/                       canonical helpers
@@ -110,7 +110,7 @@ plugin/
 
 ## Bundled scripts pattern
 
-Some skills ship `scripts/` directories containing bash scripts that shell out to project-installed CLIs (`savvy-changesets` and `@changesets/cli`). The skill body invokes them via `${CLAUDE_SKILL_DIR}/scripts/<name>.sh` — `CLAUDE_SKILL_DIR` is substituted to the skill's own directory inside the installed plugin, so the path resolves regardless of cwd.
+Some skills ship `scripts/` directories containing bash scripts that shell out to project-installed CLIs (`savvy-changesets` and `@changesets/cli`). The skill body invokes them via `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/scripts/<name>.sh` — `CLAUDE_PLUGIN_ROOT` is the plugin's installation directory and is both substituted inline in skill markdown and exported as an env var to subprocesses, so the path resolves regardless of cwd or whether the script is invoked via the Bash tool or a markdown shell-execution block.
 
 The pattern is most useful for skills whose output should be **deterministic**: validation results (`check`), structured listings (`list`), preview rendering. The CLIs already implement the canonical logic; the script is a thin adapter that handles package-manager detection and propagates exit codes. Re-implementing the same logic in the skill body would drift from the CLI's behavior.
 

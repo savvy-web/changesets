@@ -8,7 +8,6 @@ when_to_use: >
   "preview the changelog", "what will the release notes look like",
   "preview the release", "show me what the CHANGELOG would say",
   "render the pending release notes", "what would users see if I shipped now"
-disable-model-invocation: true
 model: sonnet
 ---
 

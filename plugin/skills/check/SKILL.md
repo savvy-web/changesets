@@ -8,9 +8,8 @@ when_to_use: >
   "validate changesets", "check changeset format", "lint my changesets",
   "are my changesets valid", "did I write the changesets correctly",
   "verify changeset structure", "any CSH violations in .changeset/?"
-disable-model-invocation: true
 model: sonnet
-allowed-tools: Bash
+allowed-tools: Bash(bash *)
 ---
 
 # Validate Pending Changesets
@@ -22,7 +21,7 @@ This skill wraps the `savvy-changesets` CLI to validate every changeset in `.cha
 Run the bundled `check.sh` script:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/check.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/check/scripts/check.sh"
 ```
 
 The script:
@@ -39,7 +38,7 @@ Present the script's stdout to the user verbatim — it is already formatted for
 If you intend to programmatically act on findings — for example, to invoke the `update` skill on each failing file — use the `lint.sh` script instead. It emits `file:line:col` format that's easy to parse:
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/lint.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/check/scripts/lint.sh"
 ```
 
 ## When the CLI is not installed

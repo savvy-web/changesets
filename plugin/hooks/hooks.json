@@ -17,8 +17,8 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use/commit-reminder.sh\"",
-						"timeout": 3
+						"command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use/push-guard.sh\"",
+						"timeout": 5
 					}
 				]
 			}

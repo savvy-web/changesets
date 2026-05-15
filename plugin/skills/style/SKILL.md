@@ -19,8 +19,6 @@ paths:
 
 This is the authoritative style and format specification for `@savvy-web/changesets`. Changeset files are release documentation: they describe what users upgrading the package need to know, organized under category headings.
 
-This skill auto-loads whenever you read a file under `.changeset/`. You can also load it on demand with `/changesets:style` — useful at the end of a session when you've been working on implementation and need to draft a changeset without re-reading the SessionStart context.
-
 ## YAML Frontmatter
 
 Every changeset file begins with YAML frontmatter declaring which packages are affected and the bump level:
