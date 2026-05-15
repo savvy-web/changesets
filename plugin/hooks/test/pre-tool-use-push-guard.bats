@@ -82,7 +82,7 @@ _fixture_with_command() {
 @test "blocks git push on feature branch with no changeset" {
 	_commit_code_only
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$(jq -r '.hookSpecificOutput.hookEventName' <<< "$output")" = "PreToolUse" ]
@@ -99,7 +99,7 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "CHANGESETS_SKIP_PUSH_CHECK=1 git push origin feature")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -110,7 +110,7 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "env CHANGESETS_SKIP_PUSH_CHECK=1 git push origin feature")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -121,7 +121,7 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "env git push origin feature")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$(jq -r '.hookSpecificOutput.permissionDecision' <<< "$output")" = "deny" ]
@@ -132,7 +132,7 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "CHANGESETS_SKIP_PUSH_CHECK=\"true\" git push origin feature")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -141,7 +141,7 @@ _fixture_with_command() {
 @test "allows git push with session-level CHANGESETS_SKIP_PUSH_CHECK env" {
 	_commit_code_only
 
-	run bash -c "CHANGESETS_SKIP_PUSH_CHECK=1 cat '$FIXTURES_DIR/pretooluse.git-push.json' | CHANGESETS_SKIP_PUSH_CHECK=1 CHANGESETS_PROJECT_DIR='$REPO_DIR' '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "CHANGESETS_SKIP_PUSH_CHECK=1 cat '$FIXTURES_DIR/pretooluse.git-push.json' | CHANGESETS_SKIP_PUSH_CHECK=1 CHANGESETS_PROJECT_DIR='$REPO_DIR' bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -150,7 +150,7 @@ _fixture_with_command() {
 @test "allows git push when branch contains a changeset" {
 	_commit_with_changeset
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -159,7 +159,7 @@ _fixture_with_command() {
 @test "no-op on main branch" {
 	(cd "$REPO_DIR" && git checkout -q main)
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -169,7 +169,7 @@ _fixture_with_command() {
 	(cd "$REPO_DIR" && git checkout -q -b release/0.10.0)
 	_commit_code_only
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -179,7 +179,7 @@ _fixture_with_command() {
 	(cd "$REPO_DIR" && git checkout -q -b changeset-release/main)
 	_commit_code_only
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -189,7 +189,7 @@ _fixture_with_command() {
 	(cd "$REPO_DIR" && git checkout -q -b dependabot/npm_and_yarn/foo-1.2.3)
 	_commit_code_only
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -199,7 +199,17 @@ _fixture_with_command() {
 	(cd "$REPO_DIR" && git checkout -q -b renovate/lodash-4.x)
 	_commit_code_only
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+
+	[ "$status" -eq 0 ]
+	[ "$output" = "{}" ]
+}
+
+@test "no-op on a renovate-* (hyphen-prefix) branch" {
+	(cd "$REPO_DIR" && git checkout -q -b renovate-fix-lodash)
+	_commit_code_only
+
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -208,7 +218,7 @@ _fixture_with_command() {
 @test "no-op for non-push git commands" {
 	_commit_code_only
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-commit.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-commit.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -219,14 +229,14 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "echo 'do not git push yet'")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
 }
 
 @test "no-op when tool_input.command is absent" {
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.empty-command.json' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.empty-command.json' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -236,7 +246,7 @@ _fixture_with_command() {
 	local nonrepo
 	nonrepo="$(mktemp -d "${TMPDIR:-/tmp}/changesets-bats-nonrepo.XXXXXX")"
 
-	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | CHANGESETS_PROJECT_DIR='$nonrepo' '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$FIXTURES_DIR/pretooluse.git-push.json' | CHANGESETS_PROJECT_DIR='$nonrepo' bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "{}" ]
@@ -248,7 +258,7 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "   git push origin feature")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	[ "$(jq -r '.hookSpecificOutput.permissionDecision' <<< "$output")" = "deny" ]
@@ -260,7 +270,7 @@ _fixture_with_command() {
 	local fixture
 	fixture="$(_fixture_with_command "$original")"
 
-	run bash -c "cat '$fixture' | '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
+	run bash -c "cat '$fixture' | bash '$HOOKS_DIR/pre-tool-use/push-guard.sh'"
 
 	[ "$status" -eq 0 ]
 	local reason

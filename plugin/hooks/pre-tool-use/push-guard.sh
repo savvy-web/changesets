@@ -57,8 +57,10 @@ inline_override=0
 while [[ "$trimmed" =~ ^([A-Za-z_][A-Za-z0-9_]*)=([^[:space:]]+)[[:space:]]+(.*) ]]; do
 	key="${BASH_REMATCH[1]}"
 	val="${BASH_REMATCH[2]}"
-	val="${val#[\"\']}"
-	val="${val%[\"\']}"
+	case "$val" in
+		\"*\") val="${val#\"}"; val="${val%\"}" ;;
+		\'*\') val="${val#\'}"; val="${val%\'}" ;;
+	esac
 	if [ "$key" = "CHANGESETS_SKIP_PUSH_CHECK" ]; then
 		case "$val" in
 			1 | true | yes | on | TRUE | YES | ON) inline_override=1 ;;
