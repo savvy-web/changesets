@@ -155,16 +155,15 @@ This step adds zero new runtime dependencies. The JSONPath implementation is a c
 
 ## Claude Code Plugin
 
-The companion Claude Code plugin in `plugin/` integrates the validation pipeline into AI-agent workflows. It uses four hook types to weave changeset awareness into the agent's session:
+The companion Claude Code plugin in `plugin/` integrates the validation pipeline into AI-agent workflows. It uses three hook types to weave changeset awareness into the agent's session:
 
 | Hook | Trigger | Action |
 | :--- | :--- | :--- |
-| SessionStart | Session begins | Injects changeset format context, CLI commands, and bump type guidelines |
+| SessionStart | Session begins | Injects changeset format context, CLI commands, and bump type guidelines; persists `CHANGESETS_PROJECT_DIR` / `CHANGESETS_DATA_DIR` / `CHANGESETS_PLUGIN_ROOT` / `CHANGESETS_PACKAGE_MANAGER` for sibling hooks |
+| PreToolUse (Bash) | Before `git push` from a feature branch | Denies the push when the diff against `origin/main` (or `origin/master`) contains no added/modified `.changeset/*.md`. Override per-invocation by prefixing `CHANGESETS_SKIP_PUSH_CHECK=1` (inline or via `env(1)`), or for the whole session by exporting it before launching Claude Code |
 | PostToolUse (Write\|Edit) | `.changeset/*.md` written | Runs `savvy-changesets validate-file` and feeds errors back to the agent |
-| Stop | Agent finishes responding | Runs `savvy-changesets check .changeset` and reminds about missing changesets |
-| PreToolUse (Bash) | Before `git commit` | Prompts the agent to consider creating a changeset for user-facing changes |
 
-All hooks dynamically detect the project's package manager (pnpm, yarn, bun, or npm) to construct the correct `savvy-changesets` invocation. The PostToolUse hook specifically uses the `validate-file` command for single-file validation, while the Stop hook uses `check` for a full directory scan.
+All hooks dynamically detect the project's package manager (pnpm, yarn, bun, or npm) to construct the correct `savvy-changesets` invocation. The PostToolUse hook uses the `validate-file` command for single-file validation. The push guard fails open in ambiguous cases (no `jq`, not a git repo, detached HEAD, missing `origin/main`/`origin/master`, branch is `main`/`master`/`release/*`/`changeset-release/*`/`dependabot/*`/`renovate/*`/`renovate-*`, or the merge-base diff already contains a changeset), so the guard catches the common "forgot to write a changeset" mistake without becoming a gate.
 
 ## CI Integration
 

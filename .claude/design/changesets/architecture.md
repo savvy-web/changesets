@@ -3,8 +3,8 @@ status: current
 module: changesets
 category: architecture
 created: 2026-02-11
-updated: 2026-05-13
-last-synced: 2026-05-13
+updated: 2026-05-15
+last-synced: 2026-05-15
 completeness: 98
 related: []
 dependencies: []
@@ -2781,13 +2781,17 @@ The agent is invoked by the main Claude agent (not by the user directly) when it
 
 ### Hooks
 
-Three prompt-type hooks in `hooks/hooks.json` provide passive guidance without blocking normal workflow:
+Hooks in `hooks/hooks.json` fire at three lifecycle points. The mix is deliberately mostly passive, with one targeted block at the latest possible moment (push) where the user signals "this change is done":
 
 | Hook | Trigger | Behavior |
 | :--- | :--- | :--- |
-| Commit nudge | `PreToolUse/Bash` when `git commit` is detected | Suggests creating a changeset before committing if user-facing changes were made. Non-blocking. |
-| Write validation | `PreToolUse/Write\|Edit` when target is `.changeset/*.md` | Validates changeset structure against format rules (CSH001-CSH005). Blocks on violation. |
-| Post-task reminder | `Stop` after Claude finishes | Reminds if source files were modified but no changeset was created. Non-blocking. |
+| Session env export | `SessionStart` | Captures the launching shell's environment (notably `CLAUDE_PROJECT_DIR`, any user-set `CHANGESETS_SKIP_PUSH_CHECK`) to a per-session file for later hooks to source. |
+| Push guard | `PreToolUse/Bash` when the resolved verb is `git push` | Denies the push when the branch diff against `origin/main` (or `origin/master`) contains no added or modified `.changeset/*.md` (excluding `README.md`). Surfaces a structured deny reason that walks the caller through the two paths (create a changeset, or retry with `CHANGESETS_SKIP_PUSH_CHECK=1` prefixed). |
+| Changeset write validation | `PostToolUse/Write\|Edit` when target is `.changeset/*.md` | Validates the just-written changeset against CSH001-CSH005. Surfaces violations as tool-result feedback. |
+
+The push guard's parser walks past any leading `env(1)` keyword and inline `FOO=bar` assignments before matching `^git[[:space:]]+push`, so both `CHANGESETS_SKIP_PUSH_CHECK=1 git push ...` and `env CHANGESETS_SKIP_PUSH_CHECK=1 git push ...` resolve to the push verb and respect the inline override. A session-level export (`export CHANGESETS_SKIP_PUSH_CHECK=1` in the shell that launched Claude Code) is sourced via the SessionStart hook and applies for the whole session.
+
+Fail-open is the defining invariant: anything ambiguous (no jq, not a git repo, detached HEAD, no `origin/main`/`origin/master` base ref, branch is `main`/`master`/`HEAD`/`""`/`release/*`/`changeset-release/*`/`dependabot/*`/`renovate/*`/`renovate-*`, or the merge-base diff already contains a changeset) emits `emit_noop` and lets the push proceed. The guard's job is to catch the common "forgot to write a changeset" mistake, not to be a gate. See `plugin/hooks/pre-tool-use/push-guard.sh` for the full decision flow.
 
 The write validation hook enforces the same structural rules as the remark-lint Layer 1 and the markdownlint custom rules, ensuring that changesets written by agents conform to the format specification before they hit disk.
 
@@ -3383,7 +3387,7 @@ not future enhancements:
 
 ---
 
-**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers. Claude Code plugin fully implemented with 9 skills, 1 subagent, and 3 hooks. **0.9.0** adds the per-package release surface model, four new Effect services (`ConfigInspector`, `BranchAnalyzer`, `WorkspaceSnapshotReader`, `SilkPublishabilityDetectorLive`), and five new CLI subcommands (`config show`/`validate`, `classify`, `analyze-branch`, `release-surface`, `deps detect`/`regen`) with a deprecation cycle on the legacy `versionFiles[]` shape; **1.0.0** removes the legacy shape entirely (Phase 10 of `.claude/plans/v1-typed-release-surfaces.md`, future branch).
+**Document Status:** Current - Phases 1-8 implemented, Phase 9 (documentation/release) remaining. Dependency table format feature fully integrated across all layers. Claude Code plugin fully implemented with a SessionStart env-capture hook, a `PreToolUse/Bash` push guard (replacing the earlier non-blocking commit-reminder), and a `PostToolUse/Write|Edit` changeset validator. **0.9.0** adds the per-package release surface model, four new Effect services (`ConfigInspector`, `BranchAnalyzer`, `WorkspaceSnapshotReader`, `SilkPublishabilityDetectorLive`), and five new CLI subcommands (`config show`/`validate`, `classify`, `analyze-branch`, `release-surface`, `deps detect`/`regen`) with a deprecation cycle on the legacy `versionFiles[]` shape; **1.0.0** removes the legacy shape entirely (Phase 10 of `.claude/plans/v1-typed-release-surfaces.md`, future branch).
 
 **Architecture Notes:**
 

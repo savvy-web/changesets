@@ -101,26 +101,29 @@ This adds the plugin to your `.claude/settings.json`:
 
 The plugin provides:
 
-- **`/changesets:create`** -- interactive changeset creation with diff analysis and package detection
-- **`/changesets:check`** -- validate changeset files against structural rules
-- **`/changesets:list`**, **`:update`**, **`:merge`**, **`:delete`**, **`:preview`** -- manage pending changesets
-- **`changesets:format`** / **`changesets:status`** -- auto-activating skills that guide agents on format rules and existing changeset awareness
-- **`changeset-writer`** agent -- autonomous subagent for writing changesets after implementation work
+- **`/changesets:create`** -- reconcile changesets with the branch's diff: discover existing entries, classify the diff, apply exclusion rules, and decide whether to create / update / delete
+- **`/changesets:squash`** -- consolidate per-package changesets with identical bump mappings
+- **`/changesets:check`** -- validate changeset files against CSH001-CSH005 structural rules
+- **`/changesets:list`** -- summarize pending changesets (packages, bump types, content previews)
+- **`/changesets:preview`** -- render the combined CHANGELOG output the current set would produce
+- **`/changesets:style`** -- full style and format specification (also auto-loads on `.changeset/*.md` reads)
+- **`changeset-manager`** agent -- autonomous subagent that runs the create/squash flows on demand
 
-**Automated validation hooks** run transparently in the background:
+**Automated hooks** run transparently in the background:
 
 | Hook | Trigger | Action |
 | ---- | ------- | ------ |
-| **SessionStart** | Session begins | Injects changeset format rules and available tools into the agent context |
-| **PostToolUse** | Agent writes/edits a `.changeset/*.md` file | Runs `savvy-changesets validate-file` on the changed file; feeds errors back for immediate correction |
-| **PreToolUse** | Agent runs `git commit` | Prompts the agent to consider whether a changeset is needed |
-| **Stop** | Agent finishes responding | Runs `savvy-changesets check` on all changesets and reminds the agent if source files were modified without a changeset |
+| **SessionStart** | Session begins | Injects changeset format rules and tool pointers into the agent context; persists `CHANGESETS_*` env vars for sibling hooks |
+| **PreToolUse** (Bash) | Agent runs `git push` from a feature branch | Denies the push when the diff against `origin/main` (or `origin/master`) contains no added or modified `.changeset/*.md`. Override with `CHANGESETS_SKIP_PUSH_CHECK=1 git push ...` (inline or via `env(1)`), or by exporting it before launching Claude Code |
+| **PostToolUse** (Write\|Edit) | Agent writes/edits a `.changeset/*.md` file | Runs `savvy-changesets validate-file` on the changed file; feeds errors back for immediate correction |
+
+The push guard fails open for non-feature branches (`main`, `master`, `release/*`, `changeset-release/*`, `dependabot/*`, `renovate/*`, `renovate-*`), ambiguous git state (detached HEAD, missing `origin/main`/`origin/master`), and when the merge-base diff already contains a changeset -- so it catches the common "forgot to write a changeset" mistake without becoming a gate.
 
 To have Claude automatically manage changesets as part of a multi-step workflow, include it in your prompt:
 
 > Implement the feature described in issue #42. When you're done, create a changeset documenting the user-facing changes for the GitHub release.
 
-The agent will use the `changeset-writer` subagent to analyze the diff, detect affected packages, choose the appropriate content depth, and write a properly structured changeset file. The hooks ensure every changeset is validated as it is written and again before the session ends.
+The agent will use the `changeset-manager` subagent to analyze the diff, detect affected packages, choose the appropriate content depth, and write a properly structured changeset file. The hooks ensure every changeset is validated as it is written, and the push guard catches branches that try to ship without a changeset.
 
 ## Documentation
 

@@ -12,7 +12,7 @@ Custom changelog formatter and markdown processing pipeline for the Silk Suite. 
 - **CLI tooling** -- `savvy-changesets` binary with init, lint, check, validate-file, transform, and version subcommands
 - **GitHub integration** -- Automatic PR links, commit references, and contributor attribution
 - **Editor support** -- markdownlint rules for real-time validation in VS Code and CI
-- **Claude Code plugin** -- Automated validation hooks, skills, and a changeset-writer agent for AI-assisted development
+- **Claude Code plugin** -- Automated validation and push-guard hooks, skills, and a changeset-manager agent for AI-assisted development
 
 ## Repository Structure
 
