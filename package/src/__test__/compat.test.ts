@@ -1,6 +1,6 @@
 /**
  * Compatibility tests verifying transformer output is parseable by
- * workflow-release-action's extractVersionSection logic.
+ * silk-release-action's extractVersionSection logic.
  */
 
 import { Effect } from "effect";
@@ -27,8 +27,8 @@ const MOCK_INFO: GitHubCommitInfo = {
 const testLayer = makeGitHubTest(new Map([["abc1234567890", MOCK_INFO]]));
 
 /**
- * Minimal extractVersionSection adapted from workflow-release-action.
- * See workflow-release-action/src/utils/generate-release-notes-preview.ts
+ * Minimal extractVersionSection adapted from silk-release-action.
+ * See silk-release-action/src/utils/generate-release-notes-preview.ts
  */
 function escapeRegex(str: string): string {
 	return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -74,7 +74,7 @@ async function buildChangelog(version: string, summary: string): Promise<string>
 	return ChangelogTransformer.transformContent(`## ${version}\n\n${entry}\n`);
 }
 
-describe("workflow-release-action compatibility", () => {
+describe("silk-release-action compatibility", () => {
 	it("version heading extraction matches regex", async () => {
 		const changelog = await buildChangelog("1.0.0", "feat: add feature");
 

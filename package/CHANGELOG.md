@@ -352,7 +352,7 @@ When `paths` is omitted, defaults to `["$.version"]`. Version resolution uses lo
   `GitHubApiError`, `MarkdownParseError`, `ConfigurationError`)
 * GitHub API integration with graceful degradation, batch
   processing, and fallback link generation on API failures
-* Output compatible with workflow-release-action's version
+* Output compatible with silk-release-action's version
   section extraction and GitHub-flavored markdown rendering
 
 ### Documentation
@@ -369,7 +369,7 @@ When `paths` is omitted, defaults to `["$.version"]`. Version resolution uses lo
 * Cross-layer integration tests exercising the full pipeline
   from changeset input through formatter and transformer to
   final CHANGELOG output
-* workflow-release-action compatibility tests verifying output
+* silk-release-action compatibility tests verifying output
   parseability
 * Round-trip validation tests confirming transformer idempotency
   and category heading consistency
