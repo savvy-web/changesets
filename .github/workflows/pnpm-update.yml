@@ -51,11 +51,13 @@ jobs:
           log-level: ${{ inputs.log-level || 'info' }}
           changesets: true
           auto-merge: "squash"
+          upgrade-runtime-node: "^26.0.0"
           config-dependencies: |
             @savvy-web/pnpm-plugin-silk
           dependencies: |
             @savvy-web/*
             @changesets/cli
+            @rslib/core
             jsonc-effect
             tinyglobby
             workspaces-effect
