@@ -1,5 +1,16 @@
 # @savvy-web/changesets
 
+## 0.10.1
+
+### Dependencies
+
+* | [`2b24ebf`](https://github.com/savvy-web/changesets/commit/2b24ebf74479c450e1c50870d9d8bf23c7e86911) | Dependency    | Type    | Action  | From     | To |
+  | :--------------------------------------------------------------------------------------------------- | :------------ | :------ | :------ | :------- | -- |
+  | @savvy-web/silk-effects                                                                              | dependency    | updated | ^0.3.0  | ^0.5.0   |    |
+  | workspaces-effect                                                                                    | dependency    | updated | ^1.0.0  | ^1.1.0   |    |
+  | @rslib/core                                                                                          | devDependency | updated | ^0.21.5 | ^0.22.0  |    |
+  | @savvy-web/rslib-builder                                                                             | devDependency | updated | ^0.20.4 | ^0.20.11 |    |
+
 ## 0.10.0
 
 ### Features
