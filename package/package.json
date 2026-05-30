@@ -41,7 +41,7 @@
 		"@effect/cli": "catalog:silk",
 		"@effect/platform": "catalog:silk",
 		"@effect/platform-node": "catalog:silk",
-		"@savvy-web/silk-effects": "^0.3.0",
+		"@savvy-web/silk-effects": "^0.5.0",
 		"effect": "catalog:silk",
 		"jsonc-effect": "^0.2.1",
 		"mdast-util-heading-range": "^4.0.0",
@@ -53,13 +53,13 @@
 		"unified": "^11.0.5",
 		"unified-lint-rule": "^3.0.1",
 		"unist-util-visit": "^5.1.0",
-		"workspaces-effect": "^1.0.0"
+		"workspaces-effect": "^1.1.0"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.31.0",
 		"@changesets/types": "^6.1.0",
-		"@rslib/core": "^0.21.5",
-		"@savvy-web/rslib-builder": "^0.20.4",
+		"@rslib/core": "^0.22.0",
+		"@savvy-web/rslib-builder": "^0.20.11",
 		"@types/mdast": "^4.0.4",
 		"@types/node": "catalog:silk",
 		"@typescript/native-preview": "catalog:silk",
