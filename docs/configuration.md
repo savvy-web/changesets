@@ -201,7 +201,7 @@ Run `savvy-changesets config show --json` after migrating to confirm the resolve
 Use the `version` command in your `package.json` scripts:
 
 ```bash
-savvy-changesets version && biome format --write .
+savvy changeset version && biome format --write .
 ```
 
 This runs:

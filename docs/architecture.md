@@ -170,7 +170,7 @@ All hooks dynamically detect the project's package manager (pnpm, yarn, bun, or 
 The `ci:version` script uses the `version` command:
 
 ```bash
-savvy-changesets version && biome format --write .
+savvy changeset version && biome format --write .
 ```
 
 The `version` command detects the package manager, runs `changeset version` (Layer 2), discovers all workspace CHANGELOG.md files, runs Layer 3 transform on each, and then updates any configured version files. Biome then normalizes formatting.

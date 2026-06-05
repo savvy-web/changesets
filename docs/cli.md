@@ -552,7 +552,7 @@ Add a step that runs `check` to verify all pending changeset files are well-form
 Use the version command in your CI script:
 
 ```bash
-savvy-changesets version && biome format --write .
+savvy changeset version && biome format --write .
 ```
 
 The `version` command detects the package manager, runs `changeset version`, discovers all workspace CHANGELOG.md files, and transforms each one. Biome then normalizes formatting.

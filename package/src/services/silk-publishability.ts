@@ -4,7 +4,7 @@
  *
  * @remarks
  * This is a lift of the publishability logic that originated in
- * `pnpm-config-dependency-action`. The vanilla
+ * `silk-update-action`. The vanilla
  * {@link PublishabilityDetectorLive} treats `package.json#private: true`
  * as "not publishable" full stop. The silk-suite convention extends that
  * with:
