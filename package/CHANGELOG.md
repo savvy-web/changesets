@@ -1,5 +1,21 @@
 # @savvy-web/changesets
 
+## 1.0.0
+
+### Breaking Changes
+
+* [`5026831`](https://github.com/savvy-web/changesets/commit/502683101cc70dbe9a42c1d384c7b452f07f566d) ### Package Deprecation
+
+The changelog formatter, changeset sections, and remark-based validation pipeline have moved into the Silk Suite monorepo and now ship via `@savvy-web/silk` (including the dual-format `./changesets/markdownlint` entry for markdownlint-cli2), driven by the unified `savvy` CLI.
+
+Migration:
+
+* Replace `@savvy-web/changesets` with `@savvy-web/silk`.
+* Point your changeset config at the `@savvy-web/silk/changesets/changelog` shim.
+* Replace the `savvy-changesets` bin with `savvy changeset`.
+
+This is the final release. No further fixes or security patches will be published.
+
 ## 0.10.1
 
 ### Dependencies
