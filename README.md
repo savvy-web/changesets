@@ -4,6 +4,15 @@
 [![License: MIT][license-badge]][license-url]
 [![Node.js >= 24][node-badge]][node-url]
 
+> [!CAUTION]
+> **This package is deprecated and no longer maintained.**
+> Its changelog formatter and markdown pipeline now ship in
+> [`@savvy-web/silk`](https://www.npmjs.com/package/@savvy-web/silk), driven by the
+> [`savvy`](https://www.npmjs.com/package/@savvy-web/cli) CLI
+> (`savvy changeset` replaces `savvy-changesets`).
+> Sources live in the [Silk Suite monorepo](https://github.com/savvy-web/systems).
+> No further releases, fixes, or security patches will be published here.
+
 Custom changelog formatter and markdown processing pipeline for the Silk Suite. Replaces the default `@changesets/cli/changelog` formatter with a three-layer architecture: pre-validation (remark-lint), changelog formatting (Changesets API), and post-processing (remark-transform).
 
 ## Features
