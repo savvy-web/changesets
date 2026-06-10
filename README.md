@@ -6,10 +6,10 @@
 
 > [!CAUTION]
 > **This package is deprecated and no longer maintained.**
-> Its lint-staged handlers now ship in
+> Its changelog formatter and markdown pipeline now ship in
 > [`@savvy-web/silk`](https://www.npmjs.com/package/@savvy-web/silk), driven by the
 > [`savvy`](https://www.npmjs.com/package/@savvy-web/cli) CLI
-> (`savvy lint` replaces `savvy-lint`).
+> (`savvy changeset` replaces `savvy-changesets`).
 > Sources live in the [Silk Suite monorepo](https://github.com/savvy-web/systems).
 > No further releases, fixes, or security patches will be published here.
 
